@@ -1,5 +1,8 @@
 import { Program, AnchorProvider, Idl, BorshCoder, BN } from '@coral-xyz/anchor';
-import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import {
+  Connection, PublicKey, SystemProgram,
+  TransactionMessage, VersionedTransaction, TransactionInstruction,
+} from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
@@ -10,6 +13,10 @@ import bs58 from 'bs58';
 
 const SETTLEMENT_PROGRAM_ID = new PublicKey('568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J');
 let cachedIdl: Idl | null = null;
+
+function enc(s: string): Uint8Array {
+  return new TextEncoder().encode(s);
+}
 
 async function getIdl(): Promise<Idl> {
   if (!cachedIdl) {
@@ -39,14 +46,14 @@ function bigintToLeBytes(v: bigint): Uint8Array {
 
 export function getEscrowPda(depositor: PublicKey, recipient: PublicKey, nonce: bigint): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('escrow'), depositor.toBuffer(), recipient.toBuffer(), bigintToLeBytes(nonce)],
+    [enc('escrow'), depositor.toBuffer(), recipient.toBuffer(), bigintToLeBytes(nonce)],
     SETTLEMENT_PROGRAM_ID
   );
 }
 
 export function getVaultPda(escrow: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), escrow.toBuffer()],
+    [enc('vault'), escrow.toBuffer()],
     SETTLEMENT_PROGRAM_ID
   );
 }
@@ -75,11 +82,11 @@ export async function initEscrowWithDeposit(
     params.mint, depositor, false, TOKEN_PROGRAM_ID
   );
 
-  const tx = new Transaction();
+  const instructions: TransactionInstruction[] = [];
 
   const ataInfo = await connection.getAccountInfo(depositorTokenAccount);
   if (!ataInfo) {
-    tx.add(
+    instructions.push(
       createAssociatedTokenAccountInstruction(
         depositor,
         depositorTokenAccount,
@@ -93,7 +100,7 @@ export async function initEscrowWithDeposit(
 
   const oddsScaled = BigInt(Math.round(params.odds * 1000));
 
-  tx.add(
+  instructions.push(
     await program.methods
       .initEscrow(
         new BN(params.expiry.toString()),
@@ -112,7 +119,7 @@ export async function initEscrowWithDeposit(
       .instruction()
   );
 
-  tx.add(
+  instructions.push(
     await program.methods
       .deposit(new BN(params.amount.toString()))
       .accountsStrict({
@@ -127,11 +134,15 @@ export async function initEscrowWithDeposit(
       .instruction()
   );
 
-  tx.feePayer = depositor;
   const { blockhash } = await connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
+  const message = new TransactionMessage({
+    payerKey: depositor,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message();
 
-  const signedTx = await wallet.signTransaction(tx);
+  const versionedTx = new VersionedTransaction(message);
+  const signedTx = await wallet.signTransaction(versionedTx);
   const sig = await connection.sendRawTransaction(signedTx.serialize());
   await connection.confirmTransaction(sig, 'confirmed');
   return { sig, escrowPda, nonce };
@@ -164,9 +175,27 @@ export async function fetchUserEscrows(
 
 export function getProfilePda(authority: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('profile'), authority.toBuffer()],
+    [enc('profile'), authority.toBuffer()],
     SETTLEMENT_PROGRAM_ID
   );
+}
+
+async function buildAndSend(
+  connection: Connection,
+  wallet: any,
+  instruction: TransactionInstruction
+): Promise<string> {
+  const { blockhash } = await connection.getLatestBlockhash();
+  const message = new TransactionMessage({
+    payerKey: wallet.publicKey,
+    recentBlockhash: blockhash,
+    instructions: [instruction],
+  }).compileToV0Message();
+  const versionedTx = new VersionedTransaction(message);
+  const signed = await wallet.signTransaction(versionedTx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction(sig, 'confirmed');
+  return sig;
 }
 
 export async function initProfile(
@@ -177,21 +206,15 @@ export async function initProfile(
 ): Promise<string> {
   const program = await getSettlementProgram(connection, wallet);
   const [profilePda] = getProfilePda(wallet.publicKey);
-  const tx = await program.methods
+  const instruction = await program.methods
     .initProfile(imageUri, xHandle)
     .accountsStrict({
       authority: wallet.publicKey,
       profile: profilePda,
       systemProgram: SystemProgram.programId,
     })
-    .transaction();
-  tx.feePayer = wallet.publicKey;
-  const { blockhash } = await connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
-  const signed = await wallet.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction(sig, 'confirmed');
-  return sig;
+    .instruction();
+  return buildAndSend(connection, wallet, instruction);
 }
 
 export async function updateProfile(
@@ -202,21 +225,15 @@ export async function updateProfile(
 ): Promise<string> {
   const program = await getSettlementProgram(connection, wallet);
   const [profilePda] = getProfilePda(wallet.publicKey);
-  const tx = await program.methods
+  const instruction = await program.methods
     .updateProfile(imageUri, xHandle)
     .accountsStrict({
       authority: wallet.publicKey,
       profile: profilePda,
       systemProgram: SystemProgram.programId,
     })
-    .transaction();
-  tx.feePayer = wallet.publicKey;
-  const { blockhash } = await connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
-  const signed = await wallet.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction(sig, 'confirmed');
-  return sig;
+    .instruction();
+  return buildAndSend(connection, wallet, instruction);
 }
 
 export async function fetchUserProfile(
