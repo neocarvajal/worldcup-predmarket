@@ -1,4 +1,4 @@
-import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, SystemProgram, TransactionInstruction, type Transaction, type VersionedTransaction } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -11,14 +11,14 @@ export const USDT_MINT = new PublicKey('ELWTKspHKCnCfCiCiqYw1EDH77k8VCP74dK9qytG
 
 export function getUsdtTreasuryPda(): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('usdt_treasury')],
+    [new TextEncoder().encode('usdt_treasury')],
     TXLINE_PROGRAM_ID
   );
 }
 
 export function getFaucetTrackerPda(user: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('faucet_tracker'), user.toBuffer()],
+    [new TextEncoder().encode('faucet_tracker'), user.toBuffer()],
     TXLINE_PROGRAM_ID
   );
 }
@@ -27,31 +27,33 @@ export function getUserUsdtAta(user: PublicKey): PublicKey {
   return getAssociatedTokenAddressSync(USDT_MINT, user, false, TOKEN_PROGRAM_ID);
 }
 
-const FAUCET_DISCRIMINATOR = Buffer.from([49, 178, 104, 8, 23, 120, 186, 21]);
+const FAUCET_DISCRIMINATOR = new Uint8Array([49, 178, 104, 8, 23, 120, 186, 21]);
 
 export async function requestUsdtFaucet(
   connection: Connection,
-  wallet: { publicKey: PublicKey; signTransaction: (tx: Transaction) => Promise<Transaction> }
+  wallet: {
+    publicKey: PublicKey;
+    signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
+  }
 ): Promise<string> {
+  const { TransactionMessage, VersionedTransaction } = await import('@solana/web3.js');
   const user = wallet.publicKey;
   const [faucetTracker] = getFaucetTrackerPda(user);
   const [usdtTreasuryPda] = getUsdtTreasuryPda();
   const userUsdtAta = getUserUsdtAta(user);
 
-  const tx = new Transaction();
+  const instructions: TransactionInstruction[] = [];
 
   const ataInfo = await connection.getAccountInfo(userUsdtAta);
   if (!ataInfo) {
-    tx.add(
-      createAssociatedTokenAccountInstruction(
-        user,
-        userUsdtAta,
-        user,
-        USDT_MINT,
-        TOKEN_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      )
-    );
+    instructions.push(createAssociatedTokenAccountInstruction(
+      user,
+      userUsdtAta,
+      user,
+      USDT_MINT,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    ));
   }
 
   const keys = [
@@ -65,17 +67,21 @@ export async function requestUsdtFaucet(
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
 
-  tx.add({
+  instructions.push(new TransactionInstruction({
     keys,
     programId: TXLINE_PROGRAM_ID,
-    data: FAUCET_DISCRIMINATOR,
-  });
+    data: Buffer.from(FAUCET_DISCRIMINATOR),
+  }));
 
-  tx.feePayer = user;
   const { blockhash } = await connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
+  const message = new TransactionMessage({
+    payerKey: user,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message();
 
-  const signedTx = await wallet.signTransaction(tx);
+  const versionedTx = new VersionedTransaction(message);
+  const signedTx = await wallet.signTransaction(versionedTx);
   const sig = await connection.sendRawTransaction(signedTx.serialize());
   await connection.confirmTransaction(sig, 'confirmed');
   return sig;
@@ -99,8 +105,6 @@ export async function checkFaucetCooldown(
     if (!info) {
       return { available: true, remainingSeconds: 0, lastClaimTimestamp: null };
     }
-    // Anchor account: 8-byte discriminator + data.
-    // The tracker likely stores last_claim_timestamp as i64 at offset 8.
     const data = info.data;
     if (data.length >= 16) {
       const lastClaim = Number(data.readBigInt64LE(8));
@@ -116,15 +120,6 @@ export async function checkFaucetCooldown(
   } catch {
     return { available: true, remainingSeconds: 0, lastClaimTimestamp: null };
   }
-}
-
-export function suggestFaucetAmount(balance: number): number {
-  const TARGET = 1000;
-  if (balance >= TARGET) return 100;
-  const suggested = TARGET - balance;
-  if (suggested < 100) return 100;
-  if (suggested > 1000) return 1000;
-  return Math.round(suggested / 50) * 50;
 }
 
 export async function getUsdtBalance(connection: Connection, owner: PublicKey): Promise<number> {
