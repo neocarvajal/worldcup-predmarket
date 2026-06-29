@@ -13,7 +13,7 @@ let cachedIdl: Idl | null = null;
 
 async function getIdl(): Promise<Idl> {
   if (!cachedIdl) {
-    cachedIdl = (await import('../../target/idl/settlement.json')) as unknown as Idl;
+    cachedIdl = (await import('../idl/settlement.json')) as unknown as Idl;
   }
   return cachedIdl!;
 }
