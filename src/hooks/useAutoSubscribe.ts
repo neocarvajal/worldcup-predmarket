@@ -8,6 +8,14 @@ import nacl from 'tweetnacl';
 
 export type SubscriptionState = 'idle' | 'checking' | 'needed' | 'subscribing' | 'activating' | 'done' | 'error';
 
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 export function useAutoSubscribe() {
   const { publicKey, signMessage, signTransaction } = useWallet();
   const { connection } = useConnection();
@@ -24,18 +32,21 @@ export function useAutoSubscribe() {
       setState('subscribing');
       const jwt = await client.getGuestJwt();
 
-      const { PublicKey, Transaction, TransactionInstruction, SystemProgram } = await import('@solana/web3.js');
-      const { TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } = await import('@solana/spl-token');
+      const {
+        PublicKey, TransactionInstruction, SystemProgram,
+        TransactionMessage, VersionedTransaction,
+      } = await import('@solana/web3.js');
+      const { TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
 
       const programId = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
       const txlTokenMint = new PublicKey('4Zao8ocPhmMgq7PdsYWyxvqySMGx7xb9cMftPMkEokRG');
       const DURATION_WEEKS = 4;
 
       const [pricingMatrixPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('pricing_matrix')], programId
+        [new TextEncoder().encode('pricing_matrix')], programId
       );
       const [tokenTreasuryPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from('token_treasury_v2')], programId
+        [new TextEncoder().encode('token_treasury_v2')], programId
       );
       const tokenTreasuryVault = getAssociatedTokenAddressSync(
         txlTokenMint, tokenTreasuryPda, true, TOKEN_2022_PROGRAM_ID
@@ -44,10 +55,13 @@ export function useAutoSubscribe() {
         txlTokenMint, publicKey, false, TOKEN_2022_PROGRAM_ID
       );
 
-      const buffer = Buffer.alloc(12);
-      buffer.set([254, 28, 191, 138, 156, 179, 183, 53], 0);
-      buffer.writeUInt16LE(1, 8);
-      buffer.writeUInt16LE(DURATION_WEEKS, 10);
+      // Instruction data: 8-byte discriminator + 2-byte tier (LE) + 2-byte duration_weeks (LE)
+      const data = new Uint8Array(12);
+      data.set([254, 28, 191, 138, 156, 179, 183, 53], 0);
+      data[8] = 1;   // tier = 1 (UInt16LE)
+      data[9] = 0;
+      data[10] = DURATION_WEEKS & 0xff;   // duration_weeks (UInt16LE)
+      data[11] = (DURATION_WEEKS >> 8) & 0xff;
 
       const keys = [
         { pubkey: publicKey, isSigner: true, isWritable: true },
@@ -61,23 +75,27 @@ export function useAutoSubscribe() {
         { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ];
 
-      const instruction = new TransactionInstruction({ keys, programId, data: buffer });
+      const subscribeIx = new TransactionInstruction({ keys, programId, data: Buffer.from(data) });
 
+      const instructions: typeof subscribeIx[] = [];
       const accInfo = await connection.getAccountInfo(userTokenAccount);
-      const tx = new Transaction();
       if (!accInfo) {
-        const { createAssociatedTokenAccountInstruction } = await import('@solana/spl-token');
-        tx.add(createAssociatedTokenAccountInstruction(
+        instructions.push(createAssociatedTokenAccountInstruction(
           publicKey, userTokenAccount, publicKey, txlTokenMint,
           TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID
         ));
       }
-      tx.add(instruction);
-      tx.feePayer = publicKey;
-      const { blockhash } = await connection.getLatestBlockhash();
-      tx.recentBlockhash = blockhash;
+      instructions.push(subscribeIx);
 
-      const signedTx = await signTransaction(tx);
+      const { blockhash } = await connection.getLatestBlockhash();
+      const message = new TransactionMessage({
+        payerKey: publicKey,
+        recentBlockhash: blockhash,
+        instructions,
+      }).compileToV0Message();
+
+      const versionedTx = new VersionedTransaction(message);
+      const signedTx = await signTransaction(versionedTx);
       const txSig = await connection.sendRawTransaction(signedTx.serialize());
       await connection.confirmTransaction(txSig, 'confirmed');
 
@@ -85,7 +103,7 @@ export function useAutoSubscribe() {
 
       const messageBytes = new TextEncoder().encode(`${txSig}::${jwt}`);
       const sigBytes = await signMessage(messageBytes);
-      const walletSignature = Buffer.from(sigBytes).toString('base64');
+      const walletSignature = toBase64(sigBytes);
 
       await client.activateApiToken({
         txSig,
