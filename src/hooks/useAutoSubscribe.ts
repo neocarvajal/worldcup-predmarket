@@ -102,14 +102,27 @@ export function useAutoSubscribe() {
       setState('activating');
 
       const messageBytes = new TextEncoder().encode(`${txSig}::${jwt}`);
-      const sigBytes = await signMessage(messageBytes);
+      let sigBytes: Uint8Array;
+      try {
+        sigBytes = await signMessage(messageBytes);
+      } catch (msgErr: any) {
+        throw new Error(
+          `Firma de mensaje rechazada o fallida: ${msgErr?.message || 'Revisá tu wallet e intentá de nuevo'}`
+        );
+      }
       const walletSignature = toBase64(sigBytes);
 
-      await client.activateApiToken({
-        txSig,
-        walletSignature,
-        leagues: [],
-      });
+      try {
+        await client.activateApiToken({
+          txSig,
+          walletSignature,
+          leagues: [],
+        });
+      } catch (apiErr: any) {
+        throw new Error(
+          `Error al activar el API token: ${apiErr?.message || 'TxLINE no respondió'}`
+        );
+      }
 
       setState('done');
     } catch (e: any) {

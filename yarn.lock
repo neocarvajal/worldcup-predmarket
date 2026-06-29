@@ -1137,8 +1137,10 @@
     "@solana/wallet-standard-util" "^1.1.2"
     "@wallet-standard/core" "^1.1.1"
 
-"@solana-mobile/wallet-adapter-mobile@^2.2.0":
+"@solana-mobile/wallet-adapter-mobile@^2.2.0", "@solana-mobile/wallet-adapter-mobile@^2.2.9":
   version "2.2.9"
+  resolved "https://registry.npmjs.org/@solana-mobile/wallet-adapter-mobile/-/wallet-adapter-mobile-2.2.9.tgz"
+  integrity sha512-IWzI2pUmEqBsTNo+XqMTY38NL5TSdMetES59N0Cmuf+zYqiS56rHdMwD/R2IOy7E4yKa1CsuHfCh6CE6zk4ViQ==
   dependencies:
     "@solana-mobile/mobile-wallet-adapter-protocol" "^2.2.9"
     "@solana-mobile/mobile-wallet-adapter-protocol-web3js" "^2.2.9"
