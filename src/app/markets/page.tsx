@@ -1,0 +1,77 @@
+"use client";
+
+import React from 'react';
+import dynamic from 'next/dynamic';
+import { GlobeIcon } from '@radix-ui/react-icons';
+import { SubscriptionBanner } from '../../components/SubscriptionBanner';
+
+const MarketList = dynamic(() => import('../../components/MarketList').then(m => ({ default: m.MarketList })), { ssr: false });
+
+export default function MarketsPage() {
+  return (
+    <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
+      {/* Animated background orbs (subtle) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        <div
+          className="absolute rounded-full animate-float-slow"
+          style={{
+            width: 250,
+            height: 250,
+            top: '10%',
+            right: '-15%',
+            background: 'radial-gradient(circle, rgba(220,235,2,0.03) 0%, transparent 70%)',
+            animationDuration: '14s',
+          }}
+        />
+        <div
+          className="absolute rounded-full animate-float"
+          style={{
+            width: 180,
+            height: 180,
+            bottom: '20%',
+            left: '-10%',
+            background: 'radial-gradient(circle, rgba(220,235,2,0.02) 0%, transparent 70%)',
+            animationDuration: '11s',
+          }}
+        />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                background: 'var(--accent-dim)',
+                boxShadow: '0 0 20px rgba(220,235,2,0.08)',
+              }}
+            >
+              <GlobeIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Partidos</h1>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Mundial 2026 · Predicciones</p>
+            </div>
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold"
+            style={{
+              background: 'var(--accent-dim)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(220,235,2,0.15)',
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+            World Cup
+          </span>
+        </div>
+
+        <SubscriptionBanner />
+        <MarketList />
+      </div>
+    </div>
+  );
+}

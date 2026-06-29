@@ -1,0 +1,191 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import { useTxLine, TxLineAuthError } from '../context/TxLineContext';
+import { MarketCard } from './MarketCard';
+import { GlobeIcon, ReloadIcon } from '@radix-ui/react-icons';
+
+interface Fixture {
+  FixtureId: number;
+  Competition: string;
+  StartTime: number;
+  Participant1: string;
+  Participant2: string;
+}
+
+function SkeletonCard() {
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="skeleton h-4 w-20 rounded-full" />
+        <div className="skeleton h-4 w-16 rounded-full" />
+      </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="skeleton w-11 h-11 rounded-full" />
+          <div className="skeleton h-4 w-24 rounded" />
+        </div>
+        <div className="skeleton h-3 w-6 rounded" />
+        <div className="flex items-center gap-2.5">
+          <div className="skeleton h-4 w-24 rounded" />
+          <div className="skeleton w-11 h-11 rounded-full" />
+        </div>
+      </div>
+      <div className="skeleton h-3 w-32 rounded" />
+    </div>
+  );
+}
+
+export const MarketList: React.FC = () => {
+  const { client } = useTxLine();
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      const data = await client.getFixtures();
+      setFixtures(Array.isArray(data) ? data : data?.fixtures ?? []);
+    } catch (e: any) {
+      if (e instanceof TxLineAuthError || e?.response?.status === 403) {
+        setError('auth');
+      } else {
+        setError('network');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [client]);
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="animate-scaleIn" style={{ animationDelay: `${i * 0.08}s`, animationFillMode: 'backwards' }}>
+            <SkeletonCard />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error === 'auth') {
+    return (
+      <div className="text-center py-16 animate-scaleIn">
+        <div
+          className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+          style={{ background: 'var(--accent-dim)' }}
+        >
+          <GlobeIcon width={28} height={28} style={{ color: 'var(--accent)' }} />
+        </div>
+        <h2 className="text-lg font-semibold mb-2">Suscripción requerida</h2>
+        <p className="text-sm mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          Necesitas activar una suscripción gratuita a TxLINE para ver los partidos disponibles.
+        </p>
+        <div
+          className="rounded-2xl p-4 text-left text-xs space-y-2 max-w-sm mx-auto"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Pasos:</p>
+          <p style={{ color: 'var(--text-muted)' }}>1. Conecta tu wallet Solana (Devnet)</p>
+          <p style={{ color: 'var(--text-muted)' }}>2. Ve a la página de perfil</p>
+          <p style={{ color: 'var(--text-muted)' }}>3. Activa tu suscripción Tier 1 gratuita</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error === 'network') {
+    return (
+      <div className="text-center py-16 animate-scaleIn">
+        <div
+          className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+          style={{ background: 'rgba(255,68,68,0.1)' }}
+        >
+          <GlobeIcon width={28} height={28} style={{ color: 'var(--danger)' }} />
+        </div>
+        <h2 className="text-lg font-semibold mb-2">Error de conexión</h2>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          No se pudieron cargar los partidos desde TxLINE.
+        </p>
+        <button
+          onClick={load}
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 active:scale-95"
+          style={{
+            background: 'var(--accent)',
+            color: '#000',
+          }}
+        >
+          <ReloadIcon width={16} height={16} />
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  if (fixtures.length === 0) {
+    return (
+      <div className="text-center py-16 animate-scaleIn">
+        <div
+          className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <GlobeIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
+        </div>
+        <h2 className="text-lg font-semibold mb-2">No hay partidos disponibles</h2>
+        <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
+          No encontramos partidos del Mundial 2026. Intenta de nuevo más tarde.
+        </p>
+      </div>
+    );
+  }
+
+  const sorted = [...fixtures].sort((a, b) => a.StartTime - b.StartTime);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between px-1 mb-2">
+        <span
+          className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Próximos partidos
+        </span>
+        <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+          {fixtures.length} {fixtures.length === 1 ? 'evento' : 'eventos'}
+        </span>
+      </div>
+      {sorted.map((f, idx) => (
+        <div
+          key={f.FixtureId}
+          className="animate-slideUp"
+          style={{ animationDelay: `${idx * 0.06}s`, animationFillMode: 'backwards' }}
+        >
+          <MarketCard
+            fixtureId={f.FixtureId}
+            participant1={f.Participant1}
+            participant2={f.Participant2}
+            startTime={String(f.StartTime)}
+            competition={f.Competition}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};

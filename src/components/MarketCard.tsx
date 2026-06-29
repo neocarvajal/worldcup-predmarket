@@ -1,0 +1,191 @@
+"use client";
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getFlag } from '../lib/flags';
+import { ChevronRightIcon } from '@radix-ui/react-icons';
+
+interface MarketCardProps {
+  fixtureId: number;
+  participant1: string;
+  participant2: string;
+  startTime: string | number;
+  competition?: string;
+  odds?: { home: number; draw: number; away: number };
+}
+
+function parseDate(v: string | number): Date {
+  const n = Number(v);
+  if (!isNaN(n)) {
+    return n > 1e12 ? new Date(n) : new Date(n * 1000);
+  }
+  return new Date(v);
+}
+
+function Countdown({ target }: { target: Date }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const diff = target.getTime() - now;
+  if (diff <= 0) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+        style={{
+          background: 'rgba(245,158,11,0.1)',
+          color: 'var(--warning)',
+          border: '1px solid rgba(245,158,11,0.2)',
+        }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
+        Empezado
+      </span>
+    );
+  }
+
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums"
+      style={{
+        background: 'var(--bg-surface)',
+        color: 'var(--text-muted)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      {d > 0 ? `${d}d ` : ''}{String(h).padStart(2, '0')}:{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
+    </span>
+  );
+}
+
+function formatDate(date: Date): string {
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+export const MarketCard: React.FC<MarketCardProps> = ({
+  fixtureId, participant1, participant2, startTime, competition, odds,
+}) => {
+  const startDate = parseDate(startTime);
+  const flag1 = getFlag(participant1);
+  const flag2 = getFlag(participant2);
+
+  return (
+    <Link href={`/market/${fixtureId}`} className="block group">
+      <div
+        className="rounded-2xl p-5 transition-all duration-300"
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        {/* Top row: competition badge + countdown */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {competition && (
+              <span
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                style={{
+                  background: 'var(--accent-dim)',
+                  color: 'var(--accent)',
+                  border: '1px solid rgba(220,235,2,0.15)',
+                }}
+              >
+                {competition}
+              </span>
+            )}
+          </div>
+          <Countdown target={startDate} />
+        </div>
+
+        {/* Teams row */}
+        <div className="flex items-center gap-3 mb-4">
+          {/* Team 1 */}
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div
+              className="flex items-center justify-center shrink-0"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'var(--bg-surface)',
+                border: '2px solid var(--border)',
+              }}
+            >
+              <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
+            </div>
+            <span className="text-sm font-semibold truncate">{participant1}</span>
+          </div>
+
+          {/* VS */}
+          <div className="flex flex-col items-center shrink-0">
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.15em]"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              VS
+            </span>
+          </div>
+
+          {/* Team 2 */}
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
+            <span className="text-sm font-semibold truncate">{participant2}</span>
+            <div
+              className="flex items-center justify-center shrink-0"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'var(--bg-surface)',
+                border: '2px solid var(--border)',
+              }}
+            >
+              <span className="text-lg leading-none">{flag2 || '🏳️'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom: date + odds/cta */}
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            {formatDate(startDate)}
+          </span>
+          <div className="flex items-center gap-2">
+            {odds && (
+              <div className="flex items-center gap-1.5">
+                {(['home', 'draw', 'away'] as const).map((key, i) => (
+                  <div
+                    key={key}
+                    className="px-2.5 py-1 rounded-lg text-center transition-all duration-200"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <span className="text-[10px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                      {odds[key].toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 group-hover:bg-accent-dim"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <ChevronRightIcon width={16} height={16} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+};

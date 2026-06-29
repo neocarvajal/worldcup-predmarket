@@ -1,0 +1,22 @@
+[package]
+name = "settlement"
+version = "0.1.0"
+description = "Trustless escrow settlement for token transfers"
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anchor-lang = { workspace = true }
+anchor-spl = { workspace = true }
+solana-program = { workspace = true }
+
+[features]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[lib]
+crate-type = ["cdylib", "lib"]

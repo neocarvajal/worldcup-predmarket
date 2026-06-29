@@ -1,0 +1,17 @@
+[toolchain]
+anchor_version = "1.0.0"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[programs.localnet]
+settlement = "568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J"
+
+[workspace]
+types = "target/types"
+
+[surfpool]
+startup_wait = 5000
+log_level = "info"
+block_production_mode = "clock"
