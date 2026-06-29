@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useTxLine } from '../../context/TxLineContext';
+import { useAutoSubscribe } from '../../hooks/useAutoSubscribe';
 import { saveProfileImage, loadProfileImage } from '../../lib/persistence';
 import { initProfile, updateProfile, fetchUserProfile } from '../../lib/settlement';
 import {
@@ -13,12 +14,15 @@ import {
   UpdateIcon,
   DotsHorizontalIcon,
   CheckCircledIcon,
+  GlobeIcon,
+  ReloadIcon,
 } from '@radix-ui/react-icons';
 
 export default function ProfilePage() {
   const { publicKey, signTransaction, disconnect } = useWallet();
   const { connection } = useConnection();
   const { client } = useTxLine();
+  const { state: subState, subscribe } = useAutoSubscribe();
   const [balance, setBalance] = useState<number | null>(null);
   const [profileImg, setProfileImg] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState('');
@@ -253,23 +257,66 @@ export default function ProfilePage() {
               {/* API TxLINE */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>API TxLINE</span>
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-                  style={{
-                    background: client.hasApiToken
-                      ? 'rgba(34,197,94,0.08)'
-                      : 'var(--bg-surface)',
-                    color: client.hasApiToken ? 'var(--success)' : 'var(--text-muted)',
-                    border: `1px solid ${
-                      client.hasApiToken
-                        ? 'rgba(34,197,94,0.2)'
-                        : 'var(--border)'
-                    }`,
-                  }}
-                >
-                  {client.hasApiToken ? 'Activo' : 'Inactivo'}
-                </span>
+                <div className="flex items-center gap-2">
+                  {subState === 'subscribing' || subState === 'activating' ? (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                      style={{
+                        background: 'var(--accent-dim)',
+                        color: 'var(--accent)',
+                        border: '1px solid rgba(220,235,2,0.15)',
+                      }}
+                    >
+                      <ReloadIcon width={10} height={10} className="animate-spin" />
+                      Activando
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                      style={{
+                        background: client.hasApiToken
+                          ? 'rgba(34,197,94,0.08)'
+                          : 'var(--bg-surface)',
+                        color: client.hasApiToken ? 'var(--success)' : 'var(--text-muted)',
+                        border: `1px solid ${
+                          client.hasApiToken
+                            ? 'rgba(34,197,94,0.2)'
+                            : 'var(--border)'
+                        }`,
+                      }}
+                    >
+                      {client.hasApiToken ? 'Activo' : 'Inactivo'}
+                    </span>
+                  )}
+                  {!client.hasApiToken && subState !== 'subscribing' && subState !== 'activating' && (
+                    <button
+                      onClick={subscribe}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all duration-200 active:scale-95"
+                      style={{ background: 'var(--accent)', color: '#000' }}
+                    >
+                      <GlobeIcon width={10} height={10} />
+                      Activar
+                    </button>
+                  )}
+                </div>
               </div>
+              {subState === 'error' && (
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs animate-slideDown"
+                  style={{ background: 'rgba(255,68,68,0.06)', border: '1px solid rgba(255,68,68,0.12)' }}
+                >
+                  <span className="flex-1" style={{ color: 'var(--text-muted)' }}>
+                    Error al activar TxLINE
+                  </span>
+                  <button
+                    onClick={subscribe}
+                    className="text-xs font-semibold px-3 py-1 rounded-full transition-all active:scale-95"
+                    style={{ background: 'rgba(255,68,68,0.1)', color: 'var(--danger)' }}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
 
               <div style={{ height: 1, background: 'var(--border)' }} />
 

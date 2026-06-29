@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 
 import { Providers } from '../components/Providers';
 import { BottomNavWrapper } from '../components/BottomNavWrapper';
+import { DappGuard } from '../components/DappGuard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,7 +16,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className={inter.className}>
         <Providers>
-          {children}
+          <DappGuard>
+            {children}
+          </DappGuard>
           <BottomNavWrapper />
         </Providers>
       </body>
