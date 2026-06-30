@@ -25,6 +25,7 @@ export default function PortfolioPage() {
     setError(null);
     try {
       const data = await fetchUserEscrows(connection, publicKey);
+      data.sort((a: any, b: any) => Number(b.account.nonce) - Number(a.account.nonce));
       setEscrows(data);
     } catch (e: any) {
       setError(e?.message || 'Error al cargar');
