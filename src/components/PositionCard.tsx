@@ -13,8 +13,6 @@ interface PositionCardProps {
   expiry?: number;
   onSettle?: () => void;
   settling?: boolean;
-  onCancel?: () => void;
-  cancelling?: boolean;
 }
 
 const statusConfig: Record<string, { icon: React.ComponentType<any>; label: string; color: string; bg: string }> = {
@@ -89,7 +87,6 @@ function ShareOnX({ fixtureName, amount, odds }: { fixtureName: string; amount: 
 export const PositionCard: React.FC<PositionCardProps> = ({
   fixtureName, selection, amount, odds, payout, status, expiry,
   onSettle, settling,
-  onCancel, cancelling,
 }) => {
   const cfg = statusConfig[status];
   const StatusIcon = cfg.icon;
@@ -187,25 +184,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
                 <UpdateIcon width={12} height={12} />
               )}
               {settling ? 'Liquidando...' : 'Liquidar'}
-            </button>
-          )}
-          {status === 'active' && onCancel && (
-            <button
-              onClick={onCancel}
-              disabled={cancelling}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all duration-200 active:scale-95"
-              style={{
-                background: cancelling ? 'var(--bg-surface)' : 'rgba(255,68,68,0.1)',
-                color: cancelling ? 'var(--text-muted)' : 'var(--danger)',
-                border: `1px solid ${cancelling ? 'var(--border)' : 'var(--danger)'}`,
-              }}
-            >
-              {cancelling ? (
-                <ReloadIcon width={12} height={12} className="animate-spin" />
-              ) : (
-                <CrossCircledIcon width={12} height={12} />
-              )}
-              {cancelling ? 'Cancelando...' : 'Cancelar'}
             </button>
           )}
           <span

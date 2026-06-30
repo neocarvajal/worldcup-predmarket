@@ -11,8 +11,7 @@ import {
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
-export const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
-export const OLD_SETTLEMENT_PROGRAM_ID = new PublicKey('568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J');
+const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
 let cachedIdl: Idl | null = null;
 
 function enc(s: string): Uint8Array {
@@ -152,48 +151,23 @@ export async function initEscrowWithDeposit(
 export async function fetchUserEscrows(
   connection: Connection,
   depositor: PublicKey
-): Promise<{ pubkey: PublicKey; account: any; programId: PublicKey }[]> {
+): Promise<{ pubkey: PublicKey; account: any }[]> {
   const idl = await getIdl();
   const coder = new BorshCoder(idl);
-  const legacyIdl: any = structuredClone(idl);
-  const escrowType = legacyIdl.types?.find((t: any) => t.name === 'Escrow');
-  if (escrowType?.type?.fields) {
-    escrowType.type.fields = escrowType.type.fields.filter((f: any) => f.name !== 'depositor_won');
-  }
-  const legacyCoder = new BorshCoder(legacyIdl);
-
   const escrowDiscriminator = [31, 213, 123, 187, 186, 22, 218, 155];
-  const filter = [
-    { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from(escrowDiscriminator)) } },
-    { memcmp: { offset: 8, bytes: depositor.toBase58() } },
-  ];
-
-  const [newProgramAccounts, oldProgramAccounts] = await Promise.all([
-    connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, { filters: filter }),
-    connection.getProgramAccounts(OLD_SETTLEMENT_PROGRAM_ID, { filters: filter }),
-  ]);
-
-  const [newAccs, oldAccs] = await Promise.all([
-    connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, { filters: filter }),
-    connection.getProgramAccounts(OLD_SETTLEMENT_PROGRAM_ID, { filters: filter }),
-  ]);
-
-  const allWithProgram: { pubkey: PublicKey; account: any; programId: PublicKey }[] = [];
-  const pairs: [typeof newAccs, PublicKey][] = [[newAccs, SETTLEMENT_PROGRAM_ID], [oldAccs, OLD_SETTLEMENT_PROGRAM_ID]];
-  for (const [accounts, progId] of pairs) {
-    for (const { pubkey, account } of accounts) {
-      try {
-        const decoded = coder.accounts.decode('Escrow', account.data);
-        allWithProgram.push({ pubkey, account: decoded, programId: progId });
-      } catch {
-        try {
-          const decoded = legacyCoder.accounts.decode('Escrow', account.data);
-          allWithProgram.push({ pubkey, account: { ...decoded, depositor_won: false }, programId: progId });
-        } catch { /* skip */ }
-      }
+  const programAccounts = await connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, {
+    filters: [
+      { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from(escrowDiscriminator)) } },
+      { memcmp: { offset: 8, bytes: depositor.toBase58() } },
+    ],
+  });
+  return programAccounts.flatMap(({ pubkey, account }) => {
+    try {
+      return [{ pubkey, account: coder.accounts.decode('Escrow', account.data) }];
+    } catch {
+      return [];
     }
-  }
-  return allWithProgram;
+  });
 }
 
 export function getProfilePda(authority: PublicKey): [PublicKey, number] {
@@ -378,11 +352,8 @@ export async function cancelEscrow(
   mint: PublicKey,
   vaultPubkey: PublicKey,
   depositorTokenAccount: PublicKey,
-  programId?: PublicKey,
 ): Promise<string> {
-  const idl = await getIdl();
-  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
-  const program = new Program({ ...idl, address: (programId ?? SETTLEMENT_PROGRAM_ID).toBase58() }, provider);
+  const program = await getSettlementProgram(connection, wallet);
   const instruction = await program.methods
     .cancel()
     .accountsStrict({

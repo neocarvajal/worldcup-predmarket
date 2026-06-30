@@ -4,9 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useConnection } from '@solana/wallet-adapter-react';
-import { fetchUserEscrows, cancelEscrow, SETTLEMENT_PROGRAM_ID, OLD_SETTLEMENT_PROGRAM_ID } from '../../lib/settlement';
-import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PublicKey } from '@solana/web3.js';
+import { fetchUserEscrows } from '../../lib/settlement';
 import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
 import { StackIcon, TargetIcon, ReloadIcon } from '@radix-ui/react-icons';
@@ -21,35 +19,6 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [settling, setSettling] = useState(false);
-  const [cancelling, setCancelling] = useState<string | null>(null);
-
-  const handleCancel = async (escrow: any) => {
-    if (!cancelling) {
-      setCancelling(escrow.pubkey.toBase58());
-      setError(null);
-      try {
-        await cancelEscrow(
-          connection,
-          { publicKey } as any,
-          escrow.pubkey,
-          escrow.account.mint ? new PublicKey(escrow.account.mint) : escrow.account.mint,
-          escrow.account.vault ? new PublicKey(escrow.account.vault) : escrow.account.vault,
-          getAssociatedTokenAddressSync(
-            escrow.account.mint ? new PublicKey(escrow.account.mint) : escrow.account.mint,
-            publicKey!,
-            false,
-            TOKEN_PROGRAM_ID,
-          ),
-          escrow.programId,
-        );
-        setTimeout(() => load(), 2000);
-      } catch (e: any) {
-        setError(e.message || 'Error al cancelar');
-      } finally {
-        setCancelling(null);
-      }
-    }
-  };
 
   const handleSettle = async () => {
     setSettling(true);
@@ -349,7 +318,6 @@ export default function PortfolioPage() {
               const isSettled = stateKey === 'Settled';
               const matchOver = escrowMatchOver[e.pubkey.toBase58()] ?? false;
               const hasMatchEnded = isActive && matchOver;
-              const isLegacy = e.programId?.toBase58() === OLD_SETTLEMENT_PROGRAM_ID.toBase58();
               const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
               const fixtureName = acc.fixture_name || bet?.fixtureName || `Partido ${e.pubkey.toBase58().slice(0, 8)}`;
               const selection = acc.label || bet?.label || '—';
@@ -373,8 +341,6 @@ export default function PortfolioPage() {
                     expiry={matchStart}
                     onSettle={hasMatchEnded ? handleSettle : undefined}
                     settling={settling}
-                    onCancel={isActive && isLegacy ? () => handleCancel(e) : undefined}
-                    cancelling={cancelling === e.pubkey.toBase58()}
                   />
                 </div>
               );
