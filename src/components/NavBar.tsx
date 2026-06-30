@@ -4,11 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useTranslations } from 'next-intl';
 import { ClientWalletButton } from './ClientWalletButton';
+import { LanguageToggle } from './LanguageToggle';
 
 export const NavBar: React.FC = () => {
   const pathname = usePathname();
   const { publicKey } = useWallet();
+  const t = useTranslations('NavBar');
   const isLive = pathname === '/live';
   const isLanding = pathname === '/';
 
@@ -31,7 +34,7 @@ export const NavBar: React.FC = () => {
             WC
           </div>
           <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            PredMarket
+            {t('brand')}
           </span>
           {isLive && (
             <span className="flex items-center gap-1.5 ml-1">
@@ -42,12 +45,13 @@ export const NavBar: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
+          <LanguageToggle />
           {isLanding && !publicKey && (
             <Link
               href="/markets"
               className="btn-primary !py-2 !px-4 !text-sm"
             >
-              Entrar
+              {t('enter')}
             </Link>
           )}
           <ClientWalletButton />

@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   GlobeIcon,
   ActivityLogIcon,
@@ -11,16 +12,17 @@ import {
   PersonIcon,
 } from '@radix-ui/react-icons';
 
-const tabs = [
-  { href: '/markets', label: 'Partidos', icon: GlobeIcon },
-  { href: '/live', label: 'En Vivo', icon: ActivityLogIcon },
-  { href: '/faucet', label: 'Faucet', icon: TokensIcon },
-  { href: '/portfolio', label: 'Mis Bets', icon: StackIcon },
-  { href: '/profile', label: 'Perfil', icon: PersonIcon },
+const tabKeys = [
+  { href: '/markets', key: 'markets', icon: GlobeIcon },
+  { href: '/live', key: 'live', icon: ActivityLogIcon },
+  { href: '/faucet', key: 'faucet', icon: TokensIcon },
+  { href: '/portfolio', key: 'myBets', icon: StackIcon },
+  { href: '/profile', key: 'profile', icon: PersonIcon },
 ];
 
 export const BottomNav: React.FC = () => {
   const pathname = usePathname();
+  const t = useTranslations('BottomNav');
 
   return (
     <nav
@@ -37,7 +39,7 @@ export const BottomNav: React.FC = () => {
         className="max-w-lg mx-auto flex items-center justify-around px-2 pt-1"
         style={{ paddingBottom: 'calc(0.25rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        {tabs.map(({ href, label, icon: Icon }) => {
+        {tabKeys.map(({ href, key, icon: Icon }) => {
           const active = pathname === href || (href !== '/' && pathname.startsWith(href));
           return (
             <Link
@@ -76,7 +78,7 @@ export const BottomNav: React.FC = () => {
                 className="text-[10px] font-semibold leading-none tracking-tight transition-colors duration-200"
                 style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
               >
-                {label}
+                {t(key)}
               </span>
             </Link>
           );
