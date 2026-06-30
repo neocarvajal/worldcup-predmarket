@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useRouter } from 'next/navigation';
 import { useBetSlip } from '../context/BetSlipContext';
 import { initEscrowWithDeposit } from '../lib/settlement';
+import { getUsdtBalance } from '../lib/txlineProgram';
 import { saveBet } from '../lib/persistence';
 import { PublicKey } from '@solana/web3.js';
 
@@ -15,9 +17,29 @@ export const BetSlipDrawer: React.FC = () => {
   const { selections, amount, isOpen, setIsOpen, removeSelection, setAmount, clear } = useBetSlip();
   const { connection } = useConnection();
   const wallet = useWallet();
+  const router = useRouter();
+  const countRef = useRef(10);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [placing, setPlacing] = React.useState(false);
   const [txSig, setTxSig] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [insufficient, setInsufficient] = React.useState<{ balance: number; needed: number; countdown: number } | null>(null);
+
+  useEffect(() => {
+    if (insufficient) {
+      countRef.current = 10;
+      timerRef.current = setInterval(() => {
+        countRef.current -= 1;
+        setInsufficient(prev => prev ? { ...prev, countdown: countRef.current } : null);
+        if (countRef.current <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          router.push('/faucet');
+        }
+      }, 1000);
+      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }
+  }, [insufficient, router]);
 
   const totalOdds = selections.reduce((acc, s) => acc * s.odds, 1);
   const parsedAmount = parseFloat(amount) || 0;
@@ -28,8 +50,16 @@ export const BetSlipDrawer: React.FC = () => {
     setPlacing(true);
     setError(null);
     setTxSig(null);
+    setInsufficient(null);
 
     try {
+      const balance = await getUsdtBalance(connection, wallet.publicKey);
+      if (balance < parsedAmount) {
+        setInsufficient({ balance, needed: parsedAmount, countdown: 10 });
+        setPlacing(false);
+        return;
+      }
+
       const recipient = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
       const expiry = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400);
       const amountLamports = BigInt(Math.floor(parsedAmount * 1_000_000));
@@ -67,6 +97,11 @@ export const BetSlipDrawer: React.FC = () => {
     }
   }, [wallet, connection, selections, parsedAmount, clear]);
 
+  const handleGoToFaucet = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    router.push('/faucet');
+  };
+
   const isActive = (v: number) => {
     const p = parsedAmount;
     return Math.abs(p - v) < 0.001;
@@ -82,7 +117,39 @@ export const BetSlipDrawer: React.FC = () => {
 
         <h3 className="text-lg font-bold mb-4">Tu Apuesta</h3>
 
-        {selections.length === 0 ? (
+        {insufficient ? (
+          <div className="text-center py-6 animate-scaleIn">
+            <div
+              className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+              style={{ background: 'rgba(245,158,11,0.1)' }}
+            >
+              <span style={{ fontSize: 24 }}>🪙</span>
+            </div>
+            <h4 className="text-base font-semibold mb-2" style={{ color: 'var(--warning)' }}>
+              Saldo insuficiente
+            </h4>
+            <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+              Tenés <strong>{insufficient.balance.toFixed(2)} USDT</strong> y necesitás <strong>{insufficient.needed.toFixed(2)} USDT</strong>.
+            </p>
+            <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+              Obtené 100 USDT gratis desde el faucet.
+            </p>
+            <button
+              onClick={handleGoToFaucet}
+              className="w-full py-3 rounded-full text-sm font-bold transition-all duration-200 active:scale-95 mb-2"
+              style={{
+                background: 'var(--accent)',
+                color: '#000',
+                boxShadow: '0 0 24px rgba(220,235,2,0.15)',
+              }}
+            >
+              Ir al Faucet
+            </button>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Redirigiendo en {insufficient.countdown}s...
+            </p>
+          </div>
+        ) : selections.length === 0 ? (
           <p className="text-sm text-text-secondary text-center py-8">
             Selecciona un resultado para apostar
           </p>
@@ -109,7 +176,7 @@ export const BetSlipDrawer: React.FC = () => {
           </div>
         )}
 
-        {selections.length > 0 && (
+        {selections.length > 0 && !insufficient && (
           <>
             <div className="mb-4">
               <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
