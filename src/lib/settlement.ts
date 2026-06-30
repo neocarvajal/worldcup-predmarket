@@ -148,56 +148,18 @@ export async function initEscrowWithDeposit(
   return { sig, escrowPda, nonce };
 }
 
-function buildLegacyCoder(): BorshCoder {
-  const escrowFields = [
-    { name: 'depositor', type: 'publicKey' },
-    { name: 'recipient', type: 'publicKey' },
-    { name: 'nonce', type: 'u64' },
-    { name: 'fixtureName', type: { defined: 'String' } },
-    { name: 'selection', type: 'u8' },
-    { name: 'label', type: { defined: 'String' } },
-    { name: 'odds', type: 'u64' },
-    { name: 'mint', type: 'publicKey' },
-    { name: 'vault', type: 'publicKey' },
-    { name: 'amount', type: 'u64' },
-    { name: 'expiry', type: 'i64' },
-    { name: 'state', type: { defined: 'EscrowState' } },
-    { name: 'bump', type: 'u8' },
-    { name: 'vault_bump', type: 'u8' },
-  ];
-  const legacyIdl = {
-    version: '0.1.0',
-    name: 'settlement',
-    accounts: [
-      {
-        name: 'Escrow',
-        type: { kind: 'struct', fields: escrowFields },
-      },
-    ],
-    types: [
-      {
-        name: 'EscrowState',
-        type: {
-          kind: 'enum',
-          variants: [
-            { name: 'Active' },
-            { name: 'Settled' },
-            { name: 'Cancelled' },
-          ],
-        },
-      },
-    ],
-  };
-  return new BorshCoder(legacyIdl as any);
-}
-
 export async function fetchUserEscrows(
   connection: Connection,
   depositor: PublicKey
 ): Promise<{ pubkey: PublicKey; account: any }[]> {
   const idl = await getIdl();
   const coder = new BorshCoder(idl);
-  const legacyCoder = buildLegacyCoder();
+  const legacyIdl: any = structuredClone(idl);
+  const escrowType = legacyIdl.types?.find((t: any) => t.name === 'Escrow');
+  if (escrowType?.type?.fields) {
+    escrowType.type.fields = escrowType.type.fields.filter((f: any) => f.name !== 'depositor_won');
+  }
+  const legacyCoder = new BorshCoder(legacyIdl);
 
   const escrowDiscriminator = [31, 213, 123, 187, 186, 22, 218, 155];
   const programAccounts = await connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, {
