@@ -281,9 +281,7 @@ export default function PortfolioPage() {
               const odds = acc.odds ? Number(acc.odds) / 1000 : (bet?.odds || 2.0);
               const payout = Number(acc.amount || 0) / 1_000_000 * odds;
               const raw = bet?.matchStartTime;
-              const matchStart = raw
-                ? (raw > 1e12 ? raw : raw * 1000)
-                : Number(acc.expiry || 0) * 1000;
+              const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
               return (
                 <div
                   key={e.pubkey.toBase58()}
