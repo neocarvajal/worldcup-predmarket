@@ -187,7 +187,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
               {score2}
             </span>
           </div>
-          {isPlaying && minute != null && (
+          {isPlaying && minute != null && minute > 0 && (
             <span className="flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
               <span className="text-[10px] font-medium text-danger">{minute}&apos;</span>

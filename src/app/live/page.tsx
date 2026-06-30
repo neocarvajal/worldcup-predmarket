@@ -33,14 +33,17 @@ function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
   if (clock.Seconds != null) {
     minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
   }
+  const p1 = info.Participant1 ?? raw.Participant1 ?? cached.Participant1 ?? '';
+  const p2 = info.Participant2 ?? raw.Participant2 ?? cached.Participant2 ?? '';
+  cache.set(fixtureId, { Participant1: p1, Participant2: p2, StatusId: statusId });
   const score = upd.Score || {};
   return {
     FixtureId: fixtureId,
-    Participant1: info.Participant1 ?? cached.Participant1 ?? 'Local',
-    Participant2: info.Participant2 ?? cached.Participant2 ?? 'Visitante',
+    Participant1: p1,
+    Participant2: p2,
     Score1: score.Participant1?.Total?.Goals ?? 0,
     Score2: score.Participant2?.Total?.Goals ?? 0,
-    Minute: minute,
+    Minute: minute > 0 ? minute : 0,
     Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
     StatusId: statusId,
   };
@@ -90,13 +93,17 @@ export default function LivePage() {
           if (clock.Seconds != null) {
             minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
           }
+          const p1 = info.Participant1 ?? snap.Participant1 ?? candidates[i].Participant1 ?? candidates[i].Participant1Name ?? '';
+          const p2 = info.Participant2 ?? snap.Participant2 ?? candidates[i].Participant2 ?? candidates[i].Participant2Name ?? '';
+          const fid = info.FixtureId ?? fixtureIds[i];
+          cacheRef.current.set(fid, { Participant1: p1, Participant2: p2 });
           live.push({
-            FixtureId: info.FixtureId ?? fixtureIds[i],
-            Participant1: info.Participant1 ?? candidates[i].Participant1 ?? 'Local',
-            Participant2: info.Participant2 ?? candidates[i].Participant2 ?? 'Visitante',
+            FixtureId: fid,
+            Participant1: p1,
+            Participant2: p2,
             Score1: score.Participant1?.Total?.Goals ?? 0,
             Score2: score.Participant2?.Total?.Goals ?? 0,
-            Minute: minute,
+            Minute: minute > 0 ? minute : 0,
             Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
             StatusId: statusId,
           });
@@ -328,8 +335,8 @@ export default function LivePage() {
             >
               <LiveFeedItem
                 fixtureId={e.FixtureId}
-                participant1={e.Participant1 || 'Local'}
-                participant2={e.Participant2 || 'Visitante'}
+                participant1={e.Participant1 || ''}
+                participant2={e.Participant2 || ''}
                 score1={e.Score1 ?? 0}
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
