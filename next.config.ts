@@ -10,9 +10,7 @@ const nextConfig: NextConfig = {
     '@solana-mobile/wallet-adapter-mobile',
     '@solana/kit',
   ],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
 };
 
 export default nextConfig;
