@@ -113,9 +113,20 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
       <div className="max-w-lg mx-auto px-4 py-20 text-center animate-fadeIn relative">
         <Orbs />
         <GlassCard>
-          <IconBox pulse>
-            <ReloadIcon width={20} height={20} style={{ color: 'var(--accent)' }} />
-          </IconBox>
+          <div className="relative w-14 h-14 mx-auto mb-4">
+            <div
+              className="absolute inset-0 rounded-2xl animate-spin"
+              style={{
+                border: '3px solid transparent',
+                borderTopColor: 'var(--accent)',
+                borderRightColor: 'var(--accent)',
+                opacity: 0.4,
+              }}
+            />
+            <div className="w-full h-full rounded-2xl flex items-center justify-center" style={{ background: 'var(--accent-dim)' }}>
+              <ReloadIcon width={20} height={20} style={{ color: 'var(--accent)' }} />
+            </div>
+          </div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             Verificando suscripción TxLINE...
           </p>
@@ -230,13 +241,22 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
               boxShadow: '0 0 30px rgba(220,235,2,0.04)',
             }}
           >
-            {/* Pulsing glow ring */}
+            {/* Pulsing glow ring + spinner */}
             <div className="relative w-16 h-16 mx-auto mb-5">
               <div
                 className="absolute inset-0 rounded-full animate-countdown-pulse"
                 style={{
                   border: '2px solid var(--accent)',
                   opacity: 0.3,
+                }}
+              />
+              <div
+                className="absolute inset-0 rounded-full animate-spin"
+                style={{
+                  border: '2px solid transparent',
+                  borderTopColor: 'var(--accent)',
+                  borderRightColor: 'var(--accent)',
+                  opacity: 0.5,
                 }}
               />
               <div
@@ -301,13 +321,22 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
               boxShadow: '0 0 30px rgba(220,235,2,0.04)',
             }}
           >
-            {/* Pulsing glow ring */}
+            {/* Pulsing glow ring + spinner */}
             <div className="relative w-16 h-16 mx-auto mb-5">
               <div
                 className="absolute inset-0 rounded-full animate-countdown-pulse"
                 style={{
                   border: '2px solid var(--accent)',
                   opacity: 0.3,
+                }}
+              />
+              <div
+                className="absolute inset-0 rounded-full animate-spin"
+                style={{
+                  border: '2px solid transparent',
+                  borderTopColor: 'var(--accent)',
+                  borderRightColor: 'var(--accent)',
+                  opacity: 0.5,
                 }}
               />
               <div

@@ -113,18 +113,26 @@ export default function LivePage() {
             border: `1px solid ${indicatorBorder}`,
           }}
         >
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: indicatorColor,
-              boxShadow: connectionState === 'connected'
-                ? `0 0 8px ${indicatorColor}`
-                : 'none',
-              animation: connectionState === 'connecting'
-                ? 'pulse-dot 1.4s ease-in-out infinite'
-                : 'none',
-            }}
-          />
+          {connectionState === 'connecting' ? (
+            <div
+              className="w-3 h-3 rounded-full animate-spin"
+              style={{
+                border: '2px solid transparent',
+                borderTopColor: 'var(--warning)',
+                borderRightColor: 'var(--warning)',
+              }}
+            />
+          ) : (
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: indicatorColor,
+                boxShadow: connectionState === 'connected'
+                  ? `0 0 8px ${indicatorColor}`
+                  : 'none',
+              }}
+            />
+          )}
           <span
             className="text-[11px] font-semibold"
             style={{ color: indicatorColor }}
@@ -173,19 +181,15 @@ export default function LivePage() {
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-20 animate-scaleIn">
-          <div className="flex items-end justify-center gap-1.5 mb-8 h-8">
-            {barHeights.map((h, i) => (
-              <div
-                key={i}
-                className="w-1 rounded-full"
-                style={{
-                  height: h,
-                  background: 'var(--accent-dim)',
-                  animation: 'pulse-dot 1.2s ease-in-out infinite',
-                  animationDelay: `${i * 0.12}s`,
-                }}
-              />
-            ))}
+          <div className="flex items-center justify-center mb-6">
+            <div
+              className="w-10 h-10 rounded-full animate-spin"
+              style={{
+                border: '3px solid var(--accent-dim)',
+                borderTopColor: 'var(--accent)',
+                borderRightColor: 'var(--accent)',
+              }}
+            />
           </div>
           <div
             className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
