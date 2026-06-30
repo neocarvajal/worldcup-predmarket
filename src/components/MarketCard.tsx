@@ -31,17 +31,32 @@ function Countdown({ target }: { target: Date }) {
 
   const diff = target.getTime() - now;
   if (diff <= 0) {
+    const finished = diff < -2 * 60 * 60 * 1000;
+    if (finished) {
+      return (
+        <span
+          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+          style={{
+            background: 'var(--bg-surface)',
+            color: 'var(--text-muted)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          Finalizado
+        </span>
+      );
+    }
     return (
       <span
         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
         style={{
-          background: 'rgba(245,158,11,0.1)',
-          color: 'var(--warning)',
-          border: '1px solid rgba(245,158,11,0.2)',
+          background: 'rgba(34,197,94,0.1)',
+          color: 'var(--success)',
+          border: '1px solid rgba(34,197,94,0.2)',
         }}
       >
-        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
-        Empezado
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--success)' }} />
+        En Vivo
       </span>
     );
   }

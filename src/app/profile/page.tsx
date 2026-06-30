@@ -6,7 +6,7 @@ import { useConnection } from '@solana/wallet-adapter-react';
 import { useTxLine } from '../../context/TxLineContext';
 import { useAutoSubscribe } from '../../hooks/useAutoSubscribe';
 import { saveProfileImage, loadProfileImage } from '../../lib/persistence';
-import { initProfile, updateProfile, fetchUserProfile } from '../../lib/settlement';
+import { initProfile, updateProfile, fetchUserProfile, fetchUserEscrows } from '../../lib/settlement';
 import {
   PersonIcon,
   CameraIcon,
@@ -24,6 +24,9 @@ export default function ProfilePage() {
   const { client } = useTxLine();
   const { state: subState, subscribe } = useAutoSubscribe();
   const [balance, setBalance] = useState<number | null>(null);
+  const [totalBets, setTotalBets] = useState(0);
+  const [wonBets, setWonBets] = useState(0);
+  const [earnings, setEarnings] = useState(0);
   const [profileImg, setProfileImg] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState('');
   const [xHandle, setXHandle] = useState('');
@@ -48,6 +51,22 @@ export default function ProfilePage() {
         setImageUri(p.account.image_uri || '');
         setXHandle(p.account.x_handle || '');
       }
+    }).catch(() => {});
+    fetchUserEscrows(connection, publicKey).then((data) => {
+      setTotalBets(data.length);
+      let won = 0;
+      let total = 0;
+      for (const { account } of data) {
+        const stateKey = account.state ? Object.keys(account.state)[0] : null;
+        if (stateKey === 'Settled' && account.depositor_won) {
+          const amount = Number(account.amount || 0) / 1_000_000;
+          const odds = account.odds ? Number(account.odds) / 1000 : 2.0;
+          won++;
+          total += amount * odds;
+        }
+      }
+      setWonBets(won);
+      setEarnings(total);
     }).catch(() => {});
   }, [publicKey, connection]);
 
@@ -174,8 +193,8 @@ export default function ProfilePage() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
             { val: balance != null ? `${balance.toFixed(3)}` : '--', label: 'SOL' },
-            { val: '0', label: 'Predicciones' },
-            { val: '0', label: 'Ganadas' },
+            { val: totalBets.toString(), label: 'Predicciones' },
+            { val: `${wonBets} (${earnings.toFixed(2)} USDT)`, label: 'Ganadas' },
           ].map((s, i) => (
             <div
               key={s.label}

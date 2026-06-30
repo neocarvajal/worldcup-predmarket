@@ -95,6 +95,93 @@
       "args": []
     },
     {
+      "name": "claim",
+      "discriminator": [
+        62,
+        198,
+        214,
+        193,
+        213,
+        159,
+        108,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "claimant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow.depositor",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.recipient",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.nonce",
+                "account": "Escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claimant_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "deposit",
       "discriminator": [
         242,
@@ -419,6 +506,208 @@
       "args": []
     },
     {
+      "name": "settle_with_cpi",
+      "discriminator": [
+        6,
+        168,
+        212,
+        169,
+        121,
+        225,
+        228,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow.depositor",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.recipient",
+                "account": "Escrow"
+              },
+              {
+                "kind": "account",
+                "path": "escrow.nonce",
+                "account": "Escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "escrow"
+              }
+            ]
+          }
+        },
+        {
+          "name": "depositor_token_account",
+          "writable": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "txline_program"
+        },
+        {
+          "name": "ten_daily_fixtures_roots"
+        }
+      ],
+      "args": [
+        {
+          "name": "score1",
+          "type": "u64"
+        },
+        {
+          "name": "score2",
+          "type": "u64"
+        },
+        {
+          "name": "fixture_ts",
+          "type": "i64"
+        },
+        {
+          "name": "fixture_start_time",
+          "type": "i64"
+        },
+        {
+          "name": "competition",
+          "type": "string"
+        },
+        {
+          "name": "competition_id",
+          "type": "i32"
+        },
+        {
+          "name": "fixture_group_id",
+          "type": "i32"
+        },
+        {
+          "name": "participant1_id",
+          "type": "i32"
+        },
+        {
+          "name": "participant1",
+          "type": "string"
+        },
+        {
+          "name": "participant2_id",
+          "type": "i32"
+        },
+        {
+          "name": "participant2",
+          "type": "string"
+        },
+        {
+          "name": "fixture_id",
+          "type": "i64"
+        },
+        {
+          "name": "participant1_is_home",
+          "type": "bool"
+        },
+        {
+          "name": "summary_fixture_id",
+          "type": "i64"
+        },
+        {
+          "name": "summary_competition_id",
+          "type": "i32"
+        },
+        {
+          "name": "summary_competition",
+          "type": "string"
+        },
+        {
+          "name": "summary_update_count",
+          "type": "u32"
+        },
+        {
+          "name": "summary_min_timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "summary_max_timestamp",
+          "type": "i64"
+        },
+        {
+          "name": "summary_sub_tree_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "sub_tree_proof",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "ProofNode"
+              }
+            }
+          }
+        },
+        {
+          "name": "main_tree_proof",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "ProofNode"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "update_profile",
       "discriminator": [
         98,
@@ -553,6 +842,16 @@
       "code": 6008,
       "name": "NotFulfillable",
       "msg": "Escrow not yet fulfillable"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidTxLinePda",
+      "msg": "Invalid TxLINE PDA"
+    },
+    {
+      "code": 6010,
+      "name": "NotClaimant",
+      "msg": "Not the claimant"
     }
   ],
   "types": [
@@ -606,6 +905,10 @@
             "type": "i64"
           },
           {
+            "name": "depositor_won",
+            "type": "bool"
+          },
+          {
             "name": "state",
             "type": {
               "defined": {
@@ -637,6 +940,27 @@
           },
           {
             "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProofNode",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "is_right_sibling",
+            "type": "bool"
           }
         ]
       }

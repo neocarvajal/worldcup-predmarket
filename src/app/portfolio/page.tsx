@@ -13,6 +13,7 @@ export default function PortfolioPage() {
   const { publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { connection } = useConnection();
+
   const [escrows, setEscrows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

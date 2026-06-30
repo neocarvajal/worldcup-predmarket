@@ -33,13 +33,13 @@ function CountdownSmall({ target }: { target: Date }) {
       <span
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
         style={{
-          background: 'rgba(245,158,11,0.1)',
-          color: 'var(--warning)',
-          border: '1px solid rgba(245,158,11,0.2)',
+          background: 'rgba(220,235,2,0.1)',
+          color: 'var(--accent)',
+          border: '1px solid rgba(220,235,2,0.2)',
         }}
       >
-        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
-        Vencida
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--accent)' }} />
+        En Vivo
       </span>
     );
   }

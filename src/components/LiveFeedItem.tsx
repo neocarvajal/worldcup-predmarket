@@ -2,6 +2,9 @@
 
 import React from 'react';
 
+const TXLINE_LIVE = new Set(['H1', 'H2', 'HT', 'ET1', 'HTET', 'ET2', 'PE', 'WET', 'WPE']);
+const TXLINE_FINISHED = new Set(['F', 'FET', 'FPE']);
+
 interface LiveFeedItemProps {
   fixtureId: number;
   participant1: string;
@@ -15,8 +18,9 @@ interface LiveFeedItemProps {
 export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
   fixtureId, participant1, participant2, score1, score2, minute, status,
 }) => {
-  const isLive = status === 'live' || status === 'in_play';
-  const isFinished = status === 'finished' || status === 'final' || status === 'settled';
+  const s = status?.toUpperCase() || '';
+  const isLive = TXLINE_LIVE.has(s);
+  const isFinished = TXLINE_FINISHED.has(s);
 
   return (
     <div className="card animate-slideUp" key={fixtureId}>

@@ -36,6 +36,7 @@ pub fn handler(ctx: Context<InitEscrow>, expiry: i64, nonce: u64, fixture_name: 
     escrow.vault = Pubkey::default();
     escrow.amount = 0;
     escrow.expiry = expiry;
+    escrow.depositor_won = false;
     escrow.state = EscrowState::Active;
     escrow.bump = ctx.bumps.escrow;
     escrow.vault_bump = 0;

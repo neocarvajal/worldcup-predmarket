@@ -156,7 +156,12 @@ export const MarketList: React.FC = () => {
     );
   }
 
-  const sorted = [...fixtures].sort((a, b) => a.StartTime - b.StartTime);
+  const now = Date.now();
+  const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+  const upcoming = fixtures.filter(
+    (f) => f.StartTime > now - THREE_HOURS_MS
+  );
+  const sorted = [...upcoming].sort((a, b) => a.StartTime - b.StartTime);
 
   return (
     <div className="space-y-3">
@@ -165,10 +170,10 @@ export const MarketList: React.FC = () => {
           className="text-[10px] font-semibold uppercase tracking-[0.12em]"
           style={{ color: 'var(--text-muted)' }}
         >
-          Próximos partidos
+          {sorted.length > 0 ? 'Próximos partidos' : 'No hay partidos disponibles'}
         </span>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-          {fixtures.length} {fixtures.length === 1 ? 'evento' : 'eventos'}
+          {sorted.length} {sorted.length === 1 ? 'evento' : 'eventos'}
         </span>
       </div>
       {sorted.map((f, idx) => (

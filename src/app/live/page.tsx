@@ -11,17 +11,19 @@ export default function LivePage() {
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const cancelledRef = useRef(false);
 
   const connect = useCallback(async () => {
     setConnectionState('connecting');
-    let cancelled = false;
+    cancelledRef.current = false;
+    let authError = false;
     try {
       const stream = await client.streamScores();
       const reader = stream.getReader();
       readerRef.current = reader;
       setConnectionState('connected');
       const decoder = new TextDecoder();
-      while (!cancelled) {
+      while (!cancelledRef.current) {
         const { value, done } = await reader.read();
         if (done) break;
         const text = decoder.decode(value);
@@ -44,14 +46,15 @@ export default function LivePage() {
     } catch (e: any) {
       if (e instanceof TxLineAuthError || e?.message?.includes('JWT') || e?.message?.includes('token') || e?.message?.includes('401') || e?.message?.includes('403')) {
         setConnectionState('no-auth');
+        authError = true;
       } else {
         setConnectionState('error');
       }
     }
-    if (!cancelled && connectionState !== 'no-auth') {
+    if (!cancelledRef.current && !authError) {
       setTimeout(connect, 10000);
     }
-    return () => { cancelled = true; readerRef.current?.cancel(); };
+    return () => { cancelledRef.current = true; readerRef.current?.cancel(); };
   }, [client]);
 
   useEffect(() => {

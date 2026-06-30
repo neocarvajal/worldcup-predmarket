@@ -16,6 +16,7 @@ pub struct Escrow {
     pub vault: Pubkey,
     pub amount: u64,
     pub expiry: i64,
+    pub depositor_won: bool,   
     pub state: EscrowState,
     pub bump: u8,
     pub vault_bump: u8,

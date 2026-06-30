@@ -20,4 +20,8 @@ pub enum SettlementError {
     InvalidTokenAccount,
     #[msg("Escrow not yet fulfillable")]
     NotFulfillable,
+    #[msg("Invalid TxLINE PDA")]
+    InvalidTxLinePda,
+    #[msg("Not the claimant")]
+    NotClaimant,
 }

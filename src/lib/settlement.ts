@@ -236,6 +236,133 @@ export async function updateProfile(
   return buildAndSend(connection, wallet, instruction);
 }
 
+const TXLINE_PROGRAM_ID = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
+
+export function getTxLineTenDailyFixturesRootsPda(): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [enc('ten_daily_fixtures_roots')],
+    TXLINE_PROGRAM_ID
+  )[0];
+}
+
+export async function claimEscrow(
+  connection: Connection,
+  wallet: any,
+  escrowPubkey: PublicKey,
+  mint: PublicKey,
+  vaultPubkey: PublicKey,
+  claimantTokenAccount: PublicKey,
+): Promise<string> {
+  const program = await getSettlementProgram(connection, wallet);
+  const instruction = await program.methods
+    .claim()
+    .accountsStrict({
+      claimant: wallet.publicKey,
+      escrow: escrowPubkey,
+      mint,
+      vault: vaultPubkey,
+      claimantTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
+  return buildAndSend(connection, wallet, instruction);
+}
+
+export async function settleWithCpi(
+  connection: Connection,
+  wallet: any,
+  params: {
+    escrowPubkey: PublicKey;
+    mint: PublicKey;
+    vaultPubkey: PublicKey;
+    depositorTokenAccount: PublicKey;
+    recipientTokenAccount: PublicKey;
+    score1: number;
+    score2: number;
+    fixture: any;
+    fixtureSummary: any;
+    subTreeProof: any[];
+    mainTreeProof: any[];
+  },
+): Promise<string> {
+  const program = await getSettlementProgram(connection, wallet);
+  const tenDailyFixturesRoots = getTxLineTenDailyFixturesRootsPda();
+  const f = params.fixture;
+  const fs = params.fixtureSummary;
+
+  const fixtureProofNodes = params.subTreeProof.map((p: any) => ({
+    hash: Object.values(p.hash ?? p),
+    isRightSibling: p.isRightSibling ?? false,
+  }));
+  const mainProofNodes = params.mainTreeProof.map((p: any) => ({
+    hash: Object.values(p.hash ?? p),
+    isRightSibling: p.isRightSibling ?? false,
+  }));
+
+  const instruction = await program.methods
+    .settleWithCpi(
+      new BN(params.score1),
+      new BN(params.score2),
+      new BN(f.ts ?? f.Ts ?? 0),
+      new BN(f.start_time ?? f.StartTime ?? 0),
+      f.competition ?? f.Competition ?? '',
+      f.competition_id ?? f.CompetitionId ?? 0,
+      f.fixture_group_id ?? f.FixtureGroupId ?? 0,
+      f.participant1_id ?? f.Participant1Id ?? 0,
+      f.participant1 ?? f.Participant1 ?? '',
+      f.participant2_id ?? f.Participant2Id ?? 0,
+      f.participant2 ?? f.Participant2 ?? '',
+      new BN(f.fixture_id ?? f.FixtureId ?? 0),
+      f.participant1_is_home ?? f.Participant1IsHome ?? true,
+      new BN(fs.fixture_id ?? fs.fixtureId ?? 0),
+      fs.competition_id ?? fs.competitionId ?? 0,
+      fs.competition ?? '',
+      fs.update_count ?? fs.updateStats?.updateCount ?? 0,
+      new BN(fs.min_timestamp ?? fs.updateStats?.minTimestamp ?? 0),
+      new BN(fs.max_timestamp ?? fs.updateStats?.maxTimestamp ?? 0),
+      Object.values(fs.update_sub_tree_root ?? fs.eventsSubTreeRoot ?? new Array(32).fill(0)),
+      fixtureProofNodes,
+      mainProofNodes,
+    )
+    .accountsStrict({
+      caller: wallet.publicKey,
+      escrow: params.escrowPubkey,
+      mint: params.mint,
+      vault: params.vaultPubkey,
+      depositorTokenAccount: params.depositorTokenAccount,
+      recipientTokenAccount: params.recipientTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      txlineProgram: TXLINE_PROGRAM_ID,
+      tenDailyFixturesRoots,
+    })
+    .instruction();
+
+  return buildAndSend(connection, wallet, instruction);
+}
+
+export async function cancelEscrow(
+  connection: Connection,
+  wallet: any,
+  escrowPubkey: PublicKey,
+  mint: PublicKey,
+  vaultPubkey: PublicKey,
+  depositorTokenAccount: PublicKey,
+): Promise<string> {
+  const program = await getSettlementProgram(connection, wallet);
+  const instruction = await program.methods
+    .cancel()
+    .accountsStrict({
+      depositor: wallet.publicKey,
+      escrow: escrowPubkey,
+      mint,
+      vault: vaultPubkey,
+      depositorTokenAccount,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
+  return buildAndSend(connection, wallet, instruction);
+}
+
 export async function fetchUserProfile(
   connection: Connection,
   authority: PublicKey
