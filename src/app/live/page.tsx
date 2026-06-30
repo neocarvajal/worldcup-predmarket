@@ -25,7 +25,6 @@ function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
   const upd = raw.Update || {};
   const fixtureId = info.FixtureId ?? upd.FixtureId ?? raw.FixtureId;
   if (fixtureId == null) return null;
-  if (info.FixtureId != null) cache.set(fixtureId, info);
   const cached = cache.get(fixtureId) || {};
   const statusId = upd.StatusId ?? info.StatusId ?? 2;
   const clock = upd.Clock || {};
@@ -33,9 +32,8 @@ function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
   if (clock.Seconds != null) {
     minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
   }
-  const p1 = info.Participant1 ?? raw.Participant1 ?? cached.Participant1 ?? '';
-  const p2 = info.Participant2 ?? raw.Participant2 ?? cached.Participant2 ?? '';
-  cache.set(fixtureId, { Participant1: p1, Participant2: p2, StatusId: statusId });
+  const p1 = cached.Participant1 ?? info.Participant1 ?? '';
+  const p2 = cached.Participant2 ?? info.Participant2 ?? '';
   const score = upd.Score || {};
   return {
     FixtureId: fixtureId,
@@ -65,6 +63,16 @@ export default function LivePage() {
         const data = await client.getFixtures();
         const fixtures: any[] = data?.Fixtures ?? data?.fixtures ?? data ?? [];
         if (!Array.isArray(fixtures)) return;
+        // Pre-populate cache with all fixture team names so SSE never falls back to empty
+        for (const f of fixtures) {
+          const id = f.FixtureId ?? f.fixtureId;
+          if (id != null) {
+            cacheRef.current.set(id, {
+              Participant1: f.Participant1 ?? f.participant1 ?? '',
+              Participant2: f.Participant2 ?? f.participant2 ?? '',
+            });
+          }
+        }
         const now = Date.now();
         const window = 3.5 * 60 * 60 * 1000;
         const candidates = fixtures.filter(f => {
@@ -93,9 +101,11 @@ export default function LivePage() {
           if (clock.Seconds != null) {
             minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
           }
-          const p1 = info.Participant1 ?? snap.Participant1 ?? candidates[i].Participant1 ?? candidates[i].Participant1Name ?? '';
-          const p2 = info.Participant2 ?? snap.Participant2 ?? candidates[i].Participant2 ?? candidates[i].Participant2Name ?? '';
-          const fid = info.FixtureId ?? fixtureIds[i];
+          // Team names always from fixture snapshot (same source as /markets)
+          const candidate = candidates[i];
+          const p1 = candidate.Participant1 ?? candidate.participant1 ?? '';
+          const p2 = candidate.Participant2 ?? candidate.participant2 ?? '';
+          const fid = candidate.FixtureId ?? candidate.fixtureId;
           cacheRef.current.set(fid, { Participant1: p1, Participant2: p2 });
           live.push({
             FixtureId: fid,
