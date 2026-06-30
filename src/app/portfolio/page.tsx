@@ -18,6 +18,25 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
+  const [settling, setSettling] = useState(false);
+
+  const handleSettle = async () => {
+    setSettling(true);
+    setError(null);
+    try {
+      const resp = await fetch('/api/keeper/settle', { method: 'POST' });
+      const data = await resp.json();
+      if (data.ok) {
+        setTimeout(() => load(), 2000);
+      } else {
+        setError(data.error || 'Error al liquidar');
+      }
+    } catch (e: any) {
+      setError(e.message || 'Error de red al liquidar');
+    } finally {
+      setSettling(false);
+    }
+  };
 
   const load = async () => {
     if (!publicKey) return;
@@ -307,6 +326,8 @@ export default function PortfolioPage() {
                     payout={payout}
                     status={isSettled ? 'won' : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
+                    onSettle={hasMatchEnded ? handleSettle : undefined}
+                    settling={settling}
                   />
                 </div>
               );

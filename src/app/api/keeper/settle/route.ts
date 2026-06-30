@@ -3,12 +3,15 @@ import { Connection, Keypair } from '@solana/web3.js';
 import { settleActiveEscrows } from '../../../../lib/keeper';
 
 async function handle(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const expectedToken = process.env.KEEPER_SECRET;
-  if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
-    const isCron = req.headers.get('x-vercel-cron') === '1';
-    if (!isCron) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // POST is public (manual trigger from UI settle button)
+  if (req.method !== 'POST') {
+    const authHeader = req.headers.get('authorization');
+    const expectedToken = process.env.KEEPER_SECRET;
+    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+      const isCron = req.headers.get('x-vercel-cron') === '1';
+      if (!isCron) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
   }
 

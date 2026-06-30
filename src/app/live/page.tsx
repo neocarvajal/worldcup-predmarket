@@ -21,28 +21,32 @@ function periodSeconds(statusId: number): number {
 }
 
 function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
-  const info = raw.FixtureInfo || {};
-  const upd = raw.Update || {};
-  const fixtureId = info.FixtureId ?? upd.FixtureId ?? raw.FixtureId;
+  if (!raw || typeof raw !== 'object') return null;
+  const info: any = raw.FixtureInfo ?? raw.fixtureInfo ?? raw.Info ?? {};
+  const upd: any = raw.Update ?? raw.update ?? {};
+  const fixtureId = info.FixtureId ?? info.fixtureId ?? upd.FixtureId ?? upd.fixtureId ?? raw.FixtureId ?? raw.fixtureId;
   if (fixtureId == null) return null;
   const cached = cache.get(fixtureId) || {};
-  const statusId = upd.StatusId ?? info.StatusId ?? 2;
-  const clock = upd.Clock || {};
+  const statusId = upd.StatusId ?? upd.statusId ?? info.StatusId ?? info.statusId ?? raw.StatusId ?? raw.statusId ?? 2;
+  const clock = upd.Clock ?? upd.clock ?? info.Clock ?? info.clock ?? raw.Clock ?? raw.clock ?? {};
   let minute = 0;
   if (clock.Seconds != null) {
     minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
   }
-  const p1 = cached.Participant1 ?? info.Participant1 ?? '';
-  const p2 = cached.Participant2 ?? info.Participant2 ?? '';
-  const score = upd.Score || {};
+  const p1 = cached.Participant1 ?? info.Participant1 ?? info.participant1 ?? raw.Participant1 ?? raw.participant1 ?? '';
+  const p2 = cached.Participant2 ?? info.Participant2 ?? info.participant2 ?? raw.Participant2 ?? raw.participant2 ?? '';
+  cache.set(fixtureId, { Participant1: p1, Participant2: p2 });
+  const score = upd.Score ?? upd.score ?? info.Score ?? info.score ?? raw.Score ?? raw.score ?? {};
+  const s1 = score.Participant1?.Total?.Goals ?? score.participant1?.total?.goals ?? raw.Score1 ?? raw.score1 ?? 0;
+  const s2 = score.Participant2?.Total?.Goals ?? score.participant2?.total?.goals ?? raw.Score2 ?? raw.score2 ?? 0;
   return {
     FixtureId: fixtureId,
     Participant1: p1,
     Participant2: p2,
-    Score1: score.Participant1?.Total?.Goals ?? 0,
-    Score2: score.Participant2?.Total?.Goals ?? 0,
-    Minute: minute > 0 ? minute : 0,
-    Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
+    Score1: s1,
+    Score2: s2,
+    Minute: minute,
+    Status: upd.Data?.StatusName ?? info.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
     StatusId: statusId,
   };
 }
@@ -55,6 +59,7 @@ export default function LivePage() {
   const cancelledRef = useRef(false);
   const cacheRef = useRef<Map<number, any>>(new Map());
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trackedRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +123,9 @@ export default function LivePage() {
             StatusId: statusId,
           });
         }
+        for (const e of live) {
+          if (e.FixtureId != null) trackedRef.current.add(e.FixtureId);
+        }
         if (live.length > 0) {
           setEvents(prev => [...live, ...prev].slice(0, 50));
         }
@@ -146,6 +154,7 @@ export default function LivePage() {
             const raw = JSON.parse(line.slice(5));
             const d = normalizeScoreEvent(raw, cacheRef.current);
             if (!d) continue;
+            if (d.FixtureId != null) trackedRef.current.add(d.FixtureId);
             setEvents(prev => {
               const idx = prev.findIndex(e => e.FixtureId === d.FixtureId);
               if (idx >= 0) {
@@ -182,6 +191,34 @@ export default function LivePage() {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
   }, [connect]);
+
+  useEffect(() => {
+    if (connectionState !== 'connected') return;
+    const interval = setInterval(async () => {
+      const ids = Array.from(trackedRef.current);
+      if (ids.length === 0) return;
+      const snapshots = await Promise.allSettled(
+        ids.map((id: number) => client.getScoresSnapshot(id))
+      );
+      const updates: any[] = [];
+      for (let i = 0; i < snapshots.length; i++) {
+        const r = snapshots[i];
+        if (r.status !== 'fulfilled') continue;
+        const d = normalizeScoreEvent(r.value, cacheRef.current);
+        if (d) updates.push(d);
+      }
+      if (updates.length === 0) return;
+      setEvents(prev => {
+        const next = [...prev];
+        for (const u of updates) {
+          const idx = next.findIndex(e => e.FixtureId === u.FixtureId);
+          if (idx >= 0) next[idx] = u;
+        }
+        return next.slice(0, 50);
+      });
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [connectionState, client]);
 
   const handleRetry = () => {
     connect();

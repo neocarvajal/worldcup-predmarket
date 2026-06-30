@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon, ReloadIcon } from '@radix-ui/react-icons';
 
 interface PositionCardProps {
   fixtureName: string;
@@ -11,6 +11,8 @@ interface PositionCardProps {
   payout: number;
   status: 'active' | 'won' | 'lost' | 'cancelled' | 'pending';
   expiry?: number;
+  onSettle?: () => void;
+  settling?: boolean;
 }
 
 const statusConfig: Record<string, { icon: React.ComponentType<any>; label: string; color: string; bg: string }> = {
@@ -84,6 +86,7 @@ function ShareOnX({ fixtureName, amount, odds }: { fixtureName: string; amount: 
 
 export const PositionCard: React.FC<PositionCardProps> = ({
   fixtureName, selection, amount, odds, payout, status, expiry,
+  onSettle, settling,
 }) => {
   const cfg = statusConfig[status];
   const StatusIcon = cfg.icon;
@@ -161,7 +164,28 @@ export const PositionCard: React.FC<PositionCardProps> = ({
       >
         <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Pago potencial</span>
         <div className="flex items-center gap-3">
-          {status === 'won' && <ShareOnX fixtureName={fixtureName} amount={amount} odds={odds} />}
+          {(status === 'won' || status === 'pending') && (
+            <ShareOnX fixtureName={fixtureName} amount={amount} odds={odds} />
+          )}
+          {status === 'pending' && onSettle && (
+            <button
+              onClick={onSettle}
+              disabled={settling}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all duration-200 active:scale-95"
+              style={{
+                background: settling ? 'var(--bg-surface)' : 'var(--accent)',
+                color: settling ? 'var(--text-muted)' : '#000',
+                border: `1px solid ${settling ? 'var(--border)' : 'var(--accent)'}`,
+              }}
+            >
+              {settling ? (
+                <ReloadIcon width={12} height={12} className="animate-spin" />
+              ) : (
+                <UpdateIcon width={12} height={12} />
+              )}
+              {settling ? 'Liquidando...' : 'Liquidar'}
+            </button>
+          )}
           <span
             className="text-sm font-bold tabular-nums"
             style={{
