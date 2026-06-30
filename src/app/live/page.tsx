@@ -56,30 +56,57 @@ export default function LivePage() {
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    client.getFixtures().then((data: any) => {
-      const fixtures = data?.Fixtures ?? data?.fixtures ?? data ?? [];
-      if (!Array.isArray(fixtures)) return;
-      const live: any[] = [];
-      for (const f of fixtures) {
-        const id = f.FixtureId ?? f.fixtureId ?? f.id;
-        if (id == null) continue;
-        cacheRef.current.set(id, f);
-        const sid = f.StatusId ?? f.statusId;
-        if (sid != null && LIVE_STATUS_IDS.has(sid)) {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await client.getFixtures();
+        const fixtures: any[] = data?.Fixtures ?? data?.fixtures ?? data ?? [];
+        if (!Array.isArray(fixtures)) return;
+        const now = Date.now();
+        const window = 3.5 * 60 * 60 * 1000;
+        const candidates = fixtures.filter(f => {
+          const startTime: number = f.StartTime ?? f.startTime ?? 0;
+          const tracking: boolean = f.ScoreCaptureTracking ?? f.scoreCaptureTracking ?? false;
+          return tracking && startTime > 0 && (now - startTime) < window && (now - startTime) > -30 * 60 * 1000;
+        });
+        if (candidates.length === 0) return;
+        const fixtureIds = candidates.map(f => f.FixtureId ?? f.fixtureId);
+        const snapshots = await Promise.allSettled(
+          fixtureIds.map((id: number) => client.getScoresSnapshot(id))
+        );
+        if (cancelled) return;
+        const live: any[] = [];
+        for (let i = 0; i < snapshots.length; i++) {
+          const result = snapshots[i];
+          if (result.status !== 'fulfilled') continue;
+          const snap = result.value;
+          const info = snap.FixtureInfo || snap;
+          const upd = snap.Update || {};
+          const statusId = upd.StatusId ?? info.StatusId;
+          if (statusId == null || !LIVE_STATUS_IDS.has(statusId)) continue;
+          const clock = upd.Clock || {};
+          const score = upd.Score || {};
+          let minute = 0;
+          if (clock.Seconds != null) {
+            minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
+          }
           live.push({
-            FixtureId: id,
-            Participant1: f.Participant1 ?? f.participant1 ?? 'Local',
-            Participant2: f.Participant2 ?? f.participant2 ?? 'Visitante',
-            Score1: 0, Score2: 0, Minute: 0,
-            Status: STATUS_NAMES[sid] ?? 'LIVE',
-            StatusId: sid,
+            FixtureId: info.FixtureId ?? fixtureIds[i],
+            Participant1: info.Participant1 ?? candidates[i].Participant1 ?? 'Local',
+            Participant2: info.Participant2 ?? candidates[i].Participant2 ?? 'Visitante',
+            Score1: score.Participant1?.Total?.Goals ?? 0,
+            Score2: score.Participant2?.Total?.Goals ?? 0,
+            Minute: minute,
+            Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
+            StatusId: statusId,
           });
         }
-      }
-      if (live.length > 0) {
-        setEvents(prev => [...live, ...prev].slice(0, 50));
-      }
-    }).catch(() => {});
+        if (live.length > 0) {
+          setEvents(prev => [...live, ...prev].slice(0, 50));
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
   }, [client]);
 
   const connect = useCallback(async () => {

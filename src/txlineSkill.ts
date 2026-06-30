@@ -120,6 +120,10 @@ export class TxLineClient {
     return this.request('GET', `/odds/snapshot/${fixtureId}`, { query: params });
   }
 
+  async getScoresSnapshot(fixtureId: number): Promise<any> {
+    return this.request('GET', `/scores/snapshot/${fixtureId}`);
+  }
+
   async streamScores(): Promise<ReadableStream<Uint8Array>> {
     const { jwt, apiToken } = await this.ensureAuth();
     const url = apiUrl('/scores/stream');
