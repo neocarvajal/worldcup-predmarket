@@ -6,12 +6,42 @@ import { TxLineAuthError } from '../../txlineSkill';
 import { LiveFeedItem } from '../../components/LiveFeedItem';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
 
+function normalizeScoreEvent(raw: any, fixtureMap: Map<number, any>): any {
+  const fixtureId = raw.FixtureId ?? raw.fixtureId ?? raw.id ?? raw.fixture_id ?? raw.FIXTURE_ID;
+  if (fixtureId == null) return null;
+  const cached = fixtureMap.get(fixtureId);
+  return {
+    FixtureId: fixtureId,
+    Participant1: raw.Participant1 ?? raw.participant1 ?? cached?.Participant1 ?? cached?.participant1 ?? 'Local',
+    Participant2: raw.Participant2 ?? raw.participant2 ?? cached?.Participant2 ?? cached?.participant2 ?? 'Visitante',
+    Score1: raw.Score1 ?? raw.score1 ?? raw.homeScore ?? raw.home_score ?? 0,
+    Score2: raw.Score2 ?? raw.score2 ?? raw.awayScore ?? raw.away_score ?? 0,
+    Minute: raw.Minute ?? raw.minute ?? raw.gameMinute ?? 0,
+    Status: raw.Status ?? raw.status ?? raw.gameState ?? 'live',
+  };
+}
+
 export default function LivePage() {
   const { client } = useTxLine();
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const cancelledRef = useRef(false);
+  const fixtureMapRef = useRef<Map<number, any>>(new Map());
+
+  useEffect(() => {
+    client.getFixtures().then((data: any) => {
+      const fixtures = data?.Fixtures ?? data?.fixtures ?? data ?? [];
+      if (Array.isArray(fixtures)) {
+        const map = new Map<number, any>();
+        for (const f of fixtures) {
+          const id = f.FixtureId ?? f.fixtureId ?? f.id;
+          if (id != null) map.set(id, f);
+        }
+        fixtureMapRef.current = map;
+      }
+    }).catch(() => {});
+  }, [client]);
 
   const connect = useCallback(async () => {
     setConnectionState('connecting');
@@ -30,7 +60,9 @@ export default function LivePage() {
         const lines = text.split('\n').filter(l => l.startsWith('data:'));
         for (const line of lines) {
           try {
-            const data = JSON.parse(line.slice(5));
+            const raw = JSON.parse(line.slice(5));
+            const data = normalizeScoreEvent(raw, fixtureMapRef.current);
+            if (!data || data.FixtureId == null) continue;
             setEvents(prev => {
               const existing = prev.findIndex(e => e.FixtureId === data.FixtureId);
               if (existing >= 0) {
@@ -56,11 +88,6 @@ export default function LivePage() {
     }
     return () => { cancelledRef.current = true; readerRef.current?.cancel(); };
   }, [client]);
-
-  useEffect(() => {
-    const cleanup = connect();
-    return () => { cleanup.then(fn => fn?.()); };
-  }, [connect]);
 
   const handleRetry = () => {
     connect();
