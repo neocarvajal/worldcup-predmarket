@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair } from '@solana/web3.js';
 import { settleActiveEscrows } from '../../../../lib/keeper';
+import { ensureApiToken } from '../../../../lib/keeper-auth';
 
 async function handle(req: NextRequest) {
-  // POST is public (manual trigger from UI settle button)
   if (req.method !== 'POST') {
     const authHeader = req.headers.get('authorization');
     const expectedToken = process.env.KEEPER_SECRET;
@@ -18,7 +18,6 @@ async function handle(req: NextRequest) {
   const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
   const txlineUrl = process.env.TXLINE_API_URL || 'https://txline-dev.txodds.com';
   const txlineJwt = process.env.TXLINE_JWT || '';
-  const txlineApiToken = process.env.TXLINE_API_TOKEN || '';
   const payerSecretKey = process.env.PAYER_SECRET_KEY;
   const fixtureNameToIdRaw = process.env.FIXTURE_NAME_TO_ID || '{}';
 
@@ -32,9 +31,21 @@ async function handle(req: NextRequest) {
   const connection = new Connection(rpcUrl, 'confirmed');
   const keeper = Keypair.fromSecretKey(new Uint8Array(JSON.parse(payerSecretKey)));
 
+  let txlineApiToken: string;
+  let txlineJwtFresh = txlineJwt;
+  try {
+    const auth = await ensureApiToken(keeper, connection, txlineUrl);
+    txlineJwtFresh = auth.jwt;
+    txlineApiToken = auth.apiToken;
+  } catch (e: any) {
+    return NextResponse.json({
+      ok: false, error: `API token setup failed: ${e.message}`,
+    }, { status: 500 });
+  }
+
   try {
     const results = await settleActiveEscrows(
-      connection, keeper, txlineUrl, txlineJwt, txlineApiToken, fixtureNameToId,
+      connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId,
     );
     return NextResponse.json({
       ok: true,
