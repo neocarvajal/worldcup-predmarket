@@ -33,8 +33,10 @@ async function activateApiToken(
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${jwt}` },
     body: JSON.stringify({ txSig, walletSignature, leagues: [] }),
   });
-  if (!res.ok) throw new Error(`Activate API token: ${res.status} ${res.statusText}`);
-  const data: any = await res.json();
+  const text = await res.text();
+  let data: any;
+  try { data = JSON.parse(text); } catch { throw new Error(`Activate response: ${text.slice(0, 200)}`); }
+  if (!res.ok) throw new Error(`Activate API token: ${res.status} ${text.slice(0, 200)}`);
   return data.token ?? data;
 }
 
@@ -119,7 +121,13 @@ export async function ensureApiToken(
   if (envToken) return { jwt, apiToken: envToken };
 
   console.log('[keeper-auth] No TXLINE_API_TOKEN set — subscribing on-chain...');
-  const txSig = await sendSubscribeTx(connection, keeper);
+  let txSig: string;
+  try {
+    txSig = await sendSubscribeTx(connection, keeper);
+    console.log('[keeper-auth] Subscribe tx:', txSig);
+  } catch (e: any) {
+    throw new Error(`Subscribe tx failed: ${e.message}`);
+  }
 
   const messageBytes = enc(`${txSig}::${jwt}`);
   const sigBytes = nacl.sign.detached(messageBytes, keeper.secretKey);
