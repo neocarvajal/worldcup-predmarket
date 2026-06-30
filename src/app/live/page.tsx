@@ -6,18 +6,43 @@ import { TxLineAuthError } from '../../txlineSkill';
 import { LiveFeedItem } from '../../components/LiveFeedItem';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
 
-function normalizeScoreEvent(raw: any, fixtureMap: Map<number, any>): any {
-  const fixtureId = raw.FixtureId ?? raw.fixtureId ?? raw.id ?? raw.fixture_id ?? raw.FIXTURE_ID;
+const STATUS_NAMES: Record<number, string> = {
+  1: 'NS', 2: 'H1', 3: 'HT', 4: 'H2', 5: 'F',
+  6: 'WET', 7: 'ET1', 8: 'HTET', 9: 'ET2', 10: 'FET',
+  11: 'WPE', 12: 'PE', 13: 'FPE', 14: 'I', 15: 'A',
+  16: 'C', 17: 'TXCC', 18: 'TXCS', 19: 'P',
+};
+
+const LIVE_STATUS_IDS = new Set([2, 4, 7, 9, 12]);
+
+function periodSeconds(statusId: number): number {
+  if (statusId >= 7 && statusId <= 9) return 900;
+  return 2700;
+}
+
+function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
+  const info = raw.FixtureInfo || {};
+  const upd = raw.Update || {};
+  const fixtureId = info.FixtureId ?? upd.FixtureId ?? raw.FixtureId;
   if (fixtureId == null) return null;
-  const cached = fixtureMap.get(fixtureId);
+  if (info.FixtureId != null) cache.set(fixtureId, info);
+  const cached = cache.get(fixtureId) || {};
+  const statusId = upd.StatusId ?? info.StatusId ?? 2;
+  const clock = upd.Clock || {};
+  let minute = 0;
+  if (clock.Seconds != null) {
+    minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
+  }
+  const score = upd.Score || {};
   return {
     FixtureId: fixtureId,
-    Participant1: raw.Participant1 ?? raw.participant1 ?? cached?.Participant1 ?? cached?.participant1 ?? 'Local',
-    Participant2: raw.Participant2 ?? raw.participant2 ?? cached?.Participant2 ?? cached?.participant2 ?? 'Visitante',
-    Score1: raw.Score1 ?? raw.score1 ?? raw.homeScore ?? raw.home_score ?? 0,
-    Score2: raw.Score2 ?? raw.score2 ?? raw.awayScore ?? raw.away_score ?? 0,
-    Minute: raw.Minute ?? raw.minute ?? raw.gameMinute ?? 0,
-    Status: raw.Status ?? raw.status ?? raw.gameState ?? 'live',
+    Participant1: info.Participant1 ?? cached.Participant1 ?? 'Local',
+    Participant2: info.Participant2 ?? cached.Participant2 ?? 'Visitante',
+    Score1: score.Participant1?.Total?.Goals ?? 0,
+    Score2: score.Participant2?.Total?.Goals ?? 0,
+    Minute: minute,
+    Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
+    StatusId: statusId,
   };
 }
 
@@ -27,18 +52,32 @@ export default function LivePage() {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const cancelledRef = useRef(false);
-  const fixtureMapRef = useRef<Map<number, any>>(new Map());
+  const cacheRef = useRef<Map<number, any>>(new Map());
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     client.getFixtures().then((data: any) => {
       const fixtures = data?.Fixtures ?? data?.fixtures ?? data ?? [];
-      if (Array.isArray(fixtures)) {
-        const map = new Map<number, any>();
-        for (const f of fixtures) {
-          const id = f.FixtureId ?? f.fixtureId ?? f.id;
-          if (id != null) map.set(id, f);
+      if (!Array.isArray(fixtures)) return;
+      const live: any[] = [];
+      for (const f of fixtures) {
+        const id = f.FixtureId ?? f.fixtureId ?? f.id;
+        if (id == null) continue;
+        cacheRef.current.set(id, f);
+        const sid = f.StatusId ?? f.statusId;
+        if (sid != null && LIVE_STATUS_IDS.has(sid)) {
+          live.push({
+            FixtureId: id,
+            Participant1: f.Participant1 ?? f.participant1 ?? 'Local',
+            Participant2: f.Participant2 ?? f.participant2 ?? 'Visitante',
+            Score1: 0, Score2: 0, Minute: 0,
+            Status: STATUS_NAMES[sid] ?? 'LIVE',
+            StatusId: sid,
+          });
         }
-        fixtureMapRef.current = map;
+      }
+      if (live.length > 0) {
+        setEvents(prev => [...live, ...prev].slice(0, 50));
       }
     }).catch(() => {});
   }, [client]);
@@ -61,22 +100,23 @@ export default function LivePage() {
         for (const line of lines) {
           try {
             const raw = JSON.parse(line.slice(5));
-            const data = normalizeScoreEvent(raw, fixtureMapRef.current);
-            if (!data || data.FixtureId == null) continue;
+            const d = normalizeScoreEvent(raw, cacheRef.current);
+            if (!d) continue;
             setEvents(prev => {
-              const existing = prev.findIndex(e => e.FixtureId === data.FixtureId);
-              if (existing >= 0) {
+              const idx = prev.findIndex(e => e.FixtureId === d.FixtureId);
+              if (idx >= 0) {
                 const next = [...prev];
-                next[existing] = data;
+                next[idx] = d;
                 return next;
               }
-              return [data, ...prev].slice(0, 50);
+              return [d, ...prev].slice(0, 50);
             });
           } catch { /* skip */ }
         }
       }
     } catch (e: any) {
-      if (e instanceof TxLineAuthError || e?.message?.includes('JWT') || e?.message?.includes('token') || e?.message?.includes('401') || e?.message?.includes('403')) {
+      const msg = e?.message || '';
+      if (e instanceof TxLineAuthError || msg.includes('JWT') || msg.includes('token') || msg.includes('401') || msg.includes('403')) {
         setConnectionState('no-auth');
         authError = true;
       } else {
@@ -84,10 +124,20 @@ export default function LivePage() {
       }
     }
     if (!cancelledRef.current && !authError) {
-      setTimeout(connect, 10000);
+      retryTimerRef.current = setTimeout(() => {
+        if (!cancelledRef.current) connect();
+      }, 10000);
     }
-    return () => { cancelledRef.current = true; readerRef.current?.cancel(); };
   }, [client]);
+
+  useEffect(() => {
+    connect();
+    return () => {
+      cancelledRef.current = true;
+      readerRef.current?.cancel();
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, [connect]);
 
   const handleRetry = () => {
     connect();
@@ -108,8 +158,6 @@ export default function LivePage() {
   const indicatorText = connectionState === 'connected' ? 'Conectado' :
     connectionState === 'connecting' ? 'Conectando...' :
     connectionState === 'no-auth' ? 'Sin auth' : 'Error';
-
-  const barHeights = [8, 14, 20, 26, 32, 26, 20, 14, 8];
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
