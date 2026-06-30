@@ -42,19 +42,28 @@ export default function PortfolioPage() {
     }
   }, [publicKey, setVisible]);
 
+  function isMatchOver(acc: any): boolean {
+    if (!acc) return false;
+    if (acc.expiry && acc.expiry > 0) {
+      const expiryMs = Number(acc.expiry) * 1000;
+      if (Date.now() > expiryMs) return true;
+    }
+    return false;
+  }
+
   const activeEscrows = escrows.filter((e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    return k === 'Active';
+    return k === 'Active' && !isMatchOver(e.account);
   });
   const historyEscrows = escrows.filter((e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    return k !== 'Active';
+    return k !== 'Active' || isMatchOver(e.account);
   });
   const displayEscrows = tab === 'active' ? activeEscrows : historyEscrows;
 
   const totalStaked = escrows.reduce((sum: number, e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    if (k === 'Active') {
+    if (k === 'Active' && !isMatchOver(e.account)) {
       return sum + Number(e.account.amount || 0) / 1_000_000;
     }
     return sum;
@@ -275,6 +284,7 @@ export default function PortfolioPage() {
               const stateKey = acc?.state ? Object.keys(acc.state)[0] : null;
               const isActive = stateKey === 'Active';
               const isSettled = stateKey === 'Settled';
+              const hasMatchEnded = isActive && isMatchOver(acc);
               const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
               const fixtureName = acc.fixture_name || bet?.fixtureName || `Partido ${e.pubkey.toBase58().slice(0, 8)}`;
               const selection = acc.label || bet?.label || '—';
@@ -294,7 +304,7 @@ export default function PortfolioPage() {
                     amount={Number(acc.amount || 0) / 1_000_000}
                     odds={odds}
                     payout={payout}
-                    status={isSettled ? 'won' : isActive ? 'active' : 'lost'}
+                    status={isSettled ? 'won' : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
                   />
                 </div>

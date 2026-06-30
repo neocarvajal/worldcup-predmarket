@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircledIcon, CrossCircledIcon, TimerIcon, Share2Icon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon } from '@radix-ui/react-icons';
 
 interface PositionCardProps {
   fixtureName: string;
@@ -9,15 +9,16 @@ interface PositionCardProps {
   amount: number;
   odds: number;
   payout: number;
-  status: 'active' | 'won' | 'lost' | 'cancelled';
+  status: 'active' | 'won' | 'lost' | 'cancelled' | 'pending';
   expiry?: number;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { icon: React.ComponentType<any>; label: string; color: string; bg: string }> = {
   active: { icon: TimerIcon, label: 'Activa', color: 'var(--accent)', bg: 'var(--accent-dim)' },
   won: { icon: CheckCircledIcon, label: 'Ganada', color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
   lost: { icon: CrossCircledIcon, label: 'Perdida', color: 'var(--danger)', bg: 'rgba(255,68,68,0.08)' },
   cancelled: { icon: CrossCircledIcon, label: 'Cancelada', color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
+  pending: { icon: UpdateIcon, label: 'Pendiente', color: 'var(--warning)', bg: 'rgba(245,158,11,0.1)' },
 };
 
 function CountdownSmall({ target }: { target: Date }) {
