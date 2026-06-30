@@ -43,9 +43,11 @@ async function handle(req: NextRequest) {
     }, { status: 500 });
   }
 
+  const force = req.nextUrl.searchParams.get('force') === '1' || req.headers.get('x-force') === '1';
+
   try {
     const results = await settleActiveEscrows(
-      connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId,
+      connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId, force,
     );
     return NextResponse.json({
       ok: true,

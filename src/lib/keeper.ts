@@ -5,30 +5,58 @@ import {
   TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token';
-import { BorshCoder, Idl, BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
+import { BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
 
-const SETTLEMENT_PROGRAM_ID = new PublicKey('568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J');
+const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
 const TXLINE_PROGRAM_ID = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
-
-let cachedIdl: Idl | null = null;
-
-async function getIdl(): Promise<Idl> {
-  if (!cachedIdl) {
-    cachedIdl = (await import('../idl/settlement.json')) as unknown as Idl;
-  }
-  return cachedIdl;
-}
 
 function enc(s: string): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
-export function getTenDailyFixturesRootsPda(): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [enc('ten_daily_fixtures_roots')],
-    TXLINE_PROGRAM_ID,
-  )[0];
+/** Read a u32 (little-endian) from a buffer at offset */
+function readU32(buf: Buffer, off: number): number {
+  if (off + 4 > buf.length) return 0;
+  return buf.readUInt32LE(off);
+}
+
+/** Read a u64 (little-endian) from a buffer at offset */
+function readU64(buf: Buffer, off: number): bigint {
+  return buf.readBigUInt64LE(off);
+}
+
+/** Read an i64 (little-endian) from a buffer at offset */
+function readI64(buf: Buffer, off: number): bigint {
+  return buf.readBigInt64LE(off);
+}
+
+/** Read a 32-byte pubkey from a buffer at offset */
+function readPubkey(buf: Buffer, off: number): PublicKey {
+  return new PublicKey(buf.subarray(off, off + 32));
+}
+
+/** Read a Borsh-string (u32 length prefix + UTF-8 data) */
+function readString(buf: Buffer, off: number): [string, number] {
+  const len = readU32(buf, off);
+  const str = buf.toString('utf-8', off + 4, off + 4 + len);
+  return [str, 4 + len];
+}
+
+export function getTenDailyFixturesRootsPda(epochDay?: number): PublicKey {
+  const seeds = [enc('ten_daily_fixtures_roots')];
+  if (epochDay != null) {
+    const aligned = Math.floor(epochDay / 10) * 10;
+    const buf = new Uint8Array(2);
+    buf[0] = aligned & 0xff;
+    buf[1] = (aligned >> 8) & 0xff;
+    seeds.push(buf);
+  }
+  return PublicKey.findProgramAddressSync(seeds, TXLINE_PROGRAM_ID)[0];
+}
+
+function epochDayFromTs(tsSec: number): number {
+  return Math.floor(tsSec / 86400);
 }
 
 function keypairToWallet(kp: Keypair): Wallet {
@@ -59,33 +87,91 @@ interface ActiveEscrow {
 
 const ESCOW_DISCRIMINATOR = [31, 213, 123, 187, 186, 22, 218, 155];
 
-export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
-  const idl = await getIdl();
-  const coder = new BorshCoder(idl);
+const ESCOW_STATE_ACTIVE = 0;
+const ESCOW_DISCRIMINATOR_BYTES = Buffer.from(ESCOW_DISCRIMINATOR);
 
+/** Minimum size for a fully-initialized Escrow (discriminator 8 + all fields up to and including vault_bump) */
+const MIN_ESCROW_SIZE = 211;
+
+function decodeEscrow(buf: Buffer): ActiveEscrow | null {
+  if (buf.length < MIN_ESCROW_SIZE) return null;
+  if (!buf.subarray(0, 8).equals(ESCOW_DISCRIMINATOR_BYTES)) return null;
+
+  let off = 8;
+
+  // 1. depositor (pubkey, 32 bytes)
+  const depositor = readPubkey(buf, off);
+  off += 32;
+
+  // 2. recipient (pubkey, 32 bytes)
+  const recipient = readPubkey(buf, off);
+  off += 32;
+
+  // 3. nonce (u64, 8 bytes)
+  const nonce = readU64(buf, off);
+  off += 8;
+
+  // 4. fixture_name (string)
+  const [fixtureName, strAdv] = readString(buf, off);
+  off += strAdv;
+
+  // 5. selection (u8)
+  const selection = buf[off];
+  off += 1;
+
+  // 6. label (string)
+  const [, strAdv2] = readString(buf, off);
+  off += strAdv2;
+
+  // 7. odds (u64)
+  off += 8;
+
+  // 8. mint (pubkey, 32 bytes)
+  const mint = readPubkey(buf, off);
+  off += 32;
+
+  // 9. vault (pubkey, 32 bytes)
+  off += 32;
+
+  // 10. amount (u64)
+  const amount = readU64(buf, off);
+  off += 8;
+
+  // 11. expiry (i64)
+  off += 8;
+
+  // 12. state (EscrowState enum, 1 byte variant index)
+  const state = buf[off];
+  off += 1;
+
+  // 13. bump (u8)
+  off += 1;
+
+  // 14. vault_bump (u8)
+  off += 1;
+
+  // 15. depositor_won (bool)
+  // (skip — not needed)
+
+  if (state !== ESCOW_STATE_ACTIVE) return null;
+
+  return { pubkey: null!, depositor, recipient, nonce, fixtureName, selection, mint, amount };
+}
+
+export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
   const pgas = await connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, {
     filters: [
-      { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from(ESCOW_DISCRIMINATOR)) } },
+      { memcmp: { offset: 0, bytes: bs58.encode(ESCOW_DISCRIMINATOR_BYTES) } },
     ],
   });
 
   const results: ActiveEscrow[] = [];
   for (const { pubkey, account } of pgas) {
-    try {
-      const decoded = coder.accounts.decode('Escrow', account.data);
-      const stateKey = decoded.state ? Object.keys(decoded.state)[0] : null;
-      if (stateKey !== 'Active') continue;
-      results.push({
-        pubkey,
-        depositor: decoded.depositor,
-        recipient: decoded.recipient,
-        nonce: BigInt(decoded.nonce.toString()),
-        fixtureName: decoded.fixture_name || '',
-        selection: typeof decoded.selection === 'number' ? decoded.selection : 0,
-        mint: decoded.mint,
-        amount: BigInt(decoded.amount.toString()),
-      });
-    } catch { /* skip */ }
+    const decoded = decodeEscrow(account.data);
+    if (decoded) {
+      decoded.pubkey = pubkey;
+      results.push(decoded);
+    }
   }
   return results;
 }
@@ -103,16 +189,6 @@ interface TxLineFixture {
   Participant1Id?: number;
   Participant2Id?: number;
   Participant1IsHome?: boolean;
-}
-
-interface ScoreSnapshot {
-  FixtureInfo: any;
-  Update?: {
-    Score?: {
-      Participant1?: { Total?: { Goals?: number } };
-      Participant2?: { Total?: { Goals?: number } };
-    };
-  };
 }
 
 async function txlineRequest(
@@ -151,6 +227,8 @@ interface SettlementResult {
   txSig?: string;
 }
 
+const SETTLEMENT_IDL = require('../idl/settlement.json');
+
 export async function settleActiveEscrows(
   connection: Connection,
   keeper: Keypair,
@@ -158,9 +236,10 @@ export async function settleActiveEscrows(
   txlineJwt: string,
   txlineApiToken: string,
   fixtureNameToIdMap?: Record<string, number>,
+  force: boolean = false,
 ): Promise<SettlementResult[]> {
   const results: SettlementResult[] = [];
-  const idl = await getIdl();
+  const idl = SETTLEMENT_IDL;
 
   // 1. Fetch fixtures from TxLINE to build name→fixtureId map
   let fixtures: TxLineFixture[] = [];
@@ -224,39 +303,41 @@ export async function settleActiveEscrows(
       continue;
     }
 
-    // Fetch fixture to get status if not already fetched
-    if (!fixture) {
-      const snap = await txlineRequest(txlineUrl, `/api/fixtures/snapshot?fixtureId=${fixtureId}`, txlineJwt, txlineApiToken);
-      const list = snap?.Fixtures ?? snap?.fixtures ?? [];
-      fixture = Array.isArray(list) ? list.find((f: any) => f.FixtureId === fixtureId) : undefined;
-    }
-
-    const statusId = fixture?.StatusId;
-    if (!statusId || ![5, 10, 13].includes(statusId)) {
-      results.push({
-        escrowPubkey: escrowB58, fixtureId, fixtureName,
-        status: 'not_finished',
-      });
-      continue;
-    }
-
-    // Get final scores
-    let score1 = 0, score2 = 0;
+    // Check if fixture is finished via scores endpoint
+    let score1 = 0, score2 = 0, statusId = 0;
     try {
-      const scores: ScoreSnapshot = await txlineRequest(
+      const scoresRaw: any = await txlineRequest(
         txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
       );
-      const upd = scores?.Update || {};
-      const s = upd.Score || {};
-      score1 = s.Participant1?.Total?.Goals ?? 0;
-      score2 = s.Participant2?.Total?.Goals ?? 0;
+      // Response is an array of Fusion messages — pick the last one (latest state)
+      const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
+      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+      if (lastMsg) {
+        statusId = lastMsg.StatusId ?? 0;
+        const s = lastMsg.Score || {};
+        score1 = s.Participant1?.Total?.Goals ?? 0;
+        score2 = s.Participant2?.Total?.Goals ?? 0;
+      }
     } catch (e: any) {
       results.push({
         escrowPubkey: escrowB58, fixtureId, fixtureName,
-        status: 'error',
+        status: 'not_finished',
         error: `Scores fetch: ${e.message}`,
       });
       continue;
+    }
+
+    if (![5, 10, 13].includes(statusId)) {
+      if (force) {
+        console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId})`);
+      } else {
+        results.push({
+          escrowPubkey: escrowB58, fixtureId, fixtureName,
+          status: 'not_finished',
+          error: `StatusId ${statusId}`,
+        });
+        continue;
+      }
     }
 
     // Get fixture validation data
@@ -282,9 +363,10 @@ export async function settleActiveEscrows(
       )[0];
       const depositorAta = getAssociatedTokenAddressSync(mint, depositor, false, TOKEN_PROGRAM_ID);
       const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
-      const tenDailyFixturesRoots = getTenDailyFixturesRootsPda();
-
       const f = validation.snapshot;
+      const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
+      const fixtureEpochDay = epochDayFromTs(fixtureTsSec);
+      const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
       const fs = validation.summary;
 
       const instruction = await program.methods
@@ -302,6 +384,7 @@ export async function settleActiveEscrows(
           f.participant2 ?? f.Participant2 ?? '',
           new BN(f.fixture_id ?? f.FixtureId ?? 0),
           f.participant1_is_home ?? f.Participant1IsHome ?? true,
+          fixtureEpochDay,
           new BN(fs.fixture_id ?? fs.fixtureId ?? 0),
           fs.competition_id ?? fs.competitionId ?? 0,
           fs.competition ?? '',

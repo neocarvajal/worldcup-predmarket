@@ -56,6 +56,7 @@ pub fn handler(
     participant2: String,
     fixture_id: i64,
     participant1_is_home: bool,
+    fixture_epoch_day: u16,
     summary_fixture_id: i64,
     summary_competition_id: i32,
     summary_competition: String,
@@ -67,7 +68,7 @@ pub fn handler(
     main_tree_proof: Vec<ProofNode>,
 ) -> Result<()> {
     let expected_fixtures_pda = Pubkey::find_program_address(
-        &[b"ten_daily_fixtures_roots"],
+        &[b"ten_daily_fixtures_roots", &fixture_epoch_day.to_le_bytes()],
         &ctx.accounts.txline_program.key(),
     )
     .0;

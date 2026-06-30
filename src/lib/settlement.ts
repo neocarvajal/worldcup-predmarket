@@ -11,7 +11,8 @@ import {
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
-const SETTLEMENT_PROGRAM_ID = new PublicKey('568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J');
+export const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
+export const OLD_SETTLEMENT_PROGRAM_ID = new PublicKey('568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J');
 let cachedIdl: Idl | null = null;
 
 function enc(s: string): Uint8Array {
@@ -151,7 +152,7 @@ export async function initEscrowWithDeposit(
 export async function fetchUserEscrows(
   connection: Connection,
   depositor: PublicKey
-): Promise<{ pubkey: PublicKey; account: any }[]> {
+): Promise<{ pubkey: PublicKey; account: any; programId: PublicKey }[]> {
   const idl = await getIdl();
   const coder = new BorshCoder(idl);
   const legacyIdl: any = structuredClone(idl);
@@ -162,26 +163,37 @@ export async function fetchUserEscrows(
   const legacyCoder = new BorshCoder(legacyIdl);
 
   const escrowDiscriminator = [31, 213, 123, 187, 186, 22, 218, 155];
-  const programAccounts = await connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, {
-    filters: [
-      { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from(escrowDiscriminator)) } },
-      { memcmp: { offset: 8, bytes: depositor.toBase58() } },
-    ],
-  });
+  const filter = [
+    { memcmp: { offset: 0, bytes: bs58.encode(Buffer.from(escrowDiscriminator)) } },
+    { memcmp: { offset: 8, bytes: depositor.toBase58() } },
+  ];
 
-  return programAccounts.flatMap(({ pubkey, account }) => {
-    try {
-      const decoded = coder.accounts.decode('Escrow', account.data);
-      return [{ pubkey, account: decoded }];
-    } catch {
+  const [newProgramAccounts, oldProgramAccounts] = await Promise.all([
+    connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, { filters: filter }),
+    connection.getProgramAccounts(OLD_SETTLEMENT_PROGRAM_ID, { filters: filter }),
+  ]);
+
+  const [newAccs, oldAccs] = await Promise.all([
+    connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, { filters: filter }),
+    connection.getProgramAccounts(OLD_SETTLEMENT_PROGRAM_ID, { filters: filter }),
+  ]);
+
+  const allWithProgram: { pubkey: PublicKey; account: any; programId: PublicKey }[] = [];
+  const pairs: [typeof newAccs, PublicKey][] = [[newAccs, SETTLEMENT_PROGRAM_ID], [oldAccs, OLD_SETTLEMENT_PROGRAM_ID]];
+  for (const [accounts, progId] of pairs) {
+    for (const { pubkey, account } of accounts) {
       try {
-        const decoded = legacyCoder.accounts.decode('Escrow', account.data);
-        return [{ pubkey, account: { ...decoded, depositor_won: false } }];
+        const decoded = coder.accounts.decode('Escrow', account.data);
+        allWithProgram.push({ pubkey, account: decoded, programId: progId });
       } catch {
-        return [];
+        try {
+          const decoded = legacyCoder.accounts.decode('Escrow', account.data);
+          allWithProgram.push({ pubkey, account: { ...decoded, depositor_won: false }, programId: progId });
+        } catch { /* skip */ }
       }
     }
-  });
+  }
+  return allWithProgram;
 }
 
 export function getProfilePda(authority: PublicKey): [PublicKey, number] {
@@ -249,11 +261,16 @@ export async function updateProfile(
 
 const TXLINE_PROGRAM_ID = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
 
-export function getTxLineTenDailyFixturesRootsPda(): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [enc('ten_daily_fixtures_roots')],
-    TXLINE_PROGRAM_ID
-  )[0];
+export function getTxLineTenDailyFixturesRootsPda(epochDay?: number): PublicKey {
+  const seeds = [enc('ten_daily_fixtures_roots')];
+  if (epochDay != null) {
+    const aligned = Math.floor(epochDay / 10) * 10;
+    const buf = new Uint8Array(2);
+    buf[0] = aligned & 0xff;
+    buf[1] = (aligned >> 8) & 0xff;
+    seeds.push(buf);
+  }
+  return PublicKey.findProgramAddressSync(seeds, TXLINE_PROGRAM_ID)[0];
 }
 
 export async function claimEscrow(
@@ -297,9 +314,11 @@ export async function settleWithCpi(
   },
 ): Promise<string> {
   const program = await getSettlementProgram(connection, wallet);
-  const tenDailyFixturesRoots = getTxLineTenDailyFixturesRootsPda();
   const f = params.fixture;
   const fs = params.fixtureSummary;
+  const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
+  const fixtureEpochDay = Math.floor(fixtureTsSec / 86400);
+  const tenDailyFixturesRoots = getTxLineTenDailyFixturesRootsPda(fixtureEpochDay);
 
   const fixtureProofNodes = params.subTreeProof.map((p: any) => ({
     hash: Object.values(p.hash ?? p),
@@ -325,6 +344,7 @@ export async function settleWithCpi(
       f.participant2 ?? f.Participant2 ?? '',
       new BN(f.fixture_id ?? f.FixtureId ?? 0),
       f.participant1_is_home ?? f.Participant1IsHome ?? true,
+      fixtureEpochDay,
       new BN(fs.fixture_id ?? fs.fixtureId ?? 0),
       fs.competition_id ?? fs.competitionId ?? 0,
       fs.competition ?? '',
@@ -358,8 +378,11 @@ export async function cancelEscrow(
   mint: PublicKey,
   vaultPubkey: PublicKey,
   depositorTokenAccount: PublicKey,
+  programId?: PublicKey,
 ): Promise<string> {
-  const program = await getSettlementProgram(connection, wallet);
+  const idl = await getIdl();
+  const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+  const program = new Program({ ...idl, address: (programId ?? SETTLEMENT_PROGRAM_ID).toBase58() }, provider);
   const instruction = await program.methods
     .cancel()
     .accountsStrict({

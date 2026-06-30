@@ -1,5 +1,5 @@
 {
-  "address": "568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J",
+  "address": "EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx",
   "metadata": {
     "name": "settlement",
     "version": "0.1.0",
@@ -651,6 +651,10 @@
         {
           "name": "participant1_is_home",
           "type": "bool"
+        },
+        {
+          "name": "fixture_epoch_day",
+          "type": "u16"
         },
         {
           "name": "summary_fixture_id",

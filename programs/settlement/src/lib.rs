@@ -7,7 +7,7 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J");
+declare_id!("EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx");
 
 #[program]
 pub mod settlement {
@@ -40,6 +40,7 @@ pub mod settlement {
         participant2: String,
         fixture_id: i64,
         participant1_is_home: bool,
+        fixture_epoch_day: u16,
         summary_fixture_id: i64,
         summary_competition_id: i32,
         summary_competition: String,
@@ -55,7 +56,7 @@ pub mod settlement {
             fixture_ts, fixture_start_time,
             competition, competition_id, fixture_group_id,
             participant1_id, participant1, participant2_id, participant2,
-            fixture_id, participant1_is_home,
+            fixture_id, participant1_is_home, fixture_epoch_day,
             summary_fixture_id, summary_competition_id, summary_competition,
             summary_update_count, summary_min_timestamp, summary_max_timestamp,
             summary_sub_tree_root,

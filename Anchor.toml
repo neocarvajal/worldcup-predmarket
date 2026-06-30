@@ -6,7 +6,7 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [programs.localnet]
-settlement = "568BYcuHndKngsEYfEv7aMTqFXRCC5MzRxZdJuZDgU2J"
+settlement = "EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx"
 
 [workspace]
 types = "target/types"

@@ -4,7 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useConnection } from '@solana/wallet-adapter-react';
-import { fetchUserEscrows } from '../../lib/settlement';
+import { fetchUserEscrows, cancelEscrow, SETTLEMENT_PROGRAM_ID, OLD_SETTLEMENT_PROGRAM_ID } from '../../lib/settlement';
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { PublicKey } from '@solana/web3.js';
 import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
 import { StackIcon, TargetIcon, ReloadIcon } from '@radix-ui/react-icons';
@@ -19,6 +21,35 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [settling, setSettling] = useState(false);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+
+  const handleCancel = async (escrow: any) => {
+    if (!cancelling) {
+      setCancelling(escrow.pubkey.toBase58());
+      setError(null);
+      try {
+        await cancelEscrow(
+          connection,
+          { publicKey } as any,
+          escrow.pubkey,
+          escrow.account.mint ? new PublicKey(escrow.account.mint) : escrow.account.mint,
+          escrow.account.vault ? new PublicKey(escrow.account.vault) : escrow.account.vault,
+          getAssociatedTokenAddressSync(
+            escrow.account.mint ? new PublicKey(escrow.account.mint) : escrow.account.mint,
+            publicKey!,
+            false,
+            TOKEN_PROGRAM_ID,
+          ),
+          escrow.programId,
+        );
+        setTimeout(() => load(), 2000);
+      } catch (e: any) {
+        setError(e.message || 'Error al cancelar');
+      } finally {
+        setCancelling(null);
+      }
+    }
+  };
 
   const handleSettle = async () => {
     setSettling(true);
@@ -37,6 +68,19 @@ export default function PortfolioPage() {
       setSettling(false);
     }
   };
+
+  function isMatchOver(acc: any, matchStartMs?: number): boolean {
+    if (!acc) return false;
+    if (acc.expiry && acc.expiry > 0) {
+      const expiryMs = Number(acc.expiry) * 1000;
+      if (Date.now() > expiryMs) return true;
+    }
+    if (matchStartMs && matchStartMs > 0) {
+      const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+      if (Date.now() > matchStartMs + FOUR_HOURS_MS) return true;
+    }
+    return false;
+  }
 
   const load = async () => {
     if (!publicKey) return;
@@ -62,28 +106,27 @@ export default function PortfolioPage() {
     }
   }, [publicKey, setVisible]);
 
-  function isMatchOver(acc: any): boolean {
-    if (!acc) return false;
-    if (acc.expiry && acc.expiry > 0) {
-      const expiryMs = Number(acc.expiry) * 1000;
-      if (Date.now() > expiryMs) return true;
-    }
-    return false;
-  }
+  const escrowMatchOver = escrows.reduce((map: Record<string, boolean>, e: any) => {
+    const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
+    const raw = bet?.matchStartTime;
+    const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
+    map[e.pubkey.toBase58()] = isMatchOver(e.account, matchStart);
+    return map;
+  }, {});
 
   const activeEscrows = escrows.filter((e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    return k === 'Active' && !isMatchOver(e.account);
+    return k === 'Active' && !escrowMatchOver[e.pubkey.toBase58()];
   });
   const historyEscrows = escrows.filter((e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    return k !== 'Active' || isMatchOver(e.account);
+    return k !== 'Active' || escrowMatchOver[e.pubkey.toBase58()];
   });
   const displayEscrows = tab === 'active' ? activeEscrows : historyEscrows;
 
   const totalStaked = escrows.reduce((sum: number, e: any) => {
     const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-    if (k === 'Active' && !isMatchOver(e.account)) {
+    if (k === 'Active' && !escrowMatchOver[e.pubkey.toBase58()]) {
       return sum + Number(e.account.amount || 0) / 1_000_000;
     }
     return sum;
@@ -304,7 +347,9 @@ export default function PortfolioPage() {
               const stateKey = acc?.state ? Object.keys(acc.state)[0] : null;
               const isActive = stateKey === 'Active';
               const isSettled = stateKey === 'Settled';
-              const hasMatchEnded = isActive && isMatchOver(acc);
+              const matchOver = escrowMatchOver[e.pubkey.toBase58()] ?? false;
+              const hasMatchEnded = isActive && matchOver;
+              const isLegacy = e.programId?.toBase58() === OLD_SETTLEMENT_PROGRAM_ID.toBase58();
               const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
               const fixtureName = acc.fixture_name || bet?.fixtureName || `Partido ${e.pubkey.toBase58().slice(0, 8)}`;
               const selection = acc.label || bet?.label || '—';
@@ -328,6 +373,8 @@ export default function PortfolioPage() {
                     expiry={matchStart}
                     onSettle={hasMatchEnded ? handleSettle : undefined}
                     settling={settling}
+                    onCancel={isActive && isLegacy ? () => handleCancel(e) : undefined}
+                    cancelling={cancelling === e.pubkey.toBase58()}
                   />
                 </div>
               );
