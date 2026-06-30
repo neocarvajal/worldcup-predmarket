@@ -34,10 +34,12 @@ async function activateApiToken(
     body: JSON.stringify({ txSig, walletSignature, leagues: [] }),
   });
   const text = await res.text();
-  let data: any;
-  try { data = JSON.parse(text); } catch { throw new Error(`Activate response: ${text.slice(0, 200)}`); }
-  if (!res.ok) throw new Error(`Activate API token: ${res.status} ${text.slice(0, 200)}`);
-  return data.token ?? data;
+  if (!res.ok) {
+    let msg: string;
+    try { msg = JSON.parse(text).message ?? text; } catch { msg = text; }
+    throw new Error(`Activate API token: ${res.status} ${msg.slice(0, 200)}`);
+  }
+  try { const data = JSON.parse(text); return data.token ?? data; } catch { return text; }
 }
 
 async function ensureAta(
@@ -110,17 +112,64 @@ async function sendSubscribeTx(connection: Connection, keeper: Keypair): Promise
   return sig;
 }
 
+function supabaseUrl(): string {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+}
+
+function supabaseKey(): string {
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+}
+
+async function loadTokenFromDb(wallet: string): Promise<string | null> {
+  if (!supabaseUrl() || !supabaseKey()) return null;
+  try {
+    const res = await fetch(
+      `${supabaseUrl()}/rest/v1/user_api_tokens?wallet=eq.${wallet}&select=api_token`,
+      { headers: { apikey: supabaseKey(), Authorization: `Bearer ${supabaseKey()}` } },
+    );
+    if (!res.ok) return null;
+    const rows: any[] = await res.json();
+    return rows?.[0]?.api_token ?? null;
+  } catch { return null; }
+}
+
+async function saveTokenToDb(wallet: string, jwt: string, apiToken: string): Promise<void> {
+  if (!supabaseUrl() || !supabaseKey()) return;
+  try {
+    const body = JSON.stringify({ wallet, jwt, api_token: apiToken, updated_at: new Date().toISOString() });
+    const res = await fetch(`${supabaseUrl()}/rest/v1/user_api_tokens?wallet=eq.${wallet}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', apikey: supabaseKey(), Authorization: `Bearer ${supabaseKey()}` },
+      body,
+    });
+    if (res.status === 404) {
+      await fetch(`${supabaseUrl()}/rest/v1/user_api_tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: supabaseKey(), Authorization: `Bearer ${supabaseKey()}` },
+        body: JSON.stringify({ wallet, jwt, api_token: apiToken }),
+      });
+    }
+  } catch { /* best-effort */ }
+}
+
 export async function ensureApiToken(
   keeper: Keypair,
   connection: Connection,
   txlineBase: string,
 ): Promise<{ jwt: string; apiToken: string }> {
+  const wallet = keeper.publicKey.toBase58();
   const jwt = await getGuestJwt(txlineBase);
   const envToken = process.env.TXLINE_API_TOKEN;
 
   if (envToken) return { jwt, apiToken: envToken };
 
-  console.log('[keeper-auth] No TXLINE_API_TOKEN set — subscribing on-chain...');
+  const dbToken = await loadTokenFromDb(wallet);
+  if (dbToken) {
+    console.log('[keeper-auth] Using stored API token from DB');
+    return { jwt, apiToken: dbToken };
+  }
+
+  console.log('[keeper-auth] No stored token — subscribing on-chain...');
   let txSig: string;
   try {
     txSig = await sendSubscribeTx(connection, keeper);
@@ -134,7 +183,8 @@ export async function ensureApiToken(
   const walletSignature = Buffer.from(sigBytes).toString('base64');
 
   const apiToken = await activateApiToken(txlineBase, jwt, txSig, walletSignature);
-  console.log('[keeper-auth] API token activated');
+  await saveTokenToDb(wallet, jwt, apiToken);
+  console.log('[keeper-auth] API token activated and stored');
 
   return { jwt, apiToken };
 }
