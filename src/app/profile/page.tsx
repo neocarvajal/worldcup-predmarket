@@ -101,8 +101,8 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDisconnect = () => {
-    if (publicKey) client.clearForWallet(publicKey.toBase58());
+  const handleDisconnect = async () => {
+    if (publicKey) await client.clearForWallet(publicKey.toBase58());
     disconnect();
   };
 

@@ -14,6 +14,31 @@ function authUrl(path: string): string {
   return isBrowser ? `/api/txline/auth${path}` : `${TXLINE_AUTH_URL}${path}`;
 }
 
+async function saveToSupabase(wallet: string, jwt: string, apiToken: string): Promise<void> {
+  try {
+    await fetch('/api/user/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet, jwt, apiToken }),
+    });
+  } catch { }
+}
+
+async function loadFromSupabase(wallet: string): Promise<{ jwt: string; apiToken: string } | null> {
+  try {
+    const res = await fetch(`/api/user/token?wallet=${encodeURIComponent(wallet)}`);
+    const data = await res.json();
+    if (data.found) return { jwt: data.jwt, apiToken: data.apiToken };
+  } catch { }
+  return null;
+}
+
+async function deleteFromSupabase(wallet: string): Promise<void> {
+  try {
+    await fetch(`/api/user/token?wallet=${encodeURIComponent(wallet)}`, { method: 'DELETE' });
+  } catch { }
+}
+
 export class TxLineClient {
   private jwt: string | null = null;
   private apiToken: string | null = null;
@@ -28,12 +53,19 @@ export class TxLineClient {
     this.apiToken = process.env.NEXT_PUBLIC_TXLINE_API_TOKEN || null;
   }
 
-  restoreForWallet(wallet: string): boolean {
+  async restoreForWallet(wallet: string): Promise<boolean> {
     this.currentWallet = wallet;
     const stored = loadTokens(wallet);
     if (stored) {
       this.jwt = stored.jwt;
       this.apiToken = stored.apiToken;
+      return true;
+    }
+    const remote = await loadFromSupabase(wallet);
+    if (remote) {
+      this.jwt = remote.jwt;
+      this.apiToken = remote.apiToken;
+      saveTokens(wallet, remote);
       return true;
     }
     return false;
@@ -42,11 +74,13 @@ export class TxLineClient {
   private persist(): void {
     if (this.currentWallet && this.jwt && this.apiToken) {
       saveTokens(this.currentWallet, { jwt: this.jwt, apiToken: this.apiToken });
+      saveToSupabase(this.currentWallet, this.jwt, this.apiToken);
     }
   }
 
-  clearForWallet(wallet: string): void {
+  async clearForWallet(wallet: string): Promise<void> {
     clearTokens(wallet);
+    await deleteFromSupabase(wallet);
     if (this.currentWallet === wallet) {
       this.jwt = null;
       this.apiToken = null;

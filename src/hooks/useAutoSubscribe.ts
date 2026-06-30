@@ -134,12 +134,14 @@ export function useAutoSubscribe() {
   useEffect(() => {
     if (publicKey && state === 'idle') {
       setState('checking');
-      const restored = client.restoreForWallet(publicKey.toBase58());
-      if (restored && client.hasApiToken) {
-        setState('done');
-      } else {
-        setState('needed');
-      }
+      (async () => {
+        const restored = await client.restoreForWallet(publicKey.toBase58());
+        if (restored && client.hasApiToken) {
+          setState('done');
+        } else {
+          setState('needed');
+        }
+      })();
     }
     if (!publicKey) {
       setState('idle');
