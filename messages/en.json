@@ -100,7 +100,9 @@
     "potentialPayout": "Potential Payout",
     "betPlaced": "Bet placed!",
     "placingBet": "Placing bet...",
-    "placeBet": "Place Bet"
+    "placeBet": "Place Bet",
+    "betError": "Error placing bet",
+    "andNeed": "and need"
   },
   "SubscriptionBanner": {
     "errorChecking": "Error checking subscription",
@@ -130,7 +132,15 @@
     "linkingWallet": "Linking wallet to the oracle",
     "activatingApiToken": "Activating API token...",
     "activationError": "Activation Error",
-    "retry": "Retry"
+    "retry": "Retry",
+    "tierDescription": "Tier 1 — World Cup & Int Friendlies. You only pay the Solana transaction fee.",
+    "willSendTx": "A transaction will be sent to Solana Devnet to register your free subscription (Tier 1 — World Cup).",
+    "createTokenAccountDesc": "Only if you don't have one — free, 0 TxL transferred",
+    "registerOnChainDesc": "Links your wallet to the TxLINE oracle — 0 TxL charged (free tier)",
+    "walletInstructions": "Your wallet will ask you to sign 1 or 2 instructions. No tokens are transferred — you only pay the SOL fee (~0.00001 SOL).",
+    "couldNotComplete": "Could not complete the subscription",
+    "ensureSol": "Make sure you have SOL on Devnet for the network fee. Also check that your wallet approved both instructions (create TxL account + subscribe).",
+    "noSolFaucet": "Don't have SOL on Devnet? Use the SOL faucet or the official faucet."
   },
   "Landing": {
     "connectWallet": "Connect Wallet",
@@ -154,6 +164,12 @@
     "getFreeUsdt": "Get 100 USDT for free →",
     "goToFaucet": "Go to Faucet",
     "viewMatches": "View Matches",
+    "step1desc": "Use Phantom, Backpack or any Solana wallet",
+    "step2desc": "Free Tier 1 subscription for World Cup data",
+    "step3desc": "Pick winner, draw or away for each match",
+    "step4desc": "The keeper settles bets automatically after the match",
+    "network": "Network",
+    "free": "Free",
     "footerTitle": "World Cup Prediction Market — Hackathon 2026"
   },
   "Markets": {
@@ -238,7 +254,9 @@
     "claim": "Claim 100 USDT",
     "success": "100 USDT claimed successfully!",
     "viewExplorer": "View in Explorer",
-    "limit": "Limit: 1 claim every 8 hours"
+    "limit": "Limit: 1 claim every 8 hours",
+    "rateLimit": "Daily limit reached — only 1 claim every 8 hours per wallet. Come back later.",
+    "claimError": "Error claiming USDT"
   },
   "Liquidity": {
     "title": "Liquidity",

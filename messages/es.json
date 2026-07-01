@@ -100,7 +100,9 @@
     "potentialPayout": "Pago potencial",
     "betPlaced": "Apuesta colocada!",
     "placingBet": "Colocando apuesta...",
-    "placeBet": "Colocar Apuesta"
+    "placeBet": "Colocar Apuesta",
+    "betError": "Error al colocar la apuesta",
+    "andNeed": "y necesitás"
   },
   "SubscriptionBanner": {
     "errorChecking": "Error al verificar suscripción",
@@ -130,7 +132,15 @@
     "linkingWallet": "Vinculando wallet con el oráculo",
     "activatingApiToken": "Activando el API token...",
     "activationError": "Error de Activación",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "tierDescription": "Tier 1 — World Cup & Int Friendlies. Solo pagás el fee de transacción Solana.",
+    "willSendTx": "Se va a enviar una transacción a Solana Devnet para registrar tu suscripción gratuita (Tier 1 — Mundial).",
+    "createTokenAccountDesc": "Solo si no tenés una — sin costo, 0 TxL transferidos",
+    "registerOnChainDesc": "Vincula tu wallet al oráculo TxLINE — 0 TxL cobrados (tier gratis)",
+    "walletInstructions": "Tu wallet te va a pedir que firmes 1 o 2 instrucciones. No se transfieren tokens — solo pagás el fee de SOL (~0.00001 SOL).",
+    "couldNotComplete": "No se pudo completar la suscripción",
+    "ensureSol": "Asegurate de tener SOL en Devnet para el fee de red. Revisá también que tu wallet tenga aprobadas las 2 instrucciones (crear cuenta TxL + subscribir).",
+    "noSolFaucet": "Todavía no hay SOL en Devnet? Usá el faucet de SOL o pedí en el faucet oficial."
   },
   "Landing": {
     "connectWallet": "Conectá tu Wallet",
@@ -154,6 +164,12 @@
     "getFreeUsdt": "Conseguí 100 USDT gratis →",
     "goToFaucet": "Ir al Faucet",
     "viewMatches": "Ver partidos",
+    "step1desc": "Usa Phantom, Backpack o cualquier wallet Solana",
+    "step2desc": "Suscripción gratuita Tier 1 para datos del Mundial",
+    "step3desc": "Elige ganador, empate o visitante en cada partido",
+    "step4desc": "El keeper resuelve las apuestas al finalizar",
+    "network": "Red",
+    "free": "Gratuito",
     "footerTitle": "World Cup Prediction Market — Hackathon 2026"
   },
   "Markets": {
@@ -238,7 +254,9 @@
     "claim": "Reclamar 100 USDT",
     "success": "100 USDT reclamados con éxito!",
     "viewExplorer": "Ver en explorador",
-    "limit": "Límite: 1 reclamo cada 8 horas"
+    "limit": "Límite: 1 reclamo cada 8 horas",
+    "rateLimit": "Límite diario alcanzado — solo 1 reclamo cada 8 horas por wallet. Volvé más tarde.",
+    "claimError": "Error al reclamar USDT"
   },
   "Liquidity": {
     "title": "Liquidity",

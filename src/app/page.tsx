@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
   BackpackIcon,
@@ -17,13 +18,6 @@ import {
   LayersIcon,
 } from '@radix-ui/react-icons';
 
-const steps = [
-  { icon: BackpackIcon, title: 'Conecta tu Wallet', desc: 'Usa Phantom, Backpack o cualquier wallet Solana' },
-  { icon: ActivityLogIcon, title: 'Activa TxLINE', desc: 'Suscripción gratuita Tier 1 para datos del Mundial' },
-  { icon: TargetIcon, title: 'Predice', desc: 'Elige ganador, empate o visitante en cada partido' },
-  { icon: CheckCircledIcon, title: 'Settlement automático', desc: 'El keeper resuelve las apuestas al finalizar' },
-];
-
 const tech = [
   { label: 'Solana', sub: 'Devnet' },
   { label: 'Anchor', sub: 'Programs' },
@@ -33,16 +27,24 @@ const tech = [
   { label: 'USDT', sub: 'Escrow' },
 ];
 
-const perks = [
-  { icon: RocketIcon, text: 'Transacciones en segundos' },
-  { icon: CubeIcon, text: 'Escrow on-chain' },
-  { icon: LayersIcon, text: 'Sin KYC ni registro' },
-];
-
 export default function LandingPage() {
   const { connected } = useWallet();
   const { setVisible } = useWalletModal();
   const router = useRouter();
+  const t = useTranslations('Landing');
+
+  const steps = [
+    { icon: BackpackIcon, title: t('connectWallet'), desc: t('step1desc') },
+    { icon: ActivityLogIcon, title: t('activateTxline'), desc: t('step2desc') },
+    { icon: TargetIcon, title: t('predict'), desc: t('step3desc') },
+    { icon: CheckCircledIcon, title: t('autoSettlement'), desc: t('step4desc') },
+  ];
+
+  const perks = [
+    { icon: RocketIcon, text: t('transactionsInSeconds') },
+    { icon: CubeIcon, text: t('escrowOnChain') },
+    { icon: LayersIcon, text: t('noKyc') },
+  ];
 
   const handleStart = (e: React.MouseEvent) => {
     if (!connected) {
@@ -130,7 +132,7 @@ export default function LandingPage() {
                 className="w-1.5 h-1.5 rounded-full animate-pulse-dot"
                 style={{ background: 'var(--accent)' }}
               />
-              Predicciones Deportivas Descentralizadas
+              {t('decentralizedPredictions')}
             </span>
           </div>
 
@@ -154,8 +156,7 @@ export default function LandingPage() {
             className="animate-title-reveal text-base md:text-lg max-w-md mx-auto mb-8 leading-relaxed"
             style={{ animationDelay: '0.3s', color: 'var(--text-secondary)' }}
           >
-            Predicciones on-chain con liquidación automática vía oráculo TxLINE.
-            Conecta tu wallet, activa la suscripción gratuita y empieza a predecir.
+            {t('predictionsOnChain')}
           </p>
 
           <div
@@ -172,7 +173,7 @@ export default function LandingPage() {
               }}
             >
               <LightningBoltIcon width={18} height={18} />
-              {connected ? 'Comenzar a predecir' : 'Conectar Wallet'}
+              {connected ? t('startPredicting') : t('connectWalletBtn')}
             </Link>
             <Link
               href="/live"
@@ -184,7 +185,7 @@ export default function LandingPage() {
               }}
             >
               <ActivityLogIcon width={18} height={18} />
-              Ver en vivo
+              {t('watchLive')}
             </Link>
           </div>
 
@@ -208,9 +209,9 @@ export default function LandingPage() {
         <div className="max-w-lg mx-auto">
           <div className="grid grid-cols-3 gap-3 mb-24">
             {[
-              { val: 'Solana\nDevnet', label: 'Red' },
-              { val: 'TxLINE\nTier 1', label: 'Gratuito' },
-              { val: 'Automático', label: 'Settlement' },
+              { val: 'Solana\nDevnet', label: t('network') },
+              { val: 'TxLINE\nTier 1', label: t('free') },
+              { val: 'Automático', label: t('autoSettlement') },
             ].map((s, i) => (
               <div
                 key={s.label}
@@ -245,11 +246,11 @@ export default function LandingPage() {
               }}
             >
               <TargetIcon width={12} height={12} />
-              Cómo funciona
+              {t('howItWorks')}
             </span>
-            <h2 className="text-2xl font-bold tracking-tight">En 4 pasos simples</h2>
+            <h2 className="text-2xl font-bold tracking-tight">{t('in4Steps')}</h2>
             <p className="text-sm mt-1.5" style={{ color: 'var(--text-muted)' }}>
-              De cero a tu primera predicción en menos de un minuto
+              {t('fromZeroToFirst')}
             </p>
           </div>
 
@@ -317,9 +318,9 @@ export default function LandingPage() {
               animationFillMode: 'backwards',
             }}
           >
-            <h3 className="text-lg font-bold mb-2">¿Listo para empezar?</h3>
+            <h3 className="text-lg font-bold mb-2">{t('readyToStart')}</h3>
             <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-            Consigue USDT gratis desde el faucet y empieza a predecir partidos del Mundial 2026.
+              {t('getFreeUsdt')}
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link
@@ -331,7 +332,7 @@ export default function LandingPage() {
                 }}
               >
                 <LightningBoltIcon width={16} height={16} />
-                Ir al Faucet
+                {t('goToFaucet')}
               </Link>
               <Link
                 href="/markets"
@@ -343,7 +344,7 @@ export default function LandingPage() {
                 }}
               >
                 <GlobeIcon width={16} height={16} />
-                Ver partidos
+                {t('viewMatches')}
               </Link>
             </div>
           </div>
@@ -387,7 +388,7 @@ export default function LandingPage() {
         className="relative text-center py-8"
         style={{ zIndex: 1, borderTop: '1px solid var(--border)' }}
       >
-        <p className="text-caption">World Cup Prediction Market — Hackathon 2026</p>
+        <p className="text-caption">{t('footerTitle')}</p>
       </footer>
     </>
   );

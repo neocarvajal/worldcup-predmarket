@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAutoSubscribe } from '../hooks/useAutoSubscribe';
 import { GlobeIcon, Cross2Icon, UpdateIcon, CheckCircledIcon, ReloadIcon } from '@radix-ui/react-icons';
@@ -8,6 +9,7 @@ import { GlobeIcon, Cross2Icon, UpdateIcon, CheckCircledIcon, ReloadIcon } from 
 export const SubscriptionBanner: React.FC = () => {
   const { publicKey } = useWallet();
   const { state, error, subscribe } = useAutoSubscribe();
+  const t = useTranslations('SubscriptionBanner');
   const [dismissed, setDismissed] = React.useState(false);
 
   if (!publicKey || dismissed || state === 'done') return null;
@@ -20,14 +22,14 @@ export const SubscriptionBanner: React.FC = () => {
       >
         <span style={{ color: 'var(--danger)' }}>⚠</span>
         <span className="flex-1" style={{ color: 'var(--text-muted)' }}>
-          {error || 'Error al verificar suscripción'}
+          {error || t('errorChecking')}
         </span>
         <button
           onClick={subscribe}
           className="text-xs font-semibold px-3 py-1 rounded-full transition-all active:scale-95"
           style={{ background: 'rgba(255,68,68,0.1)', color: 'var(--danger)' }}
         >
-          Reintentar
+          {t('retry')}
         </button>
       </div>
     );
@@ -40,7 +42,7 @@ export const SubscriptionBanner: React.FC = () => {
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <ReloadIcon width={14} height={14} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-        <span style={{ color: 'var(--text-muted)' }}>Verificando suscripción TxLINE...</span>
+        <span style={{ color: 'var(--text-muted)' }}>{t('checking')}</span>
       </div>
     );
   }
@@ -52,7 +54,7 @@ export const SubscriptionBanner: React.FC = () => {
         style={{ background: 'var(--accent-dim)', border: '1px solid rgba(220,235,2,0.15)' }}
       >
         <UpdateIcon width={14} height={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
-        <span style={{ color: 'var(--text-secondary)' }}>Activando suscripción TxLINE...</span>
+        <span style={{ color: 'var(--text-secondary)' }}>{t('activating')}</span>
       </div>
     );
   }
@@ -64,7 +66,7 @@ export const SubscriptionBanner: React.FC = () => {
         style={{ background: 'var(--accent-dim)', border: '1px solid rgba(220,235,2,0.15)' }}
       >
         <UpdateIcon width={14} height={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
-        <span style={{ color: 'var(--text-secondary)' }}>Vinculando wallet al oráculo...</span>
+        <span style={{ color: 'var(--text-secondary)' }}>{t('linkingWallet')}</span>
       </div>
     );
   }
@@ -77,14 +79,14 @@ export const SubscriptionBanner: React.FC = () => {
     >
       <GlobeIcon width={14} height={14} style={{ color: 'var(--accent)' }} />
       <span className="flex-1" style={{ color: 'var(--text-secondary)' }}>
-        Activá TxLINE gratis para datos en vivo del Mundial
+        {t('cta')}
       </span>
       <button
         onClick={subscribe}
         className="text-xs font-bold px-3 py-1 rounded-full transition-all duration-200 active:scale-95"
         style={{ background: 'var(--accent)', color: '#000' }}
       >
-        Activar
+        {t('activate')}
       </button>
       <button
         onClick={() => setDismissed(true)}

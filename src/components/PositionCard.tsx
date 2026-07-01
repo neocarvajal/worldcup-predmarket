@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon, ReloadIcon } from '@radix-ui/react-icons';
 
 interface PositionCardProps {
@@ -15,12 +16,30 @@ interface PositionCardProps {
   settling?: boolean;
 }
 
-const statusConfig: Record<string, { icon: React.ComponentType<any>; label: string; color: string; bg: string }> = {
-  active: { icon: TimerIcon, label: 'Activa', color: 'var(--accent)', bg: 'var(--accent-dim)' },
-  won: { icon: CheckCircledIcon, label: 'Ganada', color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
-  lost: { icon: CrossCircledIcon, label: 'Perdida', color: 'var(--danger)', bg: 'rgba(255,68,68,0.08)' },
-  cancelled: { icon: CrossCircledIcon, label: 'Cancelada', color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
-  pending: { icon: UpdateIcon, label: 'Pendiente', color: 'var(--warning)', bg: 'rgba(245,158,11,0.1)' },
+function ShareOnX({ fixtureName, amount, odds, t }: { fixtureName: string; amount: number; odds: number; t: (key: string) => string }) {
+  const txt = encodeURIComponent(
+    `${t('won')} ${amount} USDT en ${fixtureName} (${odds.toFixed(2)}x) 🏆\n\nPredicciones on-chain en Solana 🟣`
+  );
+  return (
+    <a
+      href={`https://twitter.com/intent/tweet?text=${txt}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-xs font-semibold transition-all duration-200 hover:opacity-70 active:scale-95"
+      style={{ color: 'var(--accent)' }}
+    >
+      <Share2Icon width={14} height={14} />
+      {t('share')}
+    </a>
+  );
+}
+
+const statusConfig: Record<string, { icon: React.ComponentType<any>; color: string; bg: string }> = {
+  active: { icon: TimerIcon, color: 'var(--accent)', bg: 'var(--accent-dim)' },
+  won: { icon: CheckCircledIcon, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
+  lost: { icon: CrossCircledIcon, color: 'var(--danger)', bg: 'rgba(255,68,68,0.08)' },
+  cancelled: { icon: CrossCircledIcon, color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
+  pending: { icon: UpdateIcon, color: 'var(--warning)', bg: 'rgba(245,158,11,0.1)' },
 };
 
 function CountdownSmall({ target }: { target: Date }) {
@@ -66,28 +85,11 @@ function CountdownSmall({ target }: { target: Date }) {
   );
 }
 
-function ShareOnX({ fixtureName, amount, odds }: { fixtureName: string; amount: number; odds: number }) {
-  const txt = encodeURIComponent(
-    `Gané ${amount} USDT en ${fixtureName} (${odds.toFixed(2)}x) 🏆\n\nPredicciones on-chain en Solana 🟣`
-  );
-  return (
-    <a
-      href={`https://twitter.com/intent/tweet?text=${txt}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 text-xs font-semibold transition-all duration-200 hover:opacity-70 active:scale-95"
-      style={{ color: 'var(--accent)' }}
-    >
-      <Share2Icon width={14} height={14} />
-      Compartir
-    </a>
-  );
-}
-
 export const PositionCard: React.FC<PositionCardProps> = ({
   fixtureName, selection, amount, odds, payout, status, expiry,
   onSettle, settling,
 }) => {
+  const t = useTranslations('PositionCard');
   const cfg = statusConfig[status];
   const StatusIcon = cfg.icon;
 
@@ -118,7 +120,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             }}
           >
             <StatusIcon width={12} height={12} />
-            {cfg.label}
+            {t(status)}
           </span>
         </div>
       </div>
@@ -132,7 +134,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             border: '1px solid var(--border)',
           }}
         >
-          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>Selección</div>
+          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>{t('selection')}</div>
           <div className="text-xs font-semibold truncate">{selection}</div>
         </div>
         <div
@@ -142,7 +144,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             border: '1px solid var(--border)',
           }}
         >
-          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>Monto</div>
+          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>{t('amount')}</div>
           <div className="text-xs font-bold">{amount} USDT</div>
         </div>
         <div
@@ -152,7 +154,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
             border: '1px solid var(--border)',
           }}
         >
-          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>Cuota</div>
+          <div className="text-[10px] mb-1 font-medium" style={{ color: 'var(--text-muted)' }}>{t('odds')}</div>
           <div className="text-xs font-bold">{odds.toFixed(2)}x</div>
         </div>
       </div>
@@ -162,10 +164,10 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         className="flex items-center justify-between pt-3"
         style={{ borderTop: '1px solid var(--border)' }}
       >
-        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Pago potencial</span>
+        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('potentialPayout')}</span>
         <div className="flex items-center gap-3">
           {(status === 'won' || status === 'pending') && (
-            <ShareOnX fixtureName={fixtureName} amount={amount} odds={odds} />
+            <ShareOnX fixtureName={fixtureName} amount={amount} odds={odds} t={t} />
           )}
           {status === 'pending' && onSettle && (
             <button
@@ -183,7 +185,7 @@ export const PositionCard: React.FC<PositionCardProps> = ({
               ) : (
                 <UpdateIcon width={12} height={12} />
               )}
-              {settling ? 'Liquidando...' : 'Liquidar'}
+              {settling ? t('settling') : t('settle')}
             </button>
           )}
           <span

@@ -5,6 +5,7 @@ import { useTxLine } from '../../context/TxLineContext';
 import { TxLineAuthError } from '../../txlineSkill';
 import { LiveFeedItem } from '../../components/LiveFeedItem';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { useTranslations } from 'next-intl';
 
 const STATUS_NAMES: Record<number, string> = {
   1: 'NS', 2: 'H1', 3: 'HT', 4: 'H2', 5: 'F',
@@ -53,6 +54,7 @@ function normalizeScoreEvent(raw: any, cache: Map<number, any>): any {
 
 export default function LivePage() {
   const { client } = useTxLine();
+  const t = useTranslations('Live');
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const readerRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
@@ -236,9 +238,9 @@ export default function LivePage() {
     connectionState === 'connecting' ? 'rgba(245,158,11,0.2)' :
     connectionState === 'no-auth' ? 'var(--border)' : 'rgba(255,68,68,0.2)';
 
-  const indicatorText = connectionState === 'connected' ? 'Conectado' :
-    connectionState === 'connecting' ? 'Conectando...' :
-    connectionState === 'no-auth' ? 'Sin auth' : 'Error';
+  const indicatorText = connectionState === 'connected' ? t('connected') :
+    connectionState === 'connecting' ? t('connecting') :
+    connectionState === 'no-auth' ? t('noAuth') : t('error');
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
@@ -257,8 +259,8 @@ export default function LivePage() {
             <ActivityLogIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">En Vivo</h1>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Scores en tiempo real</p>
+            <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('subtitle')}</p>
           </div>
         </div>
 
@@ -306,9 +308,9 @@ export default function LivePage() {
           >
             <ActivityLogIcon width={28} height={28} style={{ color: 'var(--accent)' }} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">TxLINE no configurado</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('txlineNotConfigured')}</h2>
           <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            Conecta tu wallet y activa una suscripción TxLINE gratuita para recibir datos en vivo.
+            {t('connectWallet')}
           </p>
         </div>
       ) : connectionState === 'error' ? (
@@ -319,9 +321,9 @@ export default function LivePage() {
           >
             <ActivityLogIcon width={28} height={28} style={{ color: 'var(--danger)' }} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">Error de conexión</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('connectionError')}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-            No se pudo conectar al servicio en vivo. Reintentando automáticamente...
+            {t('couldNotConnect')}
           </p>
           <button
             onClick={handleRetry}
@@ -332,7 +334,7 @@ export default function LivePage() {
             }}
           >
             <ReloadIcon width={16} height={16} />
-            Reintentar ahora
+            {t('retryNow')}
           </button>
         </div>
       ) : events.length === 0 ? (
@@ -356,9 +358,9 @@ export default function LivePage() {
           >
             <ActivityLogIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
           </div>
-          <h2 className="text-lg font-semibold mb-2">Esperando señal en vivo</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('awaitingSignal')}</h2>
           <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-            No hay partidos en vivo en este momento. Los scores aparecerán automáticamente cuando comience un partido.
+            {t('noLiveMatches')}
           </p>
         </div>
       ) : (
@@ -368,10 +370,10 @@ export default function LivePage() {
               className="text-[10px] font-semibold uppercase tracking-[0.12em]"
               style={{ color: 'var(--text-muted)' }}
             >
-              En vivo
+              {t('live')}
             </span>
             <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-              {events.length} {events.length === 1 ? 'partido' : 'partidos'}
+              {events.length} {events.length === 1 ? t('match') : t('matches')}
             </span>
           </div>
           {events.map((e, idx) => (

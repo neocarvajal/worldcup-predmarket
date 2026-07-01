@@ -6,12 +6,14 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { requestUsdtFaucet, getUsdtBalance, USDT_MINT, checkFaucetCooldown } from '../../lib/txlineProgram';
 import { PublicKey } from '@solana/web3.js';
 import { TokensIcon, CheckCircledIcon, TimerIcon, LightningBoltIcon, ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
+import { useTranslations } from 'next-intl';
 
 const FIXED_AMOUNT = 100;
 
 export default function FaucetPage() {
   const { connection } = useConnection();
   const wallet = useWallet();
+  const t = useTranslations('Faucet');
   const { setVisible } = useWalletModal();
   const [balance, setBalance] = useState(0);
   const [claiming, setClaiming] = useState(false);
@@ -55,10 +57,10 @@ export default function FaucetPage() {
       console.error('[Faucet] Simulation failure:', msg);
       if (e?.logs) console.error('[Faucet] Logs:', e.logs);
       if (msg.includes('RateLimitExceeded') || msg.includes('0x17aa') || msg.includes('6058')) {
-        setError('Límite diario alcanzado — solo 1 reclamo cada 8 horas por wallet. Volvé más tarde.');
+        setError(t('rateLimit'));
         checkFaucetCooldown(connection, wallet.publicKey!).then(setCooldown);
       } else {
-        setError(msg.slice(0, 120) || 'Error al reclamar USDT');
+        setError(msg.slice(0, 120) || t('claimError'));
       }
     } finally {
       setClaiming(false);
@@ -111,9 +113,9 @@ export default function FaucetPage() {
           >
             <TokensIcon width={30} height={30} style={{ color: 'var(--accent)' }} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1">Faucet USDT</h1>
+          <h1 className="text-2xl font-bold tracking-tight mb-1">{t('title')}</h1>
           <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-            Consigue 100 USDT gratis en Devnet para apostar en los partidos del Mundial
+            {t('subtitle')}
           </p>
         </div>
 
@@ -139,7 +141,7 @@ export default function FaucetPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
-                Tu Balance
+                {t('yourBalance')}
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-extrabold tabular-nums" style={{ color: 'var(--accent)' }}>
@@ -149,7 +151,7 @@ export default function FaucetPage() {
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>Mint</div>
+              <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>{t('mint')}</div>
               <span
                 className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono"
                 style={{
@@ -179,9 +181,9 @@ export default function FaucetPage() {
             >
               <LightningBoltIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Conectá tu wallet</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('connectWallet')}</h2>
             <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-              Necesitás conectar una wallet Solana en Devnet para reclamar USDT gratis.
+              {t('needConnect')}
             </p>
           </button>
         ) : cooldown && !cooldown.available ? (
@@ -193,15 +195,15 @@ export default function FaucetPage() {
             >
               <TimerIcon width={28} height={28} style={{ color: 'var(--warning)' }} />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Ya reclamaste tus 100 USDT</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('alreadyClaimed')}</h2>
             <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-              Podés reclamar de nuevo en
+              {t('claimAgainIn')}
             </p>
             <p className="text-2xl font-extrabold tabular-nums mb-4" style={{ color: 'var(--accent)' }}>
               {formatCooldown(cooldown.remainingSeconds)}
             </p>
             <p className="text-xs max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
-              Tenés <strong>{balance.toFixed(2)} USDT</strong> disponibles para apostar mientras tanto.
+              {t('tipUseOtherWallet')}
             </p>
             {balance < 50 && (
               <div
@@ -213,7 +215,7 @@ export default function FaucetPage() {
               >
                 <InfoCircledIcon width={14} height={14} style={{ color: 'var(--accent)' }} />
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  Consejo: usá otra wallet para reclamar más USDT mientras esperás.
+                  {t('tipUseOtherWallet')}
                 </span>
               </div>
             )}
@@ -243,7 +245,7 @@ export default function FaucetPage() {
                 <span className="text-lg font-semibold" style={{ color: 'var(--text-muted)' }}>USDT</span>
               </div>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Monto fijo por reclamo — 1 vez cada 8 horas
+                {t('fixedAmount')}
               </p>
             </div>
 
@@ -257,7 +259,7 @@ export default function FaucetPage() {
               >
                 <InfoCircledIcon width={14} height={14} style={{ color: 'var(--accent)' }} />
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  Ya tenés <strong>{balance.toFixed(0)} USDT</strong> en tu wallet.
+                  {t('youHave')} <strong>{balance.toFixed(0)} USDT</strong>
                 </span>
               </div>
             )}
@@ -279,12 +281,12 @@ export default function FaucetPage() {
                     className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
                     style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }}
                   />
-                  Reclamando...
+                  {t('claiming')}
                 </>
               ) : (
                 <>
                   <LightningBoltIcon width={20} height={20} />
-                  Reclamar 100 USDT
+                  {t('claim')}
                 </>
               )}
             </button>
@@ -310,7 +312,7 @@ export default function FaucetPage() {
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <CheckCircledIcon width={18} height={18} style={{ color: 'var(--success)' }} />
                     <span className="text-sm font-semibold" style={{ color: 'var(--success)' }}>
-                      100 USDT reclamados con éxito
+                      {t('success')}
                     </span>
                   </div>
                   <a
@@ -320,7 +322,7 @@ export default function FaucetPage() {
                     className="inline-flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
                     style={{ color: 'var(--accent)' }}
                   >
-                    Ver en explorador
+                    {t('viewExplorer')}
                     <ExternalLinkIcon width={12} height={12} />
                   </a>
                 </div>
@@ -340,7 +342,7 @@ export default function FaucetPage() {
           >
             <TimerIcon width={16} height={16} style={{ color: 'var(--text-muted)' }} />
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Límite: <strong style={{ color: 'var(--text-secondary)' }}>1 reclamo cada 8 horas</strong> — 100 USDT fijos
+              {t('limit')}
             </span>
           </div>
           <div

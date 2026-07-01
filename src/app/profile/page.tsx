@@ -7,6 +7,7 @@ import { useTxLine } from '../../context/TxLineContext';
 import { useAutoSubscribe } from '../../hooks/useAutoSubscribe';
 import { saveProfileImage, loadProfileImage } from '../../lib/persistence';
 import { initProfile, updateProfile, fetchUserProfile, fetchUserEscrows } from '../../lib/settlement';
+import { useTranslations } from 'next-intl';
 import {
   PersonIcon,
   CameraIcon,
@@ -22,6 +23,7 @@ export default function ProfilePage() {
   const { publicKey, signTransaction, disconnect } = useWallet();
   const { connection } = useConnection();
   const { client } = useTxLine();
+  const t = useTranslations('Profile');
   const { state: subState, subscribe } = useAutoSubscribe();
   const [balance, setBalance] = useState<number | null>(null);
   const [totalBets, setTotalBets] = useState(0);
@@ -93,7 +95,7 @@ export default function ProfilePage() {
         ? await updateProfile(connection, { publicKey, signTransaction }, imageUri, xHandle)
         : await initProfile(connection, { publicKey, signTransaction }, imageUri, xHandle);
       setProfileExists(true);
-      setSaveMsg('Perfil guardado en Solana');
+      setSaveMsg(t('savedOnSolana'));
     } catch (e: any) {
       setSaveMsg(`Error: ${e?.message?.slice(0, 60)}`);
     } finally {
@@ -176,7 +178,7 @@ export default function ProfilePage() {
               onChange={handleFileChange}
             />
           </div>
-          <h1 className="text-lg font-bold tracking-tight mb-0.5">{shortWallet || 'No conectado'}</h1>
+          <h1 className="text-lg font-bold tracking-tight mb-0.5">{shortWallet || t('notConnected')}</h1>
           <span
             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
             style={{
@@ -185,16 +187,16 @@ export default function ProfilePage() {
               border: '1px solid rgba(245,158,11,0.2)',
             }}
           >
-            Solana Devnet
+            {t('solanaDevnet')}
           </span>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { val: balance != null ? `${balance.toFixed(3)}` : '--', label: 'SOL' },
-            { val: totalBets.toString(), label: 'Predicciones' },
-            { val: `${wonBets} (${earnings.toFixed(2)} USDT)`, label: 'Ganadas' },
+            { val: balance != null ? `${balance.toFixed(3)}` : '--', label: t('sol') },
+            { val: totalBets.toString(), label: t('predictions') },
+            { val: `${wonBets} (${earnings.toFixed(2)} USDT)`, label: t('won') },
           ].map((s, i) => (
             <div
               key={s.label}
@@ -229,9 +231,9 @@ export default function ProfilePage() {
             >
               <PersonIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Conectá tu wallet</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('connectWallet')}</h2>
             <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-              Necesitás conectar tu wallet para ver y editar tu perfil.
+              {t('needConnect')}
             </p>
           </div>
         ) : (
@@ -247,7 +249,7 @@ export default function ProfilePage() {
             >
               {/* Wallet */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Wallet</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('wallet')}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-semibold">{shortWallet}</span>
                   <ExternalLinkIcon width={12} height={12} style={{ color: 'var(--text-muted)' }} />
@@ -258,7 +260,7 @@ export default function ProfilePage() {
 
               {/* Red */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Red</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('network')}</span>
                 <span
                   className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
                   style={{
@@ -267,7 +269,7 @@ export default function ProfilePage() {
                     border: '1px solid rgba(245,158,11,0.2)',
                   }}
                 >
-                  Solana Devnet
+                  {t('solanaDevnet')}
                 </span>
               </div>
 
@@ -275,7 +277,7 @@ export default function ProfilePage() {
 
               {/* API TxLINE */}
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>API TxLINE</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('apiTxline')}</span>
                 <div className="flex items-center gap-2">
                   {subState === 'subscribing' || subState === 'activating' ? (
                     <span
@@ -287,7 +289,7 @@ export default function ProfilePage() {
                       }}
                     >
                       <ReloadIcon width={10} height={10} className="animate-spin" />
-                      Activando
+                      {t('activating')}
                     </span>
                   ) : (
                     <span
@@ -304,7 +306,7 @@ export default function ProfilePage() {
                         }`,
                       }}
                     >
-                      {client.hasApiToken ? 'Activo' : 'Inactivo'}
+                      {client.hasApiToken ? t('active') : t('inactive')}
                     </span>
                   )}
                   {!client.hasApiToken && subState !== 'subscribing' && subState !== 'activating' && (
@@ -314,7 +316,7 @@ export default function ProfilePage() {
                       style={{ background: 'var(--accent)', color: '#000' }}
                     >
                       <GlobeIcon width={10} height={10} />
-                      Activar
+                      {t('activate')}
                     </button>
                   )}
                 </div>
@@ -325,14 +327,14 @@ export default function ProfilePage() {
                   style={{ background: 'rgba(255,68,68,0.06)', border: '1px solid rgba(255,68,68,0.12)' }}
                 >
                   <span className="flex-1" style={{ color: 'var(--text-muted)' }}>
-                    Error al activar TxLINE
+                    {t('activationError')}
                   </span>
                   <button
                     onClick={subscribe}
                     className="text-xs font-semibold px-3 py-1 rounded-full transition-all active:scale-95"
                     style={{ background: 'rgba(255,68,68,0.1)', color: 'var(--danger)' }}
                   >
-                    Reintentar
+                    {t('retry')}
                   </button>
                 </div>
               )}
@@ -342,7 +344,7 @@ export default function ProfilePage() {
               {/* Image URI */}
               <div>
                 <label className="text-[11px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
-                  URI de imagen (on-chain)
+                  {t('imageUri')}
                 </label>
                 <div
                   className="flex items-center rounded-xl px-4"
@@ -366,7 +368,7 @@ export default function ProfilePage() {
               {/* X Handle */}
               <div>
                 <label className="text-[11px] font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
-                  X / Twitter (on-chain)
+                  {t('xHandle')}
                 </label>
                 <div className="flex items-center gap-2">
                   <div
@@ -452,12 +454,12 @@ export default function ProfilePage() {
                     className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
                     style={{ borderColor: 'rgba(0,0,0,0.2)', borderTopColor: '#000' }}
                   />
-                  Guardando...
+                  {t('saving')}
                 </>
               ) : (
                 <>
                   <UpdateIcon width={18} height={18} />
-                  {profileExists ? 'Actualizar Perfil en Solana' : 'Guardar Perfil en Solana'}
+                  {profileExists ? t('updateProfile') : t('saveProfile')}
                 </>
               )}
             </button>
@@ -472,7 +474,7 @@ export default function ProfilePage() {
               }}
               onClick={handleDisconnect}
             >
-              Desconectar Wallet
+              {t('disconnect')}
             </button>
           </>
         )}

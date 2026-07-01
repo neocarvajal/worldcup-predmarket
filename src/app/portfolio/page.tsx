@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useConnection } from '@solana/wallet-adapter-react';
+import { useTranslations } from 'next-intl';
 import { fetchUserEscrows } from '../../lib/settlement';
 import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
@@ -13,6 +14,8 @@ export default function PortfolioPage() {
   const { publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { connection } = useConnection();
+
+  const t = useTranslations('Portfolio');
 
   const [escrows, setEscrows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,8 +149,8 @@ export default function PortfolioPage() {
               <StackIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Mis Bets</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tus predicciones on-chain</p>
+              <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('subtitle')}</p>
             </div>
           </div>
           <span
@@ -159,16 +162,16 @@ export default function PortfolioPage() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-            {escrows.length} apuestas
+            {escrows.length} {t('apuestas')}
           </span>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { val: escrows.length.toString(), label: 'Total', accent: false },
-            { val: activeEscrows.length.toString(), label: 'Activas', accent: false },
-            { val: totalStaked.toFixed(2), label: 'USDT Stake', accent: true },
+            { val: escrows.length.toString(), label: t('total'), accent: false },
+            { val: activeEscrows.length.toString(), label: t('active'), accent: false },
+            { val: totalStaked.toFixed(2), label: t('usdtStake'), accent: true },
           ].map((s, i) => (
             <div
               key={s.label}
@@ -194,20 +197,20 @@ export default function PortfolioPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-4">
-          {(['active', 'history'] as const).map((t) => (
+          {(['active', 'history'] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               className="px-5 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95"
               style={{
-                background: tab === t ? 'var(--accent)' : 'var(--bg-surface)',
-                color: tab === t ? '#000' : 'var(--text-muted)',
-                border: `1px solid ${tab === t ? 'var(--accent)' : 'var(--border)'}`,
+                background: tab === tabKey ? 'var(--accent)' : 'var(--bg-surface)',
+                color: tab === tabKey ? '#000' : 'var(--text-muted)',
+                border: `1px solid ${tab === tabKey ? 'var(--accent)' : 'var(--border)'}`,
               }}
             >
-              {t === 'active' ? 'Activas' : 'Historial'}
+              {tabKey === 'active' ? t('active') : t('history')}
               <span className="ml-1.5 opacity-70">
-                ({t === 'active' ? activeEscrows.length : historyEscrows.length})
+                ({tabKey === 'active' ? activeEscrows.length : historyEscrows.length})
               </span>
             </button>
           ))}
@@ -251,7 +254,7 @@ export default function PortfolioPage() {
             >
               <TargetIcon width={28} height={28} style={{ color: 'var(--danger)' }} />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Error al cargar</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('errorLoading')}</h2>
             <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
             <button
               onClick={load}
@@ -259,7 +262,7 @@ export default function PortfolioPage() {
               style={{ background: 'var(--accent)', color: '#000' }}
             >
               <ReloadIcon width={16} height={16} />
-              Reintentar
+              {t('retry')}
             </button>
           </div>
         ) : !publicKey ? (
@@ -273,9 +276,9 @@ export default function PortfolioPage() {
             >
               <StackIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
             </div>
-            <h2 className="text-lg font-semibold mb-2">Conectá tu wallet</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('connectWallet')}</h2>
             <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-              Necesitás conectar tu wallet para ver tus predicciones.
+              {t('needConnect')}
             </p>
           </div>
         ) : displayEscrows.length === 0 ? (
@@ -290,12 +293,10 @@ export default function PortfolioPage() {
               <TargetIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
             </div>
             <h2 className="text-lg font-semibold mb-2">
-              {tab === 'active' ? 'No tienes apuestas activas' : 'No hay historial'}
+              {tab === 'active' ? t('noActiveBets') : t('noHistory')}
             </h2>
             <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-              {tab === 'active'
-                ? 'Tus predicciones activas aparecerán aquí. Anda a la sección Partidos para empezar.'
-                : 'El historial de predicciones finalizadas aparecerá aquí.'}
+              {tab === 'active' ? t('activeBetsWillAppear') : t('noHistory')}
             </p>
           </div>
         ) : (
@@ -305,10 +306,10 @@ export default function PortfolioPage() {
                 className="text-[10px] font-semibold uppercase tracking-[0.12em]"
                 style={{ color: 'var(--text-muted)' }}
               >
-                {tab === 'active' ? 'Activas' : 'Finalizadas'}
+                {tab === 'active' ? t('active') : t('finished')}
               </span>
               <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                {displayEscrows.length} {displayEscrows.length === 1 ? 'apuesta' : 'apuestas'}
+                {displayEscrows.length} {displayEscrows.length === 1 ? t('bet') : t('bets')}
               </span>
             </div>
             {displayEscrows.map((e: any, idx: number) => {

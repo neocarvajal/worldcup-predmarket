@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import { useBetSlip } from '../context/BetSlipContext';
@@ -18,6 +19,7 @@ export const BetSlipDrawer: React.FC = () => {
   const { connection } = useConnection();
   const wallet = useWallet();
   const router = useRouter();
+  const t = useTranslations('BetSlipDrawer');
   const countRef = useRef(10);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -92,7 +94,7 @@ export const BetSlipDrawer: React.FC = () => {
 
       setTimeout(() => { clear(); setPlacing(false); }, 2000);
     } catch (e: any) {
-      setError(e?.message || 'Error al colocar la apuesta');
+      setError(e?.message || t('betError'));
       setPlacing(false);
     }
   }, [wallet, connection, selections, parsedAmount, clear]);
@@ -115,7 +117,7 @@ export const BetSlipDrawer: React.FC = () => {
       <div className="bottom-sheet">
         <div className="bottom-sheet-handle" />
 
-        <h3 className="text-lg font-bold mb-4">Tu Apuesta</h3>
+        <h3 className="text-lg font-bold mb-4">{t('yourBet')}</h3>
 
         {insufficient ? (
           <div className="text-center py-6 animate-scaleIn">
@@ -126,13 +128,13 @@ export const BetSlipDrawer: React.FC = () => {
               <span style={{ fontSize: 24 }}>🪙</span>
             </div>
             <h4 className="text-base font-semibold mb-2" style={{ color: 'var(--warning)' }}>
-              Saldo insuficiente
+              {t('insufficientBalance')}
             </h4>
             <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-              Tenés <strong>{insufficient.balance.toFixed(2)} USDT</strong> y necesitás <strong>{insufficient.needed.toFixed(2)} USDT</strong>.
+              {t('youHave')} <strong>{insufficient.balance.toFixed(2)} USDT</strong> {t('andNeed')} <strong>{insufficient.needed.toFixed(2)} USDT</strong>.
             </p>
             <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>
-              Obtené 100 USDT gratis desde el faucet.
+              {t('get100Free')}
             </p>
             <button
               onClick={handleGoToFaucet}
@@ -143,15 +145,15 @@ export const BetSlipDrawer: React.FC = () => {
                 boxShadow: '0 0 24px rgba(220,235,2,0.15)',
               }}
             >
-              Ir al Faucet
+              {t('goToFaucet')}
             </button>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Redirigiendo en {insufficient.countdown}s...
+              {t('redirectingIn')} {insufficient.countdown}s...
             </p>
           </div>
         ) : selections.length === 0 ? (
           <p className="text-sm text-text-secondary text-center py-8">
-            Selecciona un resultado para apostar
+            {t('selectOutcome')}
           </p>
         ) : (
           <div className="space-y-3 mb-4">
@@ -180,7 +182,7 @@ export const BetSlipDrawer: React.FC = () => {
           <>
             <div className="mb-4">
               <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
-                Monto (USDT)
+                {t('amount')}
               </label>
 
               <div className="flex gap-2 mb-2">
@@ -215,11 +217,11 @@ export const BetSlipDrawer: React.FC = () => {
 
             <div className="card-inset space-y-1 mb-4">
               <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-secondary)' }}>Cuota total</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{t('totalOdds')}</span>
                 <span className="font-semibold">{totalOdds.toFixed(2)}x</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span style={{ color: 'var(--text-secondary)' }}>Pago potencial</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{t('potentialPayout')}</span>
                 <span className="font-semibold" style={{ color: 'var(--accent)' }}>
                   {potentialPayout.toFixed(2)} USDT
                 </span>
@@ -232,7 +234,7 @@ export const BetSlipDrawer: React.FC = () => {
 
             {txSig && (
               <p className="text-xs mb-3" style={{ color: 'var(--success)' }}>
-                Apuesta colocada! TX: {txSig.slice(0, 8)}...{txSig.slice(-4)}
+                {t('betPlaced')} TX: {txSig.slice(0, 8)}...{txSig.slice(-4)}
               </p>
             )}
 
@@ -241,7 +243,7 @@ export const BetSlipDrawer: React.FC = () => {
               onClick={handlePlaceBet}
               disabled={placing || parsedAmount <= 0}
             >
-              {placing ? 'Colocando apuesta...' : 'Colocar Apuesta'}
+              {placing ? t('placingBet') : t('placeBet')}
             </button>
           </>
         )}

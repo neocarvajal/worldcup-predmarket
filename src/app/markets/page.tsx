@@ -2,12 +2,14 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { GlobeIcon } from '@radix-ui/react-icons';
 import { SubscriptionBanner } from '../../components/SubscriptionBanner';
 
 const MarketList = dynamic(() => import('../../components/MarketList').then(m => ({ default: m.MarketList })), { ssr: false });
 
 export default function MarketsPage() {
+  const t = useTranslations('Markets');
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
       {/* Animated background orbs (subtle) */}

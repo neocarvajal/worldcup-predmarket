@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAutoSubscribe } from '../hooks/useAutoSubscribe';
 import { ClientWalletButton } from './ClientWalletButton';
@@ -88,6 +89,7 @@ interface SubscriptionGuardProps {
 export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   const { publicKey } = useWallet();
   const { state, error, subscribe } = useAutoSubscribe();
+  const t = useTranslations('SubscriptionGuard');
   const [showSteps, setShowSteps] = React.useState(false);
 
   if (!publicKey) {
@@ -98,9 +100,9 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           <IconBox>
             <LockClosedIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
           </IconBox>
-          <h2 className="text-lg font-semibold mb-2">Conectá tu Wallet</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('connectWallet')}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-            Necesitás una wallet Solana en Devnet para usar la DApp
+            {t('needWallet')}
           </p>
           <ClientWalletButton />
         </GlassCard>
@@ -128,10 +130,10 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
             </div>
           </div>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-            Verificando suscripción TxLINE...
+            {t('checkingTxline')}
           </p>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            Consultando el oráculo deportivo
+            {t('queryingOracle')}
           </p>
         </GlassCard>
       </div>
@@ -146,15 +148,15 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           <IconBox>
             <GlobeIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
           </IconBox>
-          <h2 className="text-lg font-semibold mb-2">Suscripción TxLINE</h2>
+          <h2 className="text-lg font-semibold mb-2">{t('subscriptionTitle')}</h2>
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            Activá tu suscripción gratuita al oráculo deportivo para acceder a datos en tiempo real.
+            {t('activateFree')}
           </p>
           <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
-            Tier 1 — World Cup & Int Friendlies. Solo pagás el fee de transacción Solana.
+            {t('tierDescription')}
           </p>
           <PrimaryButton onClick={() => setShowSteps(true)}>
-            Activar Suscripción
+            {t('activateSubscription')}
           </PrimaryButton>
         </GlassCard>
       </div>
@@ -169,9 +171,9 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           <IconBox>
             <CheckCircledIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
           </IconBox>
-          <h2 className="text-lg font-semibold mb-3">Confirmá la Activación</h2>
+          <h2 className="text-lg font-semibold mb-3">{t('confirmActivation')}</h2>
           <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Se va a enviar una transacción a Solana Devnet para registrar tu suscripción gratuita (Tier 1 — Mundial).
+            {t('willSendTx')}
           </p>
 
           {/* Instruction breakdown */}
@@ -187,9 +189,9 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 1
               </div>
               <div>
-                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Crear cuenta de token TxL</p>
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('createTokenAccount')}</p>
                 <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  Solo si no tenés una — sin costo, 0 TxL transferidos
+                  {t('createTokenAccountDesc')}
                 </p>
               </div>
             </div>
@@ -201,9 +203,9 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 2
               </div>
               <div>
-                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Registrar suscripción on-chain</p>
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('registerOnChain')}</p>
                 <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  Vincula tu wallet al oráculo TxLINE — 0 TxL cobrados (tier gratis)
+                  {t('registerOnChainDesc')}
                 </p>
               </div>
             </div>
@@ -215,12 +217,12 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           >
             <span style={{ color: 'var(--warning)', fontSize: 14 }}>ℹ</span>
             <span style={{ color: 'var(--text-secondary)' }}>
-              Tu wallet te va a pedir que firmes 1 o 2 instrucciones. No se transfieren tokens — solo pagás el fee de SOL (~0.00001 SOL).
+              {t('walletInstructions')}
             </span>
           </div>
 
           <PrimaryButton onClick={subscribe}>
-            Confirmar y Activar
+            {t('confirmAndActivate')}
           </PrimaryButton>
         </GlassCard>
       </div>
@@ -268,10 +270,10 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
             </div>
 
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Esperando firma en tu wallet
+              {t('waitingSignature')}
             </p>
             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-              Revisá tu wallet y firmá la transacción para continuar
+              {t('checkWallet')}
             </p>
 
             {/* Steps */}
@@ -286,7 +288,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 >
                   <RocketIcon width={12} height={12} style={{ color: 'var(--accent)' }} />
                 </div>
-                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>Firmar</span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>{t('sign')}</span>
               </div>
               <svg width="20" height="2" viewBox="0 0 20 2" fill="none">
                 <line x1="0" y1="1" x2="20" y2="1" stroke="var(--border)" strokeWidth="1" strokeDasharray="2 2" />
@@ -298,7 +300,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 >
                   <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>2</span>
                 </div>
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Activar</span>
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('activate')}</span>
               </div>
             </div>
           </div>
@@ -348,10 +350,10 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
             </div>
 
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Vinculando wallet con el oráculo
+              {t('linkingWallet')}
             </p>
             <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-              Activando el API token para recibir datos en vivo
+              {t('activatingApiToken')}
             </p>
 
             {/* Steps */}
@@ -363,7 +365,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 >
                   <CheckCircledIcon width={13} height={13} />
                 </div>
-                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>Firmar</span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>{t('sign')}</span>
               </div>
               <svg width="20" height="2" viewBox="0 0 20 2" fill="none">
                 <line x1="0" y1="1" x2="20" y2="1" stroke="var(--accent-dim)" strokeWidth="1" />
@@ -378,7 +380,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
                 >
                   <UpdateIcon width={12} height={12} style={{ color: 'var(--accent)' }} />
                 </div>
-                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>Activar</span>
+                <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>{t('activate')}</span>
               </div>
             </div>
           </div>
@@ -395,19 +397,18 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           <IconBox error>
             <ExclamationTriangleIcon width={22} height={22} style={{ color: 'var(--danger)' }} />
           </IconBox>
-          <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--danger)' }}>Error de Activación</h2>
+          <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--danger)' }}>{t('activationError')}</h2>
           <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-            {error || 'No se pudo completar la suscripción'}
+            {error || t('couldNotComplete')}
           </p>
           <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-            Asegurate de tener SOL en Devnet para el fee de red. Revisá también que tu wallet tenga aprobadas las 2 instrucciones (crear cuenta TxL + subscribir).
+            {t('ensureSol')}
           </p>
           <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
-            Todavía no hay SOL en Devnet? Usá el <a href="/faucet" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>faucet de SOL</a> o pedí en el{' '}
-            <a href="https://faucet.solana.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>faucet oficial</a>.
+            {t('noSolFaucet')}
           </p>
           <PrimaryButton onClick={subscribe}>
-            Reintentar
+            {t('retry')}
           </PrimaryButton>
         </GlassCard>
       </div>
