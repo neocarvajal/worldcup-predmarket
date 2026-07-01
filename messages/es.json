@@ -148,6 +148,8 @@
     "predict": "Predecí",
     "autoSettlement": "Settlement automático",
     "decentralizedPredictions": "Predicciones Deportivas Descentralizadas",
+    "betOn": "Apuesta en el ",
+    "worldCup2026": "Mundial 2026",
     "betWorldCup": "Apostá en el Mundial 2026",
     "predictionsOnChain": "Predicciones on-chain aseguradas en Solana.",
     "connectToStart": "Conectá tu wallet para empezar a predecir.",
@@ -197,7 +199,7 @@
   "Portfolio": {
     "title": "Mis Bets",
     "subtitle": "Tus predicciones on-chain",
-    "apuestas": "apuestas",
+    "bets": "apuestas",
     "total": "Total",
     "active": "Activas",
     "usdtStake": "USDT Stake",

@@ -140,15 +140,14 @@ export default function LandingPage() {
             className="animate-title-reveal text-[2.5rem] md:text-[3.5rem] font-extrabold leading-[1.05] tracking-[-0.04em] mb-5"
             style={{ animationDelay: '0.15s' }}
           >
-            Apuesta en el{' '}
-            <span
+            {t('betOn')}<span
               className="animate-gradient inline-block text-transparent bg-clip-text"
               style={{
                 backgroundImage: 'linear-gradient(135deg, #DCEB02 0%, #E8F333 25%, #DCEB02 50%, #B8C902 75%, #DCEB02 100%)',
                 backgroundSize: '200% 200%',
               }}
             >
-              Mundial 2026
+              {t('worldCup2026')}
             </span>
           </h1>
 

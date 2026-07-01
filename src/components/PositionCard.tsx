@@ -43,6 +43,7 @@ const statusConfig: Record<string, { icon: React.ComponentType<any>; color: stri
 };
 
 function CountdownSmall({ target }: { target: Date }) {
+  const t = useTranslations('PositionCard');
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -61,7 +62,7 @@ function CountdownSmall({ target }: { target: Date }) {
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
-        Esperando liquidación
+        {t('awaitingSettlement')}
       </span>
     );
   }

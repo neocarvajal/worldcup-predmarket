@@ -437,3 +437,179 @@ export async function settleActiveEscrows(
 
   return results;
 }
+
+export async function settleSingleEscrow(
+  connection: Connection,
+  keeper: Keypair,
+  txlineUrl: string,
+  txlineJwt: string,
+  txlineApiToken: string,
+  escrowPubkey: PublicKey,
+  fixtureNameToIdMap?: Record<string, number>,
+  force: boolean = false,
+): Promise<SettlementResult> {
+  const accountInfo = await connection.getAccountInfo(escrowPubkey);
+  if (!accountInfo) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId: null, fixtureName: '', status: 'error', error: 'Escrow account not found' };
+  }
+
+  const decoded = decodeEscrow(accountInfo.data);
+  if (!decoded) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId: null, fixtureName: '', status: 'error', error: 'Could not decode escrow' };
+  }
+  decoded.pubkey = escrowPubkey;
+
+  const { fixtureName, depositor, recipient, mint, selection } = decoded;
+  const [p1Name, p2Name] = parseFixtureName(fixtureName);
+  const p1n = normalizeParticipantName(p1Name);
+  const p2n = normalizeParticipantName(p2Name);
+
+  let fixtures: TxLineFixture[] = [];
+  try {
+    const snap = await txlineRequest(txlineUrl, '/api/fixtures/snapshot', txlineJwt, txlineApiToken);
+    fixtures = snap?.Fixtures ?? snap?.fixtures ?? snap ?? [];
+  } catch (e: any) {
+    console.warn('Could not fetch TxLINE fixtures:', e.message);
+  }
+
+  const nameToFixture = new Map<string, TxLineFixture>();
+  for (const f of fixtures) {
+    const n1 = normalizeParticipantName(f.Participant1 || '');
+    const n2 = normalizeParticipantName(f.Participant2 || '');
+    if (n1 && n2) {
+      nameToFixture.set(`${n1} vs ${n2}`, f);
+      nameToFixture.set(`${n2} vs ${n1}`, f);
+    }
+  }
+
+  let fixtureId: number | null = null;
+  let fixture: TxLineFixture | undefined;
+
+  if (fixtureNameToIdMap?.[fixtureName]) {
+    fixtureId = fixtureNameToIdMap[fixtureName];
+  }
+
+  if (!fixtureId) {
+    const key1 = `${p1n} vs ${p2n}`;
+    const key2 = `${p2n} vs ${p1n}`;
+    fixture = nameToFixture.get(key1) ?? nameToFixture.get(key2);
+    if (fixture) fixtureId = fixture.FixtureId;
+  }
+
+  if (!fixtureId) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId: null, fixtureName, status: 'skipped', error: 'No matching fixture found in TxLINE' };
+  }
+
+  let score1 = 0, score2 = 0, statusId = 0;
+  try {
+    const scoresRaw: any = await txlineRequest(
+      txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
+    );
+    const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
+    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+    if (lastMsg) {
+      statusId = lastMsg.StatusId ?? 0;
+      const s = lastMsg.Score || {};
+      score1 = s.Participant1?.Total?.Goals ?? 0;
+      score2 = s.Participant2?.Total?.Goals ?? 0;
+    }
+  } catch (e: any) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `Scores fetch: ${e.message}` };
+  }
+
+  if (![5, 10, 13].includes(statusId)) {
+    if (force) {
+      console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId})`);
+    } else {
+      return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `StatusId ${statusId}` };
+    }
+  }
+
+  let validation: any;
+  try {
+    validation = await txlineRequest(
+      txlineUrl, `/api/fixtures/validation?fixtureId=${fixtureId}`, txlineJwt, txlineApiToken,
+    );
+  } catch (e: any) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'error', error: `Validation fetch: ${e.message}` };
+  }
+
+  try {
+    const idl = SETTLEMENT_IDL;
+    const wallet = keypairToWallet(keeper);
+    const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
+    const program = new Program(idl, provider);
+
+    const vault = PublicKey.findProgramAddressSync(
+      [enc('vault'), escrowPubkey.toBuffer()],
+      SETTLEMENT_PROGRAM_ID,
+    )[0];
+    const depositorAta = getAssociatedTokenAddressSync(mint, depositor, false, TOKEN_PROGRAM_ID);
+    const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
+    const f = validation.snapshot;
+    const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
+    const fixtureEpochDay = epochDayFromTs(fixtureTsSec);
+    const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
+    const fs = validation.summary;
+
+    const instruction = await program.methods
+      .settleWithCpi(
+        new BN(score1),
+        new BN(score2),
+        new BN(f.ts ?? f.Ts ?? 0),
+        new BN(f.start_time ?? f.StartTime ?? 0),
+        f.competition ?? f.Competition ?? '',
+        f.competition_id ?? f.CompetitionId ?? 0,
+        f.fixture_group_id ?? f.FixtureGroupId ?? 0,
+        f.participant1_id ?? f.Participant1Id ?? 0,
+        f.participant1 ?? f.Participant1 ?? '',
+        f.participant2_id ?? f.Participant2Id ?? 0,
+        f.participant2 ?? f.Participant2 ?? '',
+        new BN(f.fixture_id ?? f.FixtureId ?? 0),
+        f.participant1_is_home ?? f.Participant1IsHome ?? true,
+        fixtureEpochDay,
+        new BN(fs.fixture_id ?? fs.fixtureId ?? 0),
+        fs.competition_id ?? fs.competitionId ?? 0,
+        fs.competition ?? '',
+        fs.update_count ?? fs.updateStats?.updateCount ?? 0,
+        new BN(fs.min_timestamp ?? fs.updateStats?.minTimestamp ?? 0),
+        new BN(fs.max_timestamp ?? fs.updateStats?.maxTimestamp ?? 0),
+        Object.values(fs.update_sub_tree_root ?? fs.eventsSubTreeRoot ?? new Array(32).fill(0)),
+        (validation.subTreeProof ?? []).map((p: any) => ({
+          hash: Object.values(p.hash ?? p),
+          isRightSibling: p.isRightSibling ?? false,
+        })),
+        (validation.mainTreeProof ?? []).map((p: any) => ({
+          hash: Object.values(p.hash ?? p),
+          isRightSibling: p.isRightSibling ?? false,
+        })),
+      )
+      .accountsStrict({
+        caller: keeper.publicKey,
+        escrow: escrowPubkey,
+        mint,
+        vault,
+        depositorTokenAccount: depositorAta,
+        recipientTokenAccount: recipientAta,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        txlineProgram: TXLINE_PROGRAM_ID,
+        tenDailyFixturesRoots,
+      })
+      .instruction();
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    const message = new TransactionMessage({
+      payerKey: keeper.publicKey,
+      recentBlockhash: blockhash,
+      instructions: [instruction],
+    }).compileToV0Message();
+    const tx = new VersionedTransaction(message);
+    tx.sign([keeper]);
+    const sig = await connection.sendRawTransaction(tx.serialize());
+    await connection.confirmTransaction(sig, 'confirmed');
+
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'settled', txSig: sig };
+  } catch (e: any) {
+    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'error', error: `Settle tx: ${e.message}` };
+  }
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Connection, Keypair } from '@solana/web3.js';
-import { settleActiveEscrows } from '../../../../lib/keeper';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { settleActiveEscrows, settleSingleEscrow } from '../../../../lib/keeper';
 import { ensureApiToken } from '../../../../lib/keeper-auth';
 
 async function handle(req: NextRequest) {
@@ -44,18 +44,31 @@ async function handle(req: NextRequest) {
   }
 
   const force = req.nextUrl.searchParams.get('force') === '1' || req.headers.get('x-force') === '1';
+  const escrowParam = req.nextUrl.searchParams.get('escrow');
 
   try {
-    const results = await settleActiveEscrows(
-      connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId, force,
-    );
-    return NextResponse.json({
-      ok: true,
-      processed: results.length,
-      settled: results.filter(r => r.status === 'settled').length,
-      results,
-      timestamp: new Date().toISOString(),
-    });
+    if (escrowParam) {
+      const result = await settleSingleEscrow(
+        connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken,
+        new PublicKey(escrowParam), fixtureNameToId, true,
+      );
+      return NextResponse.json({
+        ok: result.status === 'settled',
+        result,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      const results = await settleActiveEscrows(
+        connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId, force,
+      );
+      return NextResponse.json({
+        ok: true,
+        processed: results.length,
+        settled: results.filter(r => r.status === 'settled').length,
+        results,
+        timestamp: new Date().toISOString(),
+      });
+    }
   } catch (e: any) {
     return NextResponse.json({
       ok: false,

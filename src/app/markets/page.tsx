@@ -54,8 +54,8 @@ export default function MarketsPage() {
               <GlobeIcon width={22} height={22} style={{ color: 'var(--accent)' }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Partidos</h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Mundial 2026 · Predicciones</p>
+              <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('subtitle')}</p>
             </div>
           </div>
           <span

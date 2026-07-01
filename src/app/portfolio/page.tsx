@@ -23,16 +23,16 @@ export default function PortfolioPage() {
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [settling, setSettling] = useState(false);
 
-  const handleSettle = async () => {
+  const handleSettle = async (escrowPubkey: string) => {
     setSettling(true);
     setError(null);
     try {
-      const resp = await fetch('/api/keeper/settle', { method: 'POST' });
+      const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST' });
       const data = await resp.json();
-      if (data.ok) {
+      if (data.ok && data.result?.status === 'settled') {
         setTimeout(() => load(), 2000);
       } else {
-        setError(data.error || 'Error al liquidar');
+        setError(data.result?.error || data.error || 'Error al liquidar');
       }
     } catch (e: any) {
       setError(e.message || 'Error de red al liquidar');
@@ -162,7 +162,7 @@ export default function PortfolioPage() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
-            {escrows.length} {t('apuestas')}
+            {escrows.length} {t('bets')}
           </span>
         </div>
 
@@ -340,7 +340,7 @@ export default function PortfolioPage() {
                     payout={payout}
                     status={isSettled ? 'won' : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
-                    onSettle={hasMatchEnded ? handleSettle : undefined}
+                    onSettle={hasMatchEnded ? () => handleSettle(e.pubkey.toBase58()) : undefined}
                     settling={settling}
                   />
                 </div>
