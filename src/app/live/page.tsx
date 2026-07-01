@@ -84,8 +84,7 @@ export default function LivePage() {
         const window = 3.5 * 60 * 60 * 1000;
         const candidates = fixtures.filter(f => {
           const startTime: number = f.StartTime ?? f.startTime ?? 0;
-          const tracking: boolean = f.ScoreCaptureTracking ?? f.scoreCaptureTracking ?? false;
-          return tracking && startTime > 0 && (now - startTime) < window && (now - startTime) > -30 * 60 * 1000;
+          return startTime > 0 && (now - startTime) < window && (now - startTime) > -30 * 60 * 1000;
         });
         if (candidates.length === 0) return;
         const fixtureIds = candidates.map(f => f.FixtureId ?? f.fixtureId);
@@ -98,12 +97,13 @@ export default function LivePage() {
           const result = snapshots[i];
           if (result.status !== 'fulfilled') continue;
           const snap = result.value;
-          const info = snap.FixtureInfo || snap;
-          const upd = snap.Update || {};
-          const statusId = upd.StatusId ?? info.StatusId;
-          if (statusId == null || !LIVE_STATUS_IDS.has(statusId)) continue;
-          const clock = upd.Clock || {};
-          const score = upd.Score || {};
+          const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
+          const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+          if (!lastMsg) continue;
+          const statusId = lastMsg.StatusId ?? 0;
+          if (!LIVE_STATUS_IDS.has(statusId)) continue;
+          const clock = lastMsg.Clock ?? {};
+          const score = lastMsg.Score ?? {};
           let minute = 0;
           if (clock.Seconds != null) {
             minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
@@ -121,7 +121,7 @@ export default function LivePage() {
             Score1: score.Participant1?.Total?.Goals ?? 0,
             Score2: score.Participant2?.Total?.Goals ?? 0,
             Minute: minute > 0 ? minute : 0,
-            Status: upd.Data?.StatusName ?? STATUS_NAMES[statusId] ?? 'LIVE',
+            Status: STATUS_NAMES[statusId] ?? 'LIVE',
             StatusId: statusId,
           });
         }
