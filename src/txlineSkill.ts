@@ -114,13 +114,8 @@ export class TxLineClient {
     return !!this.apiToken;
   }
 
-  private async ensureAuth(): Promise<{ jwt: string; apiToken: string }> {
+  private async ensureAuth(): Promise<{ jwt: string; apiToken: string | null }> {
     if (!this.jwt) await this.getGuestJwt();
-    if (!this.apiToken) {
-      throw new TxLineAuthError(
-        'API token no activado. Actívalo desde la página de perfil.'
-      );
-    }
     return { jwt: this.jwt!, apiToken: this.apiToken };
   }
 
@@ -133,8 +128,8 @@ export class TxLineClient {
     const url = apiUrl(path);
     const headers: Record<string, string> = {
       Authorization: `Bearer ${jwt}`,
-      'X-Api-Token': apiToken,
     };
+    if (apiToken) headers['X-Api-Token'] = apiToken;
     if (opts.body) headers['Content-Type'] = 'application/json';
     const resp = await axios({
       method,
@@ -161,14 +156,13 @@ export class TxLineClient {
   async streamScores(): Promise<ReadableStream<Uint8Array>> {
     const { jwt, apiToken } = await this.ensureAuth();
     const url = apiUrl('/scores/stream');
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        'X-Api-Token': apiToken,
-        Accept: 'text/event-stream',
-        'Cache-Control': 'no-cache',
-      },
-    });
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${jwt}`,
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    };
+    if (apiToken) headers['X-Api-Token'] = apiToken;
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`TxLINE SSE error: ${response.status} ${response.statusText}`);
     }
