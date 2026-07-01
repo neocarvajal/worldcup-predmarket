@@ -31,17 +31,18 @@ export default function LivePage() {
 
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
-    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-    if (!lastMsg) return null;
-    const statusId = lastMsg.StatusId ?? 0;
-    if (!LIVE_STATUS_IDS.has(statusId)) return null;
-    const clock = lastMsg.Clock ?? {};
-    const score = lastMsg.Score ?? {};
+    const lastLive = [...msgs].reverse().find(m =>
+      LIVE_STATUS_IDS.has(m.StatusId) && m.Score?.Participant1?.Total?.Goals != null
+    );
+    if (!lastLive) return null;
+    const statusId = lastLive.StatusId;
+    const clock = lastLive.Clock ?? {};
+    const score = lastLive.Score!;
     let minute = 0;
     if (clock.Seconds != null) {
       minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
     }
-    const fid = lastMsg.FixtureId ?? 0;
+    const fid = lastLive.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
       FixtureId: fid,
@@ -76,6 +77,8 @@ export default function LivePage() {
       const now = Date.now();
       const window = 3.5 * 60 * 60 * 1000;
       const candidates = fixtures.filter(f => {
+        const cid = f.CompetitionId ?? f.competitionId ?? 0;
+        if (cid !== 72) return false;
         const rawStart: number = f.StartTime ?? f.startTime ?? 0;
         if (rawStart <= 0) return false;
         const startTimeMs = rawStart > 1e12 ? rawStart : rawStart * 1000;
