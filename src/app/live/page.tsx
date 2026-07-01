@@ -76,8 +76,10 @@ export default function LivePage() {
       const now = Date.now();
       const window = 3.5 * 60 * 60 * 1000;
       const candidates = fixtures.filter(f => {
-        const startTime: number = f.StartTime ?? f.startTime ?? 0;
-        return startTime > 0 && Math.abs(now - startTime) < window;
+        const rawStart: number = f.StartTime ?? f.startTime ?? 0;
+        if (rawStart <= 0) return false;
+        const startTimeMs = rawStart > 1e12 ? rawStart : rawStart * 1000;
+        return Math.abs(now - startTimeMs) < window;
       });
       if (candidates.length === 0) {
         setConnectionState('connected');
