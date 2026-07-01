@@ -32,7 +32,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
       appIdentity: {
         name: 'World Cup Predictions',
         uri: typeof window !== 'undefined' ? window.location.origin : 'https://worldcup-hackathon.vercel.app',
-        icon: '/favicon.ico',
+        icon: '/favicon.svg',
       },
       authorizationResultCache: createDefaultAuthorizationResultCache(),
       chain: 'solana:devnet',
