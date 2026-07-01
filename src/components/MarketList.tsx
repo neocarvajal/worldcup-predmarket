@@ -55,7 +55,8 @@ export const MarketList: React.FC = () => {
       setError(null);
       setLoading(true);
       const data = await client.getFixtures();
-      setFixtures(Array.isArray(data) ? data : data?.fixtures ?? []);
+      const all: any[] = Array.isArray(data) ? data : data?.fixtures ?? data?.Fixtures ?? [];
+      setFixtures(all.filter((f: any) => (f.CompetitionId ?? f.competitionId ?? 0) === 72));
     } catch (e: any) {
       if (e instanceof TxLineAuthError || e?.response?.status === 403) {
         setError('auth');
