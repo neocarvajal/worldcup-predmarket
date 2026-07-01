@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTxLine } from '../context/TxLineContext';
 import { useBetSlip } from '../context/BetSlipContext';
 import { getFlag } from '../lib/flags';
@@ -16,10 +17,13 @@ function parseDate(v: string | number): Date {
   return new Date(v);
 }
 
-function formatDate(date: Date): string {
-  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-  const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  return `${days[date.getDay()]}, ${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()} · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+function formatDate(date: Date, t: (key: string) => string): string {
+  const months = [
+    t('month.1'), t('month.2'), t('month.3'), t('month.4'), t('month.5'), t('month.6'),
+    t('month.7'), t('month.8'), t('month.9'), t('month.10'), t('month.11'), t('month.12'),
+  ];
+  const days = [t('dayShort.0'), t('dayShort.1'), t('dayShort.2'), t('dayShort.3'), t('dayShort.4'), t('dayShort.5'), t('dayShort.6')];
+  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function CountdownLarge({ target }: { target: Date }) {
@@ -51,6 +55,7 @@ export const MarketDetail: React.FC = () => {
   const { fixtureId } = useParams<{ fixtureId: string }>();
   const { client } = useTxLine();
   const { addSelection, selections } = useBetSlip();
+  const t = useTranslations('MarketDetail');
 
   const [fixture, setFixture] = useState<any>(null);
   const [odds, setOdds] = useState<any>(null);
@@ -84,8 +89,8 @@ export const MarketDetail: React.FC = () => {
     ]).catch(console.error).finally(() => setLoading(false));
   }, [fixtureId, client]);
 
-  const p1 = fixture?.Participant1 || fixture?.participant1 || 'Local';
-  const p2 = fixture?.Participant2 || fixture?.participant2 || 'Visitante';
+  const p1 = fixture?.Participant1 || fixture?.participant1 || t('home');
+  const p2 = fixture?.Participant2 || fixture?.participant2 || t('away');
   const competition = fixture?.Competition || fixture?.competition || '';
   const startTime = fixture?.StartTime || fixture?.startTime;
 
@@ -95,7 +100,7 @@ export const MarketDetail: React.FC = () => {
 
   const handleSelect = (selection: '1' | 'X' | '2') => {
     setSelected(selection);
-    const label = selection === '1' ? p1 : selection === '2' ? p2 : 'Empate';
+    const label = selection === '1' ? p1 : selection === '2' ? p2 : t('draw');
     const oddVal = selection === '1' ? homeOdds : selection === '2' ? awayOdds : drawOdds;
     addSelection({
       fixtureId: parseInt(fixtureId),
@@ -144,7 +149,7 @@ export const MarketDetail: React.FC = () => {
             <span className="text-sm font-bold">{p1}</span>
           </div>
           <div className="flex flex-col items-center px-3">
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>VS</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{t('vs')}</span>
             <div className="w-8 h-px my-2" style={{ background: 'var(--border)' }} />
             {startTime && <CountdownLarge target={parseDate(startTime)} />}
           </div>
@@ -164,13 +169,13 @@ export const MarketDetail: React.FC = () => {
             <span className="text-sm font-bold">{p2}</span>
           </div>
         </div>
-        {startTime && (
-          <p className="text-caption mt-2">{startTime ? formatDate(parseDate(startTime)) : ''}</p>
+          {startTime && (
+          <p className="text-caption mt-2">{startTime ? formatDate(parseDate(startTime), t) : ''}</p>
         )}
       </div>
 
       <div className="mb-6">
-        <h3 className="title-card mb-3 text-center">Selecciona tu predicción</h3>
+        <h3 className="title-card mb-3 text-center">{t('selectPrediction')}</h3>
         <div className="flex gap-3">
           <OddsButton
             name={p1}
@@ -180,7 +185,7 @@ export const MarketDetail: React.FC = () => {
             flag={flag1}
           />
           <OddsButton
-            name="Empate"
+            name={t('draw')}
             odds={drawOdds}
             selected={selected === 'X'}
             onClick={() => handleSelect('X')}
@@ -199,8 +204,8 @@ export const MarketDetail: React.FC = () => {
       <div className="card text-center py-4" style={{ borderColor: selections.length > 0 ? 'var(--accent)' : 'var(--border)' }}>
         <p className="text-sm" style={{ color: selections.length > 0 ? 'var(--accent)' : 'var(--text-secondary)' }}>
           {selections.length > 0
-            ? `${selections.length} selección(es) en tu apuesta`
-            : 'Selecciona un resultado para apostar'}
+            ? `${selections.length} ${t('selections')}`
+            : t('selectOutcome')}
         </p>
       </div>
 

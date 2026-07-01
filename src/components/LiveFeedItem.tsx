@@ -1,33 +1,12 @@
 "use client";
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { getFlag } from '../lib/flags';
 
 const TXLINE_PLAYING = new Set(['H1', 'H2', 'ET1', 'ET2', 'PE']);
 const TXLINE_PAUSED = new Set(['HT', 'HTET', 'WET', 'WPE']);
 const TXLINE_FINISHED = new Set(['F', 'FET', 'FPE']);
-
-const STATUS_LABELS: Record<string, string> = {
-  NS: 'No Empezado',
-  H1: '1er Tiempo',
-  H2: '2do Tiempo',
-  HT: 'Medio Tiempo',
-  ET1: '1er Tiempo Extra',
-  HTET: 'Medio Tiempo Extra',
-  ET2: '2do Tiempo Extra',
-  PE: 'Penales',
-  WET: 'Esperando Tiempo Extra',
-  WPE: 'Esperando Penales',
-  F: 'Finalizado',
-  FET: 'Finalizado T.E.',
-  FPE: 'Finalizado Penales',
-  I: 'Interrumpido',
-  A: 'Abandonado',
-  C: 'Cancelado',
-  TXCC: 'Cobertura Cancelada',
-  TXCS: 'Cobertura Suspendida',
-  P: 'Postergado',
-};
 
 interface LiveFeedItemProps {
   fixtureId: number;
@@ -42,6 +21,7 @@ interface LiveFeedItemProps {
 export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
   fixtureId, participant1, participant2, score1, score2, minute, status,
 }) => {
+  const t = useTranslations('LiveFeedItem');
   const s = status?.toUpperCase() || '';
   const isPlaying = TXLINE_PLAYING.has(s);
   const isPaused = TXLINE_PAUSED.has(s);
@@ -52,7 +32,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
 
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
-  const statusLabel = STATUS_LABELS[s] || s;
+  const statusLabel = t(s.toLowerCase());
 
   function Badge() {
     if (isPlaying) {
@@ -147,7 +127,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
               border: '1px solid rgba(220,235,2,0.15)',
             }}
           >
-            World Cup
+            {t('worldCup')}
           </span>
         </div>
         <Badge />

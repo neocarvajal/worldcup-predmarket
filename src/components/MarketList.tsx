@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTxLine, TxLineAuthError } from '../context/TxLineContext';
 import { MarketCard } from './MarketCard';
 import { GlobeIcon, ReloadIcon } from '@radix-ui/react-icons';
@@ -44,6 +45,7 @@ function SkeletonCard() {
 
 export const MarketList: React.FC = () => {
   const { client } = useTxLine();
+  const t = useTranslations('MarketList');
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,9 +90,9 @@ export const MarketList: React.FC = () => {
         >
           <GlobeIcon width={28} height={28} style={{ color: 'var(--accent)' }} />
         </div>
-        <h2 className="text-lg font-semibold mb-2">Suscripción requerida</h2>
+        <h2 className="text-lg font-semibold mb-2">{t('subscriptionRequired')}</h2>
         <p className="text-sm mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          Necesitas activar una suscripción gratuita a TxLINE para ver los partidos disponibles.
+          {t('needActivate')}
         </p>
         <div
           className="rounded-2xl p-4 text-left text-xs space-y-2 max-w-sm mx-auto"
@@ -99,10 +101,10 @@ export const MarketList: React.FC = () => {
             border: '1px solid var(--border)',
           }}
         >
-          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Pasos:</p>
-          <p style={{ color: 'var(--text-muted)' }}>1. Conecta tu wallet Solana (Devnet)</p>
-          <p style={{ color: 'var(--text-muted)' }}>2. Ve a la página de perfil</p>
-          <p style={{ color: 'var(--text-muted)' }}>3. Activa tu suscripción Tier 1 gratuita</p>
+          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('steps')}:</p>
+          <p style={{ color: 'var(--text-muted)' }}>1. {t('step1')}</p>
+          <p style={{ color: 'var(--text-muted)' }}>2. {t('step2')}</p>
+          <p style={{ color: 'var(--text-muted)' }}>3. {t('step3')}</p>
         </div>
       </div>
     );
@@ -117,9 +119,9 @@ export const MarketList: React.FC = () => {
         >
           <GlobeIcon width={28} height={28} style={{ color: 'var(--danger)' }} />
         </div>
-        <h2 className="text-lg font-semibold mb-2">Error de conexión</h2>
+        <h2 className="text-lg font-semibold mb-2">{t('connectionError')}</h2>
         <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          No se pudieron cargar los partidos desde TxLINE.
+          {t('couldNotLoad')}
         </p>
         <button
           onClick={load}
@@ -130,7 +132,7 @@ export const MarketList: React.FC = () => {
           }}
         >
           <ReloadIcon width={16} height={16} />
-          Reintentar
+          {t('retry')}
         </button>
       </div>
     );
@@ -148,9 +150,9 @@ export const MarketList: React.FC = () => {
         >
           <GlobeIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
         </div>
-        <h2 className="text-lg font-semibold mb-2">No hay partidos disponibles</h2>
+        <h2 className="text-lg font-semibold mb-2">{t('noMatches')}</h2>
         <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          No encontramos partidos del Mundial 2026. Intenta de nuevo más tarde.
+          {t('noMatchesFound')}
         </p>
       </div>
     );
@@ -170,10 +172,10 @@ export const MarketList: React.FC = () => {
           className="text-[10px] font-semibold uppercase tracking-[0.12em]"
           style={{ color: 'var(--text-muted)' }}
         >
-          {sorted.length > 0 ? 'Próximos partidos' : 'No hay partidos disponibles'}
+          {sorted.length > 0 ? t('upcomingMatches') : t('noMatches')}
         </span>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-          {sorted.length} {sorted.length === 1 ? 'evento' : 'eventos'}
+          {sorted.length} {sorted.length === 1 ? t('match') : t('matches')}
         </span>
       </div>
       {sorted.map((f, idx) => (

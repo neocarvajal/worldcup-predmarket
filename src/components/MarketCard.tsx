@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { getFlag } from '../lib/flags';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
@@ -24,6 +25,7 @@ function parseDate(v: string | number): Date {
 
 function Countdown({ target }: { target: Date }) {
   const [now, setNow] = useState(Date.now());
+  const t = useTranslations('MarketCard');
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -42,7 +44,7 @@ function Countdown({ target }: { target: Date }) {
             border: '1px solid var(--border)',
           }}
         >
-          Finalizado
+          {t('finished')}
         </span>
       );
     }
@@ -56,7 +58,7 @@ function Countdown({ target }: { target: Date }) {
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--success)' }} />
-        En Vivo
+        {t('live')}
       </span>
     );
   }
@@ -80,8 +82,7 @@ function Countdown({ target }: { target: Date }) {
   );
 }
 
-function formatDate(date: Date): string {
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+function formatDate(date: Date, months: string[]): string {
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()} · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
@@ -91,6 +92,12 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const startDate = parseDate(startTime);
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
+  const t = useTranslations('MarketCard');
+  const months = [
+    t('monthShort.1'), t('monthShort.2'), t('monthShort.3'), t('monthShort.4'),
+    t('monthShort.5'), t('monthShort.6'), t('monthShort.7'), t('monthShort.8'),
+    t('monthShort.9'), t('monthShort.10'), t('monthShort.11'), t('monthShort.12'),
+  ];
 
   return (
     <Link href={`/market/${fixtureId}`} className="block group">
@@ -171,7 +178,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
         {/* Bottom: date + odds/cta */}
         <div className="flex items-center justify-between">
           <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-            {formatDate(startDate)}
+            {formatDate(startDate, months)}
           </span>
           <div className="flex items-center gap-2">
             {odds && (
