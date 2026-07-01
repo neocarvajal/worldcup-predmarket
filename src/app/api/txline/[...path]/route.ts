@@ -14,11 +14,11 @@ export async function GET(
 
   const headers: Record<string, string> = {};
   const auth = req.headers.get('authorization');
-  const apiToken = req.headers.get('x-api-token');
   const accept = req.headers.get('accept');
   if (auth) headers['Authorization'] = auth;
-  if (apiToken) headers['X-Api-Token'] = apiToken;
   if (accept) headers['Accept'] = accept;
+  // Inject server-side API token if client didn't provide one
+  headers['X-Api-Token'] = req.headers.get('x-api-token') || process.env.TXLINE_API_TOKEN || '';
 
   const resp = await fetch(url, { method: 'GET', headers });
 
@@ -48,11 +48,10 @@ export async function POST(
 
   const headers: Record<string, string> = {};
   const auth = req.headers.get('authorization');
-  const apiToken = req.headers.get('x-api-token');
   const accept = req.headers.get('accept');
   if (auth) headers['Authorization'] = auth;
-  if (apiToken) headers['X-Api-Token'] = apiToken;
   if (accept) headers['Accept'] = accept;
+  headers['X-Api-Token'] = req.headers.get('x-api-token') || process.env.TXLINE_API_TOKEN || '';
 
   const text = await req.text();
   if (text) {
