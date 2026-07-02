@@ -71,7 +71,12 @@ export const MarketList: React.FC = () => {
             const data = await client.getScoresSnapshot(f.FixtureId);
             const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
             const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-            return { ...f, _finished: FINISHED_IDS.includes(last?.StatusId ?? 0) };
+            const statusFinished = FINISHED_IDS.includes(last?.StatusId ?? 0);
+            // Time heuristic: if match started > 2.5h ago, treat as finished
+            // (soccer matches are ~2h; this catches TxLINE update delays)
+            const maxDuration = 2.5 * 60 * 60 * 1000;
+            const timeFinished = f.StartTime + maxDuration < now;
+            return { ...f, _finished: statusFinished || timeFinished };
           } catch {
             return { ...f, _finished: false };
           }

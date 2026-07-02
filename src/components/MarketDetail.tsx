@@ -100,6 +100,16 @@ export const MarketDetail: React.FC = () => {
   const competition = fixture?.Competition || fixture?.competition || '';
   const startTime = fixture?.StartTime || fixture?.startTime;
 
+  // Time heuristic: if match started > 2.5h ago, treat as finished
+  useEffect(() => {
+    if (startTime) {
+      const st = Number(startTime) > 1e12 ? Number(startTime) : Number(startTime) * 1000;
+      if (Date.now() > st + 2.5 * 60 * 60 * 1000) {
+        setFinished(true);
+      }
+    }
+  }, [startTime]);
+
   const homeOdds = odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
   const drawOdds = odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
   const awayOdds = odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
