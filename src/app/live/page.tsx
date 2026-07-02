@@ -93,20 +93,20 @@ export default function LivePage() {
         fixtureIds.map((id: number) => client.getScoresSnapshot(id))
       );
       const live: any[] = [];
-      for (let i = 0; i < snapshots.length; i++) {
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
+        const fid = candidate.FixtureId ?? candidate.fixtureId;
+        trackedRef.current.add(fid);
         const result = snapshots[i];
         if (result.status !== 'fulfilled') continue;
         const d = parseSnapshot(result.value);
         if (!d) continue;
-        const candidate = candidates[i];
-        const fid = candidate.FixtureId ?? candidate.fixtureId;
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
         d.Participant2 = candidate.Participant2 ?? candidate.participant2 ?? '';
-        trackedRef.current.add(fid);
         live.push(d);
       }
-      if (live.length > 0) setEvents(live);
+      setEvents(live);
       setConnectionState('connected');
     } catch (e: any) {
       const msg = e?.message || '';
@@ -120,8 +120,36 @@ export default function LivePage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const refreshCandidates = useCallback(async () => {
+    try {
+      const data = await client.getFixtures();
+      const fixtures: any[] = data?.Fixtures ?? data?.fixtures ?? data ?? [];
+      if (!Array.isArray(fixtures)) return;
+      const now = Date.now();
+      const win = 3.5 * 60 * 60 * 1000;
+      for (const f of fixtures) {
+        const cid = f.CompetitionId ?? f.competitionId ?? 0;
+        if (cid !== 72) continue;
+        const rawStart = f.StartTime ?? f.startTime ?? 0;
+        if (rawStart <= 0) continue;
+        const startTimeMs = rawStart > 1e12 ? rawStart : rawStart * 1000;
+        if (Math.abs(now - startTimeMs) < win) {
+          const fid = f.FixtureId ?? f.fixtureId;
+          if (fid != null) {
+            cacheRef.current.set(fid, {
+              Participant1: f.Participant1 ?? f.participant1 ?? '',
+              Participant2: f.Participant2 ?? f.participant2 ?? '',
+            });
+            trackedRef.current.add(fid);
+          }
+        }
+      }
+    } catch {}
+  }, [client]);
+
   useEffect(() => {
     if (connectionState !== 'connected') return;
+    let pollCount = 0;
     const poll = async () => {
       const ids = Array.from(trackedRef.current);
       if (ids.length === 0) return;
@@ -141,15 +169,18 @@ export default function LivePage() {
           for (const u of updates) {
             const idx = next.findIndex(e => e.FixtureId === u.FixtureId);
             if (idx >= 0) next[idx] = u;
+            else next.push(u);
           }
           return next.slice(0, 50);
         });
       } catch {}
+      pollCount++;
+      if (pollCount % 20 === 0) refreshCandidates();
     };
     poll();
     const interval = setInterval(poll, 15_000);
     return () => clearInterval(interval);
-  }, [connectionState, client, parseSnapshot]);
+  }, [connectionState, client, parseSnapshot, refreshCandidates]);
 
   const handleRetry = () => { load(); };
 
