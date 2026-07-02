@@ -53,9 +53,8 @@ export const NavBar: React.FC = () => {
             {t('brand')}
           </span>
           {isLive && (
-            <span className="flex items-center gap-1.5 ml-1">
+            <span className="flex items-center ml-1">
               <span className="w-2 h-2 rounded-full bg-danger animate-pulse-dot" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-danger">Live</span>
             </span>
           )}
         </Link>
@@ -81,12 +80,11 @@ export const NavBar: React.FC = () => {
 
             {dropdownOpen && (
               <div
-                className="absolute right-0 top-11 w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top-right"
+                className="absolute left-1/2 -translate-x-1/2 top-11 w-[90vw] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top"
                 style={{
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                  backdropFilter: 'blur(20px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 }}
               >
                 <div
