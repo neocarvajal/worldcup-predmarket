@@ -31,18 +31,22 @@ export default function LivePage() {
 
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
-    const lastLive = [...msgs].reverse().find(m =>
-      DISPLAY_STATUS_IDS.has(m.StatusId)
+    // Status: skip action_amend — it inherits StatusId from the amended action,
+    // not the current game phase (e.g., amend of H1 action sent during HT has StatusId=2)
+    const lastStatus = [...msgs].reverse().find(m =>
+      m.Action !== 'action_amend' && DISPLAY_STATUS_IDS.has(m.StatusId)
     );
-    if (!lastLive) return null;
-    const statusId = lastLive.StatusId;
-    const clock = lastLive.Clock ?? {};
-    const score = lastLive.Score ?? {};
+    if (!lastStatus) return null;
+    const statusId = lastStatus.StatusId;
+    // Score/clock: use the most recent message that has Score data
+    const lastData = [...msgs].reverse().find(m => m.Score != null) ?? lastStatus;
+    const clock = lastData.Clock ?? {};
+    const score = lastData.Score ?? {};
     let minute = 0;
     if (clock.Seconds != null) {
       minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
     }
-    const fid = lastLive.FixtureId ?? 0;
+    const fid = lastStatus.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
       FixtureId: fid,

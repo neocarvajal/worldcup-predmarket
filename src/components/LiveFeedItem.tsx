@@ -79,6 +79,21 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
         </span>
       );
     }
+    if (s === 'I') {
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+          style={{
+            background: 'rgba(245,158,11,0.1)',
+            color: 'var(--warning)',
+            border: '1px solid rgba(245,158,11,0.2)',
+          }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
+          {statusLabel}
+        </span>
+      );
+    }
     if (s === 'A') {
       return (
         <span
