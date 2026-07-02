@@ -31,61 +31,28 @@ export default function LivePage() {
 
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
-    // Debug: log first message structure once
-    if (typeof window !== 'undefined' && msgs.length > 0 && !(window as any).__debugSnap) {
-      (window as any).__debugSnap = true;
-      const m0 = msgs[0];
-      console.log('[debug] first msg keys:', Object.keys(m0));
-      console.log('[debug] has Action:', 'Action' in m0, '| Update:', 'Update' in m0);
-      if (m0.Update) {
-        console.log('[debug] Update keys:', Object.keys(m0.Update));
-        console.log('[debug] Update.Action:', m0.Update.Action);
-        console.log('[debug] Update.StatusId:', m0.Update.StatusId);
-        console.log('[debug] has Update.Score:', 'Score' in m0.Update);
-      }
-      console.log('[debug] top Action:', m0.Action);
-      console.log('[debug] top StatusId:', m0.StatusId);
-      console.log('[debug] top Score:', m0.Score);
-      // also log all StatusIds to see progression
-      console.log('[debug] all StatusIds:', msgs.slice(0, 10).map((m: any) => 
-        `(${m.StatusId ?? '?'}/${m.Update?.StatusId ?? '?'})`).join(', '));
-    }
-    // Check both flat and nested (Update.*) formats
-    const hasAction = (m: any) => {
-      const a = m.Action ?? m.Update?.Action;
-      return a != null;
-    };
-    const isAmend = (m: any) => {
-      const a = m.Action ?? m.Update?.Action ?? '';
-      return a === 'action_amend';
-    };
+    // Handle both flat (snapshot) and nested (SSE) message formats
     const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
     const getScore = (m: any) => m.Score ?? m.Update?.Score ?? null;
     const getClock = (m: any) => m.Clock ?? m.Update?.Clock ?? null;
-    // If messages have an Action field, use action_amend filter + last-message approach.
-    // If no Action field available, use max StatusId heuristic (amends inherit lower
-    // StatusIds from the original action, so the highest StatusId is always the current phase).
-    const hasAnyAction = msgs.some((m: any) => hasAction(m));
+    // StatusId is monotonic (only increases). action_amend messages inherit the
+    // original action's StatusId (e.g., amend of H1 action during HT has StatusId=2).
+    // Picking the **highest** StatusId among all displayable messages naturally
+    // eliminates amends since they can only carry equal or lower StatusIds than
+    // the game's current phase.
     const displayable = msgs.filter((m: any) => DISPLAY_STATUS_IDS.has(getStatusId(m)));
     if (displayable.length === 0) return null;
-    const lastStatus = (() => {
-      if (hasAnyAction) {
-        return [...msgs].reverse().find((m: any) => !isAmend(m) && DISPLAY_STATUS_IDS.has(getStatusId(m)));
-      }
-      return displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
-    })();
-    if (!lastStatus) return null;
-    if (!lastStatus) return null;
-    const statusId = getStatusId(lastStatus);
-    // Score/clock: most recent message with Score data
-    const lastData = [...msgs].reverse().find((m: any) => getScore(m) != null) ?? lastStatus;
+    const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
+    const statusId = getStatusId(maxStatus);
+    // Score/clock: most recent message with Score data (use maxStatus as fallback)
+    const lastData = [...msgs].reverse().find((m: any) => getScore(m) != null) ?? maxStatus;
     const score = getScore(lastData) ?? {};
     const clock = getClock(lastData) ?? {};
     let minute = 0;
     if (clock.Seconds != null) {
       minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
     }
-    const fid = lastStatus.FixtureId ?? lastStatus.Update?.FixtureId ?? 0;
+    const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
       FixtureId: fid,
