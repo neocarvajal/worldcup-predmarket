@@ -1,9 +1,12 @@
 import {
   Connection, PublicKey, Keypair, VersionedTransaction, TransactionMessage,
+  TransactionInstruction,
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
 import { BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
@@ -369,6 +372,25 @@ export async function settleActiveEscrows(
       const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
       const fs = validation.summary;
 
+      // Create recipient ATA if it doesn't exist (common for first-time winners)
+      const [recipientAtaInfo, depositorAtaInfo] = await Promise.all([
+        connection.getAccountInfo(recipientAta),
+        connection.getAccountInfo(depositorAta),
+      ]);
+      const createAtaInstructions: TransactionInstruction[] = [];
+      if (!depositorAtaInfo) {
+        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+          keeper.publicKey, depositorAta, depositor, mint,
+          TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+        ));
+      }
+      if (!recipientAtaInfo) {
+        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+          keeper.publicKey, recipientAta, recipient, mint,
+          TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+        ));
+      }
+
       const instruction = await program.methods
         .settleWithCpi(
           new BN(score1),
@@ -418,7 +440,7 @@ export async function settleActiveEscrows(
       const message = new TransactionMessage({
         payerKey: keeper.publicKey,
         recentBlockhash: blockhash,
-        instructions: [instruction],
+        instructions: [...createAtaInstructions, instruction],
       }).compileToV0Message();
       const tx = new VersionedTransaction(message);
       tx.sign([keeper]);
@@ -552,6 +574,24 @@ export async function settleSingleEscrow(
     const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
     const fs = validation.summary;
 
+    const [recipientAtaInfo, depositorAtaInfo] = await Promise.all([
+      connection.getAccountInfo(recipientAta),
+      connection.getAccountInfo(depositorAta),
+    ]);
+    const createAtaInstructions: TransactionInstruction[] = [];
+    if (!depositorAtaInfo) {
+      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        keeper.publicKey, depositorAta, depositor, mint,
+        TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+      ));
+    }
+    if (!recipientAtaInfo) {
+      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        keeper.publicKey, recipientAta, recipient, mint,
+        TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+      ));
+    }
+
     const instruction = await program.methods
       .settleWithCpi(
         new BN(score1),
@@ -601,7 +641,7 @@ export async function settleSingleEscrow(
     const message = new TransactionMessage({
       payerKey: keeper.publicKey,
       recentBlockhash: blockhash,
-      instructions: [instruction],
+      instructions: [...createAtaInstructions, instruction],
     }).compileToV0Message();
     const tx = new VersionedTransaction(message);
     tx.sign([keeper]);
