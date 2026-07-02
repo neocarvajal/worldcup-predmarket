@@ -14,7 +14,7 @@ const STATUS_NAMES: Record<number, string> = {
   16: 'C', 17: 'TXCC', 18: 'TXCS', 19: 'P',
 };
 
-const LIVE_STATUS_IDS = new Set([2, 4, 7, 9, 12]);
+const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
 function periodSeconds(statusId: number): number {
   if (statusId >= 7 && statusId <= 9) return 900;
@@ -32,7 +32,7 @@ export default function LivePage() {
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
     const lastLive = [...msgs].reverse().find(m =>
-      LIVE_STATUS_IDS.has(m.StatusId)
+      DISPLAY_STATUS_IDS.has(m.StatusId)
     );
     if (!lastLive) return null;
     const statusId = lastLive.StatusId;
