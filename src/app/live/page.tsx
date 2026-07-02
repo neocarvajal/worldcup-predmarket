@@ -39,49 +39,32 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score & Clock: skip action_amend (carries data from the original action's
-    // phase, not the current state). Pick the last non-amend message with data.
-    const isAmend = (m: any) => (m.Action ?? m.Update?.Action ?? '') === 'action_amend';
-    const lastNonAmend = (pred: (m: any) => any) =>
-      [...msgs].reverse().find((m: any) => !isAmend(m) && pred(m));
-    const scoreMsg = lastNonAmend((m: any) => getScoreVal(m) != null);
-    const score = scoreMsg ? getScoreVal(scoreMsg) : {};
-    const clockMsg = lastNonAmend((m: any) => getSeconds(m) != null);
-    const rawSeconds = clockMsg ? getSeconds(clockMsg) : 0;
-    const minute = Math.floor(rawSeconds / 60);
-    // Debug: last 5 messages with Action/StatusId/Score/Clock
-    if (typeof window !== 'undefined' && !(window as any).__dbg) {
-      (window as any).__dbg = true;
-      console.log('[debug] last 5 msgs:', msgs.slice(-5).map((m: any, i: number) => ({
-        i: msgs.length - 5 + i,
-        action: m.Action ?? '(none)',
-        sid: m.StatusId ?? '?',
-        hasScore: m.Score != null,
-        score1: m.Score?.Participant1?.Total?.Goals,
-        clock: m.Clock?.Seconds,
-      })));
-      console.log('[debug] scoreMsg:', scoreMsg ? {
-        action: scoreMsg.Action,
-        sid: scoreMsg.StatusId,
-        s1: scoreMsg.Score?.Participant1?.Total?.Goals,
-        s2: scoreMsg.Score?.Participant2?.Total?.Goals,
-      } : 'NONE');
-      console.log('[debug] clockMsg:', clockMsg ? {
-        action: clockMsg.Action,
-        sid: clockMsg.StatusId,
-        secs: clockMsg.Clock?.Seconds,
-      } : 'NONE');
+    // Score & Clock: scan ALL messages for max values.
+    // Goals only increase; amends may carry stale lower scores. Taking the max
+    // across every message gives the correct final score regardless of amend order.
+    // Clock.Seconds is cumulative elapsed time — max = most recent.
+    let maxScore1 = 0, maxScore2 = 0, maxSeconds = 0;
+    for (const m of msgs) {
+      const s = getScoreVal(m);
+      if (s) {
+        const g1 = s.Participant1?.Total?.Goals;
+        const g2 = s.Participant2?.Total?.Goals;
+        if (g1 != null && g1 > maxScore1) maxScore1 = g1;
+        if (g2 != null && g2 > maxScore2) maxScore2 = g2;
+      }
+      const secs = getSeconds(m);
+      if (secs != null && secs > maxSeconds) maxSeconds = secs;
     }
+    const minute = Math.floor(maxSeconds / 60);
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
       FixtureId: fid,
       Participant1: cached.Participant1 ?? '',
       Participant2: cached.Participant2 ?? '',
-      Score1: score.Participant1?.Total?.Goals ?? 0,
-      Score2: score.Participant2?.Total?.Goals ?? 0,
+      Score1: maxScore1,
+      Score2: maxScore2,
       Minute: minute,
-      RawSeconds: rawSeconds,
       Status: STATUS_NAMES[statusId] ?? 'LIVE',
       StatusId: statusId,
     };
