@@ -6,10 +6,6 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { clusterApiUrl } from '@solana/web3.js';
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from '@solana/wallet-adapter-wallets';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import {
   SolanaMobileWalletAdapter,
@@ -28,6 +24,10 @@ const endpoint =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SOLANA_RPC) ||
   clusterApiUrl(network);
 
+if (typeof window !== 'undefined' && typeof (process as any)?.setMaxListeners === 'function') {
+  try { (process as any).setMaxListeners(100); } catch {}
+}
+
 export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
   const wallets = useMemo(() => [
     new SolanaMobileWalletAdapter({
@@ -41,9 +41,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
       chain: 'solana:devnet',
       onWalletNotFound: createDefaultWalletNotFoundHandler(),
     }),
-    new PhantomWalletAdapter(),
     new BackpackWalletAdapter(),
-    new SolflareWalletAdapter({ network }),
   ], []);
 
   return (
