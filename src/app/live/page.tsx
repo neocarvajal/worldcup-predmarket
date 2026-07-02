@@ -32,12 +32,12 @@ export default function LivePage() {
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
     const lastLive = [...msgs].reverse().find(m =>
-      LIVE_STATUS_IDS.has(m.StatusId) && m.Score?.Participant1?.Total?.Goals != null
+      LIVE_STATUS_IDS.has(m.StatusId)
     );
     if (!lastLive) return null;
     const statusId = lastLive.StatusId;
     const clock = lastLive.Clock ?? {};
-    const score = lastLive.Score!;
+    const score = lastLive.Score ?? {};
     let minute = 0;
     if (clock.Seconds != null) {
       minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
@@ -147,7 +147,7 @@ export default function LivePage() {
       } catch {}
     };
     poll();
-    const interval = setInterval(poll, 30_000);
+    const interval = setInterval(poll, 15_000);
     return () => clearInterval(interval);
   }, [connectionState, client, parseSnapshot]);
 
