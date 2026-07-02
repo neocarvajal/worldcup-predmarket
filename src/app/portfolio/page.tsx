@@ -291,7 +291,7 @@ export default function PortfolioPage() {
             }}
           >
             <UpdateIcon width={14} height={14} className="animate-spin" />
-            Liquidando apuestas pendientes...
+            {t('settling')}
           </div>
         )}
 

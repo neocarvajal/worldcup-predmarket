@@ -1,7 +1,11 @@
 {
   "NavBar": {
     "enter": "Enter",
-    "brand": "PredMarket"
+    "brand": "PredMarket",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications"
   },
   "BottomNav": {
     "markets": "Markets",
@@ -216,7 +220,7 @@
     "activeBetsWillAppear": "Your active predictions will appear here.",
     "finished": "Finished",
     "bet": "bet",
-    "bets": "bets"
+    "settling": "Settling pending bets..."
   },
   "Profile": {
     "notConnected": "Not connected",

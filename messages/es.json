@@ -1,7 +1,11 @@
 {
   "NavBar": {
     "enter": "Entrar",
-    "brand": "PredMarket"
+    "brand": "PredMarket",
+    "notifications": "Notificaciones",
+    "markAllRead": "Marcar leídas",
+    "clearAll": "Limpiar todo",
+    "noNotifications": "Sin notificaciones"
   },
   "BottomNav": {
     "markets": "Partidos",
