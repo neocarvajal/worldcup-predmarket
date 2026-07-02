@@ -23,6 +23,7 @@ export default function LivePage() {
   const t = useTranslations('Live');
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
   const settledRef = useRef<Set<number>>(new Set());
@@ -144,6 +145,14 @@ export default function LivePage() {
   }, [client, parseSnapshot]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (connectionState === 'connected' && events.length === 0 && !loadingTimeout) {
+      const t = setTimeout(() => setLoadingTimeout(true), 12_000);
+      return () => clearTimeout(t);
+    }
+    if (events.length > 0 && loadingTimeout) setLoadingTimeout(false);
+  }, [connectionState, events.length, loadingTimeout]);
 
   const refreshCandidates = useCallback(async () => {
     try {
@@ -336,8 +345,34 @@ export default function LivePage() {
             {t('retryNow')}
           </button>
         </div>
+      ) : events.length === 0 && loadingTimeout ? (
+        <div className="text-center py-20 animate-scaleIn">
+          <div
+            className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <ActivityLogIcon width={26} height={26} style={{ color: 'var(--text-muted)' }} />
+          </div>
+          <h2 className="text-lg font-semibold mb-2">{t('awaitingSignal')}</h2>
+          <p className="text-sm max-w-xs mx-auto leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {t('noLiveMatches')}
+          </p>
+        </div>
       ) : events.length === 0 ? (
         <div className="text-center py-20 animate-scaleIn">
+          <div className="flex items-center justify-center mb-6">
+            <div
+              className="w-10 h-10 rounded-full animate-spin"
+              style={{
+                border: '3px solid var(--accent-dim)',
+                borderTopColor: 'var(--accent)',
+                borderRightColor: 'var(--accent)',
+              }}
+            />
+          </div>
           <div
             className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
             style={{
