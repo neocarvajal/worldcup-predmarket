@@ -15,11 +15,12 @@ interface LiveFeedItemProps {
   score1: number;
   score2: number;
   minute?: number;
+  seconds?: number;
   status: string;
 }
 
 export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
-  fixtureId, participant1, participant2, score1, score2, minute, status,
+  fixtureId, participant1, participant2, score1, score2, minute, seconds, status,
 }) => {
   const t = useTranslations('LiveFeedItem');
   const s = status?.toUpperCase() || '';
@@ -191,7 +192,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
                 className="text-[10px] font-medium"
                 style={{ color: isPlaying ? 'var(--danger)' : 'var(--text-muted)' }}
               >
-                {minute}&apos;
+                {String(minute).padStart(2, '0')}:{String(seconds ?? 0).padStart(2, '0')}
               </span>
             </span>
           )}

@@ -55,12 +55,21 @@ export default function LivePage() {
         })
       : maxStatus;
     const score = getScore(bestScore) ?? {};
-    // Clock: use the most recent message with Clock data (independent of Score)
-    const lastClock = [...msgs].reverse().find((m: any) => getClock(m) != null);
-    const clock = getClock(lastClock) ?? {};
-    let minute = 0;
+    // Clock: among messages WITH Clock data, pick the one with the highest
+    // StatusId (amends carry clock from the original action's phase, not current).
+    const withClock = msgs.filter((m: any) => getClock(m) != null);
+    const bestClock = withClock.length > 0
+      ? withClock.reduce((best: any, m: any) => {
+          const s = getStatusId(m), bs = getStatusId(best);
+          return s > bs || (s === bs) ? m : best;
+        })
+      : maxStatus;
+    const clock = getClock(bestClock) ?? {};
+    let minute = 0, seconds = 0;
     if (clock.Seconds != null) {
-      minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
+      const elapsed = Math.max(0, periodSeconds(statusId) - clock.Seconds);
+      minute = Math.floor(elapsed / 60);
+      seconds = elapsed % 60;
     }
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
@@ -71,6 +80,7 @@ export default function LivePage() {
       Score1: score.Participant1?.Total?.Goals ?? 0,
       Score2: score.Participant2?.Total?.Goals ?? 0,
       Minute: minute,
+      Seconds: seconds,
       Status: STATUS_NAMES[statusId] ?? 'LIVE',
       StatusId: statusId,
     };
@@ -367,6 +377,7 @@ export default function LivePage() {
                 score1={e.Score1 ?? 0}
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
+                seconds={e.Seconds ?? 0}
                 status={e.Status || 'live'}
               />
             </div>
