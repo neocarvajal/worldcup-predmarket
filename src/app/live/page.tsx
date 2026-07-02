@@ -55,9 +55,9 @@ export default function LivePage() {
         })
       : maxStatus;
     const score = getScore(bestScore) ?? {};
-    // Clock: among messages WITH Clock data, pick the one with the highest
-    // StatusId (amends carry clock from the original action's phase, not current).
-    const withClock = msgs.filter((m: any) => getClock(m) != null);
+    // Clock: among messages WITH a valid Seconds value, pick the one with the
+    // highest StatusId (amends carry clock from the original action's phase).
+    const withClock = msgs.filter((m: any) => getClock(m)?.Seconds != null);
     const bestClock = withClock.length > 0
       ? withClock.reduce((best: any, m: any) => {
           const s = getStatusId(m), bs = getStatusId(best);
