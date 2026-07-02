@@ -338,6 +338,7 @@ export async function settleWithCpi(
       vault: params.vaultPubkey,
       depositorTokenAccount: params.depositorTokenAccount,
       recipientTokenAccount: params.recipientTokenAccount,
+      callerTokenAccount: getAssociatedTokenAddressSync(params.mint, wallet.publicKey, false, TOKEN_PROGRAM_ID),
       tokenProgram: TOKEN_PROGRAM_ID,
       txlineProgram: TXLINE_PROGRAM_ID,
       tenDailyFixturesRoots,

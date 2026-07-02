@@ -594,6 +594,10 @@
           "writable": true
         },
         {
+          "name": "caller_token_account",
+          "writable": true
+        },
+        {
           "name": "token_program"
         },
         {

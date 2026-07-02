@@ -32,6 +32,9 @@ pub struct SettleWithCpi<'info> {
     #[account(mut)]
     pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
 
+    #[account(mut)]
+    pub caller_token_account: InterfaceAccount<'info, TokenAccount>,
+
     pub token_program: Interface<'info, TokenInterface>,
 
     /// CHECK: TxLINE validation program for CPI
@@ -121,8 +124,11 @@ pub fn handler(
         ctx.accounts.escrow.selection == 1
     };
 
-    let escrow_account_info = ctx.accounts.escrow.to_account_info();
     let escrow_amount = ctx.accounts.escrow.amount;
+    let odds = ctx.accounts.escrow.odds;
+    let mint_decimals = ctx.accounts.mint.decimals;
+
+    let escrow_account_info = ctx.accounts.escrow.to_account_info();
     let depositor_key = ctx.accounts.escrow.depositor.key();
     let recipient_key = ctx.accounts.escrow.recipient.key();
     let nonce_bytes = ctx.accounts.escrow.nonce.to_le_bytes();
@@ -155,8 +161,36 @@ pub fn handler(
             escrow_signer,
         ),
         escrow_amount,
-        ctx.accounts.mint.decimals,
+        mint_decimals,
     )?;
+
+    if depositor_won {
+        let payout = escrow_amount
+            .checked_mul(odds)
+            .ok_or(SettlementError::ArithmeticOverflow)?
+            .checked_div(1000)
+            .ok_or(SettlementError::ArithmeticOverflow)?;
+
+        if payout > escrow_amount {
+            let profit = payout
+                .checked_sub(escrow_amount)
+                .ok_or(SettlementError::ArithmeticOverflow)?;
+
+            transfer_checked(
+                CpiContext::new(
+                    ctx.accounts.token_program.key(),
+                    TransferChecked {
+                        from: ctx.accounts.caller_token_account.to_account_info(),
+                        mint: ctx.accounts.mint.to_account_info(),
+                        to: ctx.accounts.depositor_token_account.to_account_info(),
+                        authority: ctx.accounts.caller.to_account_info(),
+                    },
+                ),
+                profit,
+                mint_decimals,
+            )?;
+        }
+    }
 
     let escrow = &mut ctx.accounts.escrow;
     escrow.depositor_won = depositor_won;

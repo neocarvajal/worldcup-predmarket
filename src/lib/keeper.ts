@@ -298,16 +298,18 @@ export async function settleActiveEscrows(
       )[0];
       const depositorAta = getAssociatedTokenAddressSync(mint, depositor, false, TOKEN_PROGRAM_ID);
       const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
+      const callerAta = getAssociatedTokenAddressSync(mint, keeper.publicKey, false, TOKEN_PROGRAM_ID);
       const f = validation.snapshot;
       const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
       const fixtureEpochDay = Math.floor(epochDayFromTs(fixtureTsSec) / 10) * 10;
       const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
       const fs = validation.summary;
 
-      // Create recipient ATA if it doesn't exist (common for first-time winners)
-      const [recipientAtaInfo, depositorAtaInfo] = await Promise.all([
+      // Create ATAs if they don't exist
+      const [recipientAtaInfo, depositorAtaInfo, callerAtaInfo] = await Promise.all([
         connection.getAccountInfo(recipientAta),
         connection.getAccountInfo(depositorAta),
+        connection.getAccountInfo(callerAta),
       ]);
       const createAtaInstructions: TransactionInstruction[] = [];
       if (!depositorAtaInfo) {
@@ -319,6 +321,12 @@ export async function settleActiveEscrows(
       if (!recipientAtaInfo) {
         createAtaInstructions.push(createAssociatedTokenAccountInstruction(
           keeper.publicKey, recipientAta, recipient, mint,
+          TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+        ));
+      }
+      if (!callerAtaInfo) {
+        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+          keeper.publicKey, callerAta, keeper.publicKey, mint,
           TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
         ));
       }
@@ -362,6 +370,7 @@ export async function settleActiveEscrows(
           vault,
           depositorTokenAccount: depositorAta,
           recipientTokenAccount: recipientAta,
+          callerTokenAccount: callerAta,
           tokenProgram: TOKEN_PROGRAM_ID,
           txlineProgram: TXLINE_PROGRAM_ID,
           tenDailyFixturesRoots,
@@ -461,15 +470,17 @@ export async function settleSingleEscrow(
     )[0];
     const depositorAta = getAssociatedTokenAddressSync(mint, depositor, false, TOKEN_PROGRAM_ID);
     const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
+    const callerAta = getAssociatedTokenAddressSync(mint, keeper.publicKey, false, TOKEN_PROGRAM_ID);
     const f = validation.snapshot;
     const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
     const fixtureEpochDay = Math.floor(epochDayFromTs(fixtureTsSec) / 10) * 10;
     const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
     const fs = validation.summary;
 
-    const [recipientAtaInfo, depositorAtaInfo] = await Promise.all([
+    const [recipientAtaInfo, depositorAtaInfo, callerAtaInfo] = await Promise.all([
       connection.getAccountInfo(recipientAta),
       connection.getAccountInfo(depositorAta),
+      connection.getAccountInfo(callerAta),
     ]);
     const createAtaInstructions: TransactionInstruction[] = [];
     if (!depositorAtaInfo) {
@@ -481,6 +492,12 @@ export async function settleSingleEscrow(
     if (!recipientAtaInfo) {
       createAtaInstructions.push(createAssociatedTokenAccountInstruction(
         keeper.publicKey, recipientAta, recipient, mint,
+        TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+      ));
+    }
+    if (!callerAtaInfo) {
+      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        keeper.publicKey, callerAta, keeper.publicKey, mint,
         TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
       ));
     }
@@ -524,6 +541,7 @@ export async function settleSingleEscrow(
         vault,
         depositorTokenAccount: depositorAta,
         recipientTokenAccount: recipientAta,
+        callerTokenAccount: callerAta,
         tokenProgram: TOKEN_PROGRAM_ID,
         txlineProgram: TXLINE_PROGRAM_ID,
         tenDailyFixturesRoots,
