@@ -23,7 +23,9 @@ import { NavBar } from './NavBar';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 const network = WalletAdapterNetwork.Devnet;
-const endpoint = clusterApiUrl(network);
+const endpoint = 
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SOLANA_RPC) ||
+  clusterApiUrl(network);
 
 export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
   const wallets = useMemo(() => [
