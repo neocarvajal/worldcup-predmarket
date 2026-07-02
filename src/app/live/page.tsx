@@ -49,6 +49,29 @@ export default function LivePage() {
     const clockMsg = lastNonAmend((m: any) => getSeconds(m) != null);
     const rawSeconds = clockMsg ? getSeconds(clockMsg) : 0;
     const minute = Math.floor(rawSeconds / 60);
+    // Debug: last 5 messages with Action/StatusId/Score/Clock
+    if (typeof window !== 'undefined' && !(window as any).__dbg) {
+      (window as any).__dbg = true;
+      console.log('[debug] last 5 msgs:', msgs.slice(-5).map((m: any, i: number) => ({
+        i: msgs.length - 5 + i,
+        action: m.Action ?? '(none)',
+        sid: m.StatusId ?? '?',
+        hasScore: m.Score != null,
+        score1: m.Score?.Participant1?.Total?.Goals,
+        clock: m.Clock?.Seconds,
+      })));
+      console.log('[debug] scoreMsg:', scoreMsg ? {
+        action: scoreMsg.Action,
+        sid: scoreMsg.StatusId,
+        s1: scoreMsg.Score?.Participant1?.Total?.Goals,
+        s2: scoreMsg.Score?.Participant2?.Total?.Goals,
+      } : 'NONE');
+      console.log('[debug] clockMsg:', clockMsg ? {
+        action: clockMsg.Action,
+        sid: clockMsg.StatusId,
+        secs: clockMsg.Clock?.Seconds,
+      } : 'NONE');
+    }
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
