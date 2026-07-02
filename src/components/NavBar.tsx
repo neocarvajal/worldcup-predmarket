@@ -82,9 +82,9 @@ export const NavBar: React.FC = () => {
               <div
                 className="absolute left-1/2 -translate-x-1/2 top-11 w-[calc(100vw-32px)] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top z-50"
                 style={{
-                  background: '#FFFFFF',
-                  border: '1px solid rgba(0,0,0,0.06)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
                 }}
               >
                 <div
