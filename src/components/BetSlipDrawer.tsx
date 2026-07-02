@@ -9,6 +9,7 @@ import { initEscrowWithDeposit } from '../lib/settlement';
 import { getUsdtBalance } from '../lib/txlineProgram';
 import { saveBet } from '../lib/persistence';
 import { PublicKey } from '@solana/web3.js';
+import { useTxLine } from '../context/TxLineContext';
 
 const USDC_MINT = new PublicKey('ELWTKspHKCnCfCiCiqYw1EDH77k8VCP74dK9qytG2Ujh');
 const QUICK_AMOUNTS = [10, 20, 50, 100];
@@ -23,10 +24,14 @@ export const BetSlipDrawer: React.FC = () => {
   const countRef = useRef(10);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const { client } = useTxLine();
+
   const [placing, setPlacing] = React.useState(false);
   const [txSig, setTxSig] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [insufficient, setInsufficient] = React.useState<{ balance: number; needed: number; countdown: number } | null>(null);
+  const [liveOdds, setLiveOdds] = React.useState<{ price: number; inRunning: boolean; gameState: string } | null>(null);
+  const [liveOddsError, setLiveOddsError] = React.useState(false);
 
   useEffect(() => {
     if (insufficient) {
@@ -43,12 +48,30 @@ export const BetSlipDrawer: React.FC = () => {
     }
   }, [insufficient, router]);
 
-  const totalOdds = selections.reduce((acc, s) => acc * s.odds, 1);
+  const BLOCKED_GAME_STATES = ['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'];
+
+  function isGameStateBlocked(gs: string): boolean {
+    return BLOCKED_GAME_STATES.includes(gs.toUpperCase());
+  }
+
+  // Fetch live odds when selections change
+  useEffect(() => {
+    if (selections.length === 0) { setLiveOdds(null); setLiveOddsError(false); return; }
+    const s = selections[0];
+    client.getLiveOddsForFixture(s.fixtureId).then((data) => {
+      const selPrice = s.selection === '1' ? data.homePrice : s.selection === '2' ? data.awayPrice : data.drawPrice;
+      setLiveOdds({ price: selPrice, inRunning: data.inRunning, gameState: data.gameState });
+      setLiveOddsError(false);
+    }).catch(() => setLiveOddsError(true));
+  }, [selections, client]);
+
+  const betBlocked = liveOdds ? isGameStateBlocked(liveOdds.gameState) : false;
+  const actualOdds = liveOdds?.price ?? selections[0]?.odds ?? 1;
   const parsedAmount = parseFloat(amount) || 0;
-  const potentialPayout = parsedAmount * totalOdds;
+  const potentialPayout = parsedAmount * actualOdds;
 
   const handlePlaceBet = useCallback(async () => {
-    if (!wallet.publicKey || !wallet.signTransaction || selections.length === 0 || parsedAmount <= 0) return;
+    if (!wallet.publicKey || !wallet.signTransaction || selections.length === 0 || parsedAmount <= 0 || betBlocked) return;
     setPlacing(true);
     setError(null);
     setTxSig(null);
@@ -62,11 +85,28 @@ export const BetSlipDrawer: React.FC = () => {
         return;
       }
 
+      // Re-fetch live odds right before submitting
+      const s = selections[0];
+      let livePrice = s.odds;
+      try {
+        const data = await client.getLiveOddsForFixture(s.fixtureId);
+        const fetchedPrice = s.selection === '1' ? data.homePrice : s.selection === '2' ? data.awayPrice : data.drawPrice;
+        if (['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'].includes(data.gameState.toUpperCase())) {
+          setError('Betting closed — match in extra time or finished');
+          setPlacing(false);
+          return;
+        }
+        livePrice = fetchedPrice;
+      } catch {
+        setError('Could not verify live odds. Try again.');
+        setPlacing(false);
+        return;
+      }
+
       const recipient = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
       const expiry = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400);
       const amountLamports = BigInt(Math.floor(parsedAmount * 1_000_000));
 
-      const s = selections[0];
       const result = await initEscrowWithDeposit(connection, wallet, {
         recipient,
         mint: USDC_MINT,
@@ -76,7 +116,7 @@ export const BetSlipDrawer: React.FC = () => {
         fixtureName: s.fixtureName,
         selection: SEL_MAP[s.selection] ?? 0,
         label: s.label,
-        odds: s.odds,
+        odds: livePrice,
       });
 
       setTxSig(result.sig);
@@ -85,7 +125,7 @@ export const BetSlipDrawer: React.FC = () => {
         fixtureName: selections[0].fixtureName,
         selection: selections[0].selection,
         label: selections[0].label,
-        odds: selections[0].odds,
+        odds: livePrice,
         amount: parsedAmount,
         escrowPubkey: result.escrowPda.toBase58(),
         timestamp: Date.now(),
@@ -98,7 +138,7 @@ export const BetSlipDrawer: React.FC = () => {
       setError(e?.message || t('betError'));
       setPlacing(false);
     }
-  }, [wallet, connection, selections, parsedAmount, clear]);
+  }, [wallet, connection, selections, parsedAmount, clear, client, betBlocked]);
 
   const handleGoToFaucet = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -181,6 +221,50 @@ export const BetSlipDrawer: React.FC = () => {
 
         {selections.length > 0 && !insufficient && (
           <>
+            {/* Live odds indicator */}
+            {liveOdds && (
+              <div
+                className="flex items-center justify-between px-3 py-2 rounded-xl mb-3 text-xs animate-slideUp"
+                style={{
+                  background: betBlocked ? 'rgba(255,68,68,0.1)' : 'rgba(220,235,2,0.05)',
+                  border: `1px solid ${betBlocked ? 'rgba(255,68,68,0.2)' : 'rgba(220,235,2,0.1)'}`,
+                }}
+              >
+                <span style={{ color: betBlocked ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                  {betBlocked ? '⛔ Betting closed' : liveOdds.inRunning ? '🔄 Live odds' : '📊 TxLINE odds'}
+                </span>
+                <div className="flex items-center gap-2">
+                  {liveOdds.inRunning && !betBlocked && (
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--accent)' }} />
+                  )}
+                  <span className="font-semibold" style={{ color: betBlocked ? 'var(--danger)' : 'var(--accent)' }}>
+                    {liveOdds.price.toFixed(3)}x
+                    {Math.abs(liveOdds.price - selections[0].odds) > 0.001 && (
+                      <span className="ml-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        (initial {selections[0].odds.toFixed(3)}x)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+            {liveOddsError && !liveOdds && (
+              <div
+                className="text-xs text-center px-3 py-2 rounded-xl mb-3"
+                style={{ background: 'rgba(255,68,68,0.08)', color: 'var(--danger)' }}
+              >
+                Could not fetch live odds
+              </div>
+            )}
+            {betBlocked && (
+              <div
+                className="text-center px-3 py-3 rounded-xl mb-3 text-xs font-semibold"
+                style={{ background: 'rgba(255,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(255,68,68,0.2)' }}
+              >
+                ⛔ Betting is closed for this match. Match is in extra time or finished.
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--text-muted)' }}>
                 {t('amount')}
@@ -219,7 +303,7 @@ export const BetSlipDrawer: React.FC = () => {
             <div className="card-inset space-y-1 mb-4">
               <div className="flex justify-between text-sm">
                 <span style={{ color: 'var(--text-secondary)' }}>{t('totalOdds')}</span>
-                <span className="font-semibold">{totalOdds.toFixed(2)}x</span>
+                <span className="font-semibold">{actualOdds.toFixed(3)}x</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span style={{ color: 'var(--text-secondary)' }}>{t('potentialPayout')}</span>
@@ -242,7 +326,7 @@ export const BetSlipDrawer: React.FC = () => {
             <button
               className="btn-primary w-full"
               onClick={handlePlaceBet}
-              disabled={placing || parsedAmount <= 0}
+              disabled={placing || parsedAmount <= 0 || betBlocked}
             >
               {placing ? t('placingBet') : t('placeBet')}
             </button>

@@ -149,6 +149,31 @@ export class TxLineClient {
     return this.request('GET', `/odds/snapshot/${fixtureId}`, { query: params });
   }
 
+  async getLiveOddsForFixture(fixtureId: number): Promise<{
+    homePrice: number;
+    drawPrice: number;
+    awayPrice: number;
+    inRunning: boolean;
+    gameState: string;
+  }> {
+    const raw = await this.getOdds(fixtureId);
+    const items: any[] = Array.isArray(raw) ? raw : (raw?.data ?? raw?.markets ?? []);
+    const odds = items.find(
+      (m: any) =>
+        m.FixtureId === fixtureId ||
+        m.fixtureId === fixtureId ||
+        Number(m.fixture_id) === fixtureId
+    ) || items[0] || raw;
+
+    const homePrice = odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
+    const drawPrice = odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
+    const awayPrice = odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
+    const inRunning = odds?.InRunning ?? odds?.inRunning ?? false;
+    const gameState = odds?.GameState ?? odds?.gameState ?? '';
+
+    return { homePrice, drawPrice, awayPrice, inRunning, gameState };
+  }
+
   async getScoresSnapshot(fixtureId: number): Promise<any> {
     return this.request('GET', `/scores/snapshot/${fixtureId}`);
   }
