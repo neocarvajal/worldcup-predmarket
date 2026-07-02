@@ -338,16 +338,6 @@ export default function LivePage() {
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-20 animate-scaleIn">
-          <div className="flex items-center justify-center mb-6">
-            <div
-              className="w-10 h-10 rounded-full animate-spin"
-              style={{
-                border: '3px solid var(--accent-dim)',
-                borderTopColor: 'var(--accent)',
-                borderRightColor: 'var(--accent)',
-              }}
-            />
-          </div>
           <div
             className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
             style={{
