@@ -300,7 +300,7 @@ export async function settleActiveEscrows(
       const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
       const f = validation.snapshot;
       const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
-      const fixtureEpochDay = epochDayFromTs(fixtureTsSec);
+      const fixtureEpochDay = Math.floor(epochDayFromTs(fixtureTsSec) / 10) * 10;
       const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
       const fs = validation.summary;
 
@@ -463,7 +463,7 @@ export async function settleSingleEscrow(
     const recipientAta = getAssociatedTokenAddressSync(mint, recipient, false, TOKEN_PROGRAM_ID);
     const f = validation.snapshot;
     const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
-    const fixtureEpochDay = epochDayFromTs(fixtureTsSec);
+    const fixtureEpochDay = Math.floor(epochDayFromTs(fixtureTsSec) / 10) * 10;
     const tenDailyFixturesRoots = getTenDailyFixturesRootsPda(fixtureEpochDay);
     const fs = validation.summary;
 

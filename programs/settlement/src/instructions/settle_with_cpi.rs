@@ -67,8 +67,9 @@ pub fn handler(
     sub_tree_proof: Vec<ProofNode>,
     main_tree_proof: Vec<ProofNode>,
 ) -> Result<()> {
+    let aligned_day = fixture_epoch_day / 10 * 10;
     let expected_fixtures_pda = Pubkey::find_program_address(
-        &[b"ten_daily_fixtures_roots", &fixture_epoch_day.to_le_bytes()],
+        &[b"ten_daily_fixtures_roots", &aligned_day.to_le_bytes()],
         &ctx.accounts.txline_program.key(),
     )
     .0;

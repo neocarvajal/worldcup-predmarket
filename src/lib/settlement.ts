@@ -293,7 +293,7 @@ export async function settleWithCpi(
   const f = params.fixture;
   const fs = params.fixtureSummary;
   const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
-  const fixtureEpochDay = Math.floor(fixtureTsSec / 86400);
+  const fixtureEpochDay = Math.floor(Math.floor(fixtureTsSec / 86400) / 10) * 10;
   const tenDailyFixturesRoots = getTxLineTenDailyFixturesRootsPda(fixtureEpochDay);
 
   const fixtureProofNodes = params.subTreeProof.map((p: any) => ({
