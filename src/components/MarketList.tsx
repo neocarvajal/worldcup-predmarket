@@ -75,9 +75,8 @@ export const MarketList: React.FC = () => {
             const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
             const statusId = last ? getStatusId(last) : 0;
             const statusFinished = FINISHED_IDS.includes(statusId);
-            const hasStatus = statusId > 0;
             const timeFinished = f.StartTime + maxDuration < now;
-            return { ...f, _finished: statusFinished || (!hasStatus && timeFinished) };
+            return { ...f, _finished: statusFinished || timeFinished };
           } catch {
             return { ...f, _finished: f.StartTime + maxDuration < now };
           }
