@@ -220,6 +220,7 @@ export async function settleActiveEscrows(
   txlineApiToken: string,
   _fixtureNameToIdMap?: Record<string, number>,
   force: boolean = false,
+  fixtureFilter?: number,
 ): Promise<SettlementResult[]> {
   const results: SettlementResult[] = [];
   const idl = SETTLEMENT_IDL;
@@ -228,13 +229,19 @@ export async function settleActiveEscrows(
   const escrows = await fetchActiveEscrows(connection);
   if (escrows.length === 0) return [];
 
-  // 2. Prepare Anchor program for instruction building
+  // 2. Optionally filter by fixtureId
+  const filtered = fixtureFilter != null
+    ? escrows.filter(e => e.fixtureId === fixtureFilter)
+    : escrows;
+  if (fixtureFilter != null && filtered.length === 0) return [];
+
+  // 3. Prepare Anchor program for instruction building
   const wallet = keypairToWallet(keeper);
   const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
   const program = new Program(idl, provider);
 
-  // 3. For each escrow, try to settle
-  for (const escrow of escrows) {
+  // 4. For each escrow, try to settle
+  for (const escrow of filtered) {
     const { pubkey, fixtureId, fixtureName, depositor, recipient, mint, selection } = escrow;
     const escrowB58 = pubkey.toBase58();
 

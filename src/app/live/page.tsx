@@ -25,6 +25,7 @@ export default function LivePage() {
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
+  const settledRef = useRef<Set<number>>(new Set());
 
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
@@ -117,7 +118,14 @@ export default function LivePage() {
         if (result.status !== 'fulfilled') continue;
         const d = parseSnapshot(result.value);
         if (!d) continue;
-        if (FINISHED_IDS.includes(d.StatusId)) continue;
+        if (FINISHED_IDS.includes(d.StatusId)) {
+          if (!settledRef.current.has(fid)) {
+            settledRef.current.add(fid);
+            fetch(`/api/keeper/trigger-settle?fixtureId=${fid}`, { method: 'POST' })
+              .catch(() => {});
+          }
+          continue;
+        }
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
         d.Participant2 = candidate.Participant2 ?? candidate.participant2 ?? '';
@@ -182,6 +190,11 @@ export default function LivePage() {
           if (!d) continue;
           if (FINISHED_IDS.includes(d.StatusId)) {
             finishedIds.push(d.FixtureId);
+            if (!settledRef.current.has(d.FixtureId)) {
+              settledRef.current.add(d.FixtureId);
+              fetch(`/api/keeper/trigger-settle?fixtureId=${d.FixtureId}`, { method: 'POST' })
+                .catch(() => {});
+            }
             continue;
           }
           updates.push(d);

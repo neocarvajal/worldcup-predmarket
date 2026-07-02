@@ -41,6 +41,7 @@ async function handle(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get('force') === '1' || req.headers.get('x-force') === '1';
   const escrowParam = req.nextUrl.searchParams.get('escrow');
+  const fixtureIdParam = req.nextUrl.searchParams.get('fixtureId');
 
   try {
     if (escrowParam) {
@@ -51,6 +52,21 @@ async function handle(req: NextRequest) {
       return NextResponse.json({
         ok: result.status === 'settled',
         result,
+        timestamp: new Date().toISOString(),
+      });
+    } else if (fixtureIdParam) {
+      const fixtureId = parseInt(fixtureIdParam, 10);
+      if (isNaN(fixtureId)) {
+        return NextResponse.json({ error: 'Invalid fixtureId' }, { status: 400 });
+      }
+      const results = await settleActiveEscrows(
+        connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, undefined, force, fixtureId,
+      );
+      return NextResponse.json({
+        ok: true,
+        processed: results.length,
+        settled: results.filter(r => r.status === 'settled').length,
+        results,
         timestamp: new Date().toISOString(),
       });
     } else {
