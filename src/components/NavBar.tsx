@@ -1,12 +1,14 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useTranslations } from 'next-intl';
+import { BellIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { ClientWalletButton } from './ClientWalletButton';
 import { LanguageToggle } from './LanguageToggle';
+import { useNotifications } from '../context/NotificationContext';
 
 export const NavBar: React.FC = () => {
   const pathname = usePathname();
@@ -14,6 +16,20 @@ export const NavBar: React.FC = () => {
   const t = useTranslations('NavBar');
   const isLive = pathname === '/live';
   const isLanding = pathname === '/';
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [dropdownOpen]);
 
   return (
     <nav
@@ -45,6 +61,105 @@ export const NavBar: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
+          <div ref={bellRef} className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="relative flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 hover:opacity-70 active:scale-95"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+              aria-label={t('notifications')}
+            >
+              <BellIcon width={16} height={16} style={{ color: 'var(--text-primary)' }} />
+              {unreadCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold"
+                  style={{ background: 'var(--danger)', color: '#fff' }}
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {dropdownOpen && (
+              <div
+                className="absolute right-0 top-11 w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top-right"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(20px)',
+                }}
+              >
+                <div
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: '1px solid var(--border)' }}
+                >
+                  <span className="text-xs font-semibold">{t('notifications')}</span>
+                  {notifications.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-[10px] font-semibold transition-all hover:opacity-70"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          {t('markAllRead')}
+                        </button>
+                      )}
+                      <button
+                        onClick={clearAll}
+                        className="text-[10px] font-semibold transition-all hover:opacity-70"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        {t('clearAll')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="max-h-[320px] overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-10">
+                      <BellIcon width={24} height={24} style={{ color: 'var(--text-muted)' }} className="mx-auto mb-2 opacity-40" />
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('noNotifications')}</p>
+                    </div>
+                  ) : (
+                    notifications.map(n => (
+                      <button
+                        key={n.id}
+                        onClick={() => { markAsRead(n.id); if (n.escrowPubkey) setDropdownOpen(false); }}
+                        className="w-full text-left px-4 py-3 transition-all duration-150 hover:opacity-80 active:opacity-60"
+                        style={{
+                          background: n.read ? 'transparent' : 'var(--accent-dim)',
+                          borderBottom: '1px solid var(--border)',
+                        }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              {!n.read && (
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                                  style={{ background: 'var(--accent)' }}
+                                />
+                              )}
+                              <span className="text-xs font-semibold truncate">{n.title}</span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                              {n.body}
+                            </p>
+                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              {new Date(n.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <LanguageToggle />
           {isLanding && !publicKey && (
             <Link

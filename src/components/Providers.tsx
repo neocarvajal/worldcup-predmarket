@@ -19,6 +19,7 @@ import {
 } from '@solana-mobile/wallet-adapter-mobile';
 import { TxLineProvider } from '../context/TxLineContext';
 import { BetSlipProvider } from '../context/BetSlipContext';
+import { NotificationProvider } from '../context/NotificationContext';
 import { NavBar } from './NavBar';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -51,12 +52,14 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
         <WalletModalProvider>
           <TxLineProvider>
             <BetSlipProvider>
-              <div className="flex flex-col min-h-screen bg-primary">
-                <NavBar />
-                <main className="flex-1 pb-20 overflow-y-auto">
-                  {children}
-                </main>
-              </div>
+              <NotificationProvider>
+                <div className="flex flex-col min-h-screen bg-primary">
+                  <NavBar />
+                  <main className="flex-1 pb-20 overflow-y-auto">
+                    {children}
+                  </main>
+                </div>
+              </NotificationProvider>
             </BetSlipProvider>
           </TxLineProvider>
         </WalletModalProvider>

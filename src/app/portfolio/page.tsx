@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -8,7 +8,8 @@ import { useTranslations } from 'next-intl';
 import { fetchUserEscrows } from '../../lib/settlement';
 import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
-import { StackIcon, TargetIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { useNotifications } from '../../context/NotificationContext';
+import { StackIcon, TargetIcon, ReloadIcon, UpdateIcon } from '@radix-ui/react-icons';
 
 export default function PortfolioPage() {
   const { publicKey } = useWallet();
@@ -21,8 +22,11 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
-  const [settling, setSettling] = useState(false);
+  const [autoSettling, setAutoSettling] = useState(false);
+  const [settledKeys, setSettledKeys] = useState<Set<string>>(new Set());
   const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
+  const { addNotification } = useNotifications();
+  const autoSettlingRef = useRef(false);
 
   async function checkFixture(id: number): Promise<void> {
     try {
@@ -34,23 +38,31 @@ export default function PortfolioPage() {
     } catch {}
   }
 
-  const handleSettle = async (escrowPubkey: string) => {
-    setSettling(true);
-    setError(null);
+  async function settleOne(escrowPubkey: string, fixtureName: string): Promise<boolean> {
     try {
       const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST' });
       const data = await resp.json();
       if (data.ok && data.result?.status === 'settled') {
-        setTimeout(() => load(), 2000);
-      } else {
-        setError(data.result?.error || data.error || 'Error al liquidar');
+        const won = data.result.outcome === 'won';
+        addNotification({
+          title: won ? '🎉 Apuesta ganada' : '😞 Apuesta perdida',
+          body: `${fixtureName} — ${won ? 'Liquidación exitosa' : 'Tu apuesta no acertó'}`,
+          type: won ? 'won' : 'lost',
+          escrowPubkey,
+        });
+        return true;
       }
-    } catch (e: any) {
-      setError(e.message || 'Error de red al liquidar');
-    } finally {
-      setSettling(false);
+      return false;
+    } catch {
+      addNotification({
+        title: '⚠️ Error al liquidar',
+        body: `${fixtureName} — No se pudo liquidar automáticamente.`,
+        type: 'info',
+        escrowPubkey,
+      });
+      return false;
     }
-  };
+  }
 
   function isMatchOver(acc: any, matchStartMs?: number, fixtureId?: number): boolean {
     if (!acc) return false;
@@ -99,6 +111,35 @@ export default function PortfolioPage() {
       return () => clearTimeout(t);
     }
   }, [publicKey, setVisible]);
+
+  // Auto-settle: run after escrows load, settle match-over escrows one by one
+  useEffect(() => {
+    if (loading || escrows.length === 0 || autoSettlingRef.current) return;
+    const toSettle = escrows.filter((e: any) => {
+      const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
+      if (k !== 'Active') return false;
+      if (settledKeys.has(e.pubkey.toBase58())) return false;
+      const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
+      const raw = bet?.matchStartTime;
+      const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
+      const fid = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
+      return isMatchOver(e.account, matchStart, fid);
+    });
+    if (toSettle.length === 0) return;
+    autoSettlingRef.current = true;
+    setAutoSettling(true);
+    (async () => {
+      for (const e of toSettle) {
+        const key = e.pubkey.toBase58();
+        const fixtureName = e.account.fixture_name || loadBet(publicKey!.toBase58(), key)?.fixtureName || `Partido`;
+        const ok = await settleOne(key, fixtureName);
+        if (ok) setSettledKeys(prev => new Set(prev).add(key));
+      }
+      setAutoSettling(false);
+      autoSettlingRef.current = false;
+      setTimeout(() => load(), 3000);
+    })();
+  }, [loading, escrows, publicKey]);
 
   const escrowMatchOver = escrows.reduce((map: Record<string, boolean>, e: any) => {
     const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
@@ -239,6 +280,21 @@ export default function PortfolioPage() {
           ))}
         </div>
 
+        {/* Auto-settling indicator */}
+        {autoSettling && (
+          <div
+            className="flex items-center gap-2 px-4 py-2.5 mb-3 rounded-xl text-xs font-semibold animate-slideUp"
+            style={{
+              background: 'var(--accent-dim)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(220,235,2,0.15)',
+            }}
+          >
+            <UpdateIcon width={14} height={14} className="animate-spin" />
+            Liquidando apuestas pendientes...
+          </div>
+        )}
+
         {/* Content */}
         {loading ? (
           <div className="space-y-3">
@@ -363,8 +419,6 @@ export default function PortfolioPage() {
                     payout={payout}
                     status={isSettled ? 'won' : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
-                    onSettle={hasMatchEnded ? () => handleSettle(e.pubkey.toBase58()) : undefined}
-                    settling={settling}
                   />
                 </div>
               );

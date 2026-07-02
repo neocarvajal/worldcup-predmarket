@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon, ReloadIcon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon } from '@radix-ui/react-icons';
 
 interface PositionCardProps {
   fixtureName: string;
@@ -12,8 +12,6 @@ interface PositionCardProps {
   payout: number;
   status: 'active' | 'won' | 'lost' | 'cancelled' | 'pending';
   expiry?: number;
-  onSettle?: () => void;
-  settling?: boolean;
 }
 
 function ShareOnX({ fixtureName, amount, odds, t }: { fixtureName: string; amount: number; odds: number; t: (key: string) => string }) {
@@ -88,7 +86,6 @@ function CountdownSmall({ target }: { target: Date }) {
 
 export const PositionCard: React.FC<PositionCardProps> = ({
   fixtureName, selection, amount, odds, payout, status, expiry,
-  onSettle, settling,
 }) => {
   const t = useTranslations('PositionCard');
   const cfg = statusConfig[status];
@@ -169,25 +166,6 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         <div className="flex items-center gap-3">
           {(status === 'won' || status === 'pending') && (
             <ShareOnX fixtureName={fixtureName} amount={amount} odds={odds} t={t} />
-          )}
-          {status === 'pending' && onSettle && (
-            <button
-              onClick={onSettle}
-              disabled={settling}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold transition-all duration-200 active:scale-95"
-              style={{
-                background: settling ? 'var(--bg-surface)' : 'var(--accent)',
-                color: settling ? 'var(--text-muted)' : '#000',
-                border: `1px solid ${settling ? 'var(--border)' : 'var(--accent)'}`,
-              }}
-            >
-              {settling ? (
-                <ReloadIcon width={12} height={12} className="animate-spin" />
-              ) : (
-                <UpdateIcon width={12} height={12} />
-              )}
-              {settling ? t('settling') : t('settle')}
-            </button>
           )}
           <span
             className="text-sm font-bold tabular-nums"
