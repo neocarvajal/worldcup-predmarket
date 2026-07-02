@@ -396,24 +396,6 @@ export default function LandingPage() {
             >
               Documentación
             </Link>
-            <a
-              href="https://github.com/erick-carvajal/worldcup-hackathon"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold transition-all duration-200 hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              GitHub
-            </a>
-            <a
-              href="https://vercel.com/erick-carvajal-s-projects/worldcup-hackathon"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold transition-all duration-200 hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Vercel
-            </a>
           </div>
           <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)' }}>
             {t('footerTitle')} &middot; Devnet &middot; {new Date().getFullYear()}

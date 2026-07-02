@@ -9,29 +9,29 @@ const sections = [
   },
   {
     title: 'Conexión de wallet',
-    content: 'Necesitás una wallet de Solana (Phantom, Backpack o Solflare) configurada en Devnet. Conectala haciendo clic en "Connect Wallet" en la esquina superior derecha. No hay verificación KYC ni registro — solo conectá tu wallet y comenzá.',
+    content: 'Necesitas una wallet de Solana (Phantom, Backpack o Solflare) configurada en Devnet. Conectala haciendo clic en "Connect Wallet" en la esquina superior derecha. No hay verificación KYC ni registro — solo conecta tu wallet y comienza.',
   },
   {
     title: 'Activar suscripción TxLINE',
-    content: 'Antes de tu primera apuesta, necesitás activar una suscripción gratuita a TxLINE (Tier 1). Esto te permite acceder a datos de partidos y odds verificables on-chain. La activación requiere una firma de wallet (sin costo).',
+    content: 'Antes de tu primera apuesta, necesitas activar una suscripción gratuita a TxLINE (Tier 1). Esto te permite acceder a datos de partidos y odds verificables on-chain. La activación requiere una firma de wallet (sin costo).',
   },
   {
     title: 'Cómo funciona una apuesta',
     content: [
-      'Elegí un partido en la página Markets.',
-      'Seleccioná el resultado: 1 (local), X (empate) o 2 (visitante).',
-      'Ingresá el monto en USDT y confirmá la transacción.',
+      'Elige un partido en la página Markets.',
+      'Selecciona el resultado: 1 (local), X (empate) o 2 (visitante).',
+      'Ingresa el monto en USDT y confirma la transacción.',
       'Tu apuesta queda en un escrow (contrato inteligente) hasta que el partido termine.',
-      'Al finalizar, el keeper liquida automáticamente: si acertaste, recibís tu stake + ganancias.',
+      'Al finalizar, el keeper liquida automáticamente: si acertaste, recibes tu stake + ganancias.',
     ],
   },
   {
     title: 'Cálculo de payout',
-    content: 'Las odds se muestran con hasta 3 decimales (ej: 2.000 = 2.0x). El payout se calcula como: monto × odds. Si apostás 10 USDT a odds 2.5, recibís 25 USDT si ganás.',
+    content: 'Las odds se muestran con hasta 3 decimales (ej: 2.000 = 2.0x). El payout se calcula como: monto × odds. Si apuestas 10 USDT a odds 2.5, recibes 25 USDT si ganas.',
   },
   {
     title: 'Liquidación automática',
-    content: 'No necesitás hacer nada para cobrar. El keeper bot verifica cada 5 minutos si los partidos terminaron. Si tu apuesta está en lo correcto, el escrow se liquida y recibís los fondos automáticamente en tu wallet. También se liquida al cargar tu portfolio si detecta un partido finalizado.',
+    content: 'No necesitas hacer nada para cobrar. El keeper bot verifica cada 5 minutos si los partidos terminaron. Si tu apuesta está en lo correcto, el escrow se liquida y recibes los fondos automáticamente en tu wallet. También se liquida al cargar tu portfolio si detecta un partido finalizado.',
   },
   {
     title: 'Tecnología',
@@ -45,7 +45,7 @@ const sections = [
   },
   {
     title: 'Faucet',
-    content: 'Necesitás USDT en Devnet para apostar. Visitá la página Faucet desde el menú principal para recibir USDT de prueba. Si no tenés SOL para gas, usá el faucet de Solana Devnet.',
+    content: 'Necesitas USDT en Devnet para apostar. Visita la página Faucet desde el menú principal para recibir USDT de prueba. Si no tienes SOL para gas, usa el faucet de Solana Devnet.',
   },
   {
     title: 'Seguridad',
