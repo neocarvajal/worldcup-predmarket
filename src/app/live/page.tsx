@@ -16,11 +16,6 @@ const STATUS_NAMES: Record<number, string> = {
 
 const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
-function periodSeconds(statusId: number): number {
-  if (statusId >= 7 && statusId <= 9) return 900;
-  return 2700;
-}
-
 export default function LivePage() {
   const { client } = useTxLine();
   const t = useTranslations('Live');
@@ -35,20 +30,6 @@ export default function LivePage() {
     const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
     const getScore = (m: any) => m.Score ?? m.Update?.Score ?? null;
     const getClock = (m: any) => m.Clock ?? m.Update?.Clock ?? null;
-    // Debug: sample Clock from each StatusId
-    if (typeof window !== 'undefined' && !(window as any).__debugClock) {
-      (window as any).__debugClock = true;
-      const clockBySid: any = {};
-      for (const m of msgs) {
-        const sid = getStatusId(m);
-        const c = getClock(m);
-        if (!clockBySid[sid] && c) clockBySid[sid] = JSON.stringify(c);
-      }
-      console.log('[debug] Clock by StatusId:', clockBySid);
-      console.log('[debug] all Clock samples:', msgs.slice(0, 8).map((m: any, i: number) =>
-        `[${i}] sid=${getStatusId(m)} clock=${JSON.stringify(getClock(m))}`
-      ).join('\n'));
-    }
     // StatusId is monotonic (only increases). action_amend messages inherit the
     // original action's StatusId (e.g., amend of H1 action during HT has StatusId=2).
     // Picking the **highest** StatusId among all displayable messages naturally
@@ -81,9 +62,8 @@ export default function LivePage() {
     const clock = getClock(bestClock) ?? {};
     let minute = 0, seconds = 0;
     if (clock.Seconds != null) {
-      const elapsed = Math.max(0, periodSeconds(statusId) - clock.Seconds);
-      minute = Math.floor(elapsed / 60);
-      seconds = elapsed % 60;
+      minute = Math.floor(clock.Seconds / 60);
+      seconds = clock.Seconds % 60;
     }
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
