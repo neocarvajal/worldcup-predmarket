@@ -28,8 +28,8 @@ export default function LivePage() {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
     // Handle both flat (snapshot) and nested (SSE) message formats
     const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
-    const getScore = (m: any) => m.Score ?? m.Update?.Score ?? null;
-    const getClock = (m: any) => m.Clock ?? m.Update?.Clock ?? null;
+    const getScoreVal = (m: any) => m.Score ?? m.Update?.Score ?? null;
+    const getSeconds = (m: any) => m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
     // StatusId is monotonic (only increases). action_amend messages inherit the
     // original action's StatusId (e.g., amend of H1 action during HT has StatusId=2).
     // Picking the **highest** StatusId among all displayable messages naturally
@@ -39,32 +39,16 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score: among messages WITH Score data, pick the one with the highest
-    // StatusId (amends carry score from the original action's phase, not current).
-    // Ties are broken by array position — later = more recent.
-    const withScore = msgs.filter((m: any) => getScore(m) != null);
-    const bestScore = withScore.length > 0
-      ? withScore.reduce((best: any, m: any) => {
-          const s = getStatusId(m), bs = getStatusId(best);
-          return s > bs || (s === bs) ? m : best;
-        })
-      : maxStatus;
-    const score = getScore(bestScore) ?? {};
-    // Clock: among messages WITH a valid Seconds value, pick the one with the
-    // highest StatusId (amends carry clock from the original action's phase).
-    const withClock = msgs.filter((m: any) => getClock(m)?.Seconds != null);
-    const bestClock = withClock.length > 0
-      ? withClock.reduce((best: any, m: any) => {
-          const s = getStatusId(m), bs = getStatusId(best);
-          return s > bs || (s === bs) ? m : best;
-        })
-      : maxStatus;
-    const clock = getClock(bestClock) ?? {};
-    let minute = 0, seconds = 0;
-    if (clock.Seconds != null) {
-      minute = Math.floor(clock.Seconds / 60);
-      seconds = clock.Seconds % 60;
-    }
+    // Score & Clock: skip action_amend (carries data from the original action's
+    // phase, not the current state). Pick the last non-amend message with data.
+    const isAmend = (m: any) => (m.Action ?? m.Update?.Action ?? '') === 'action_amend';
+    const lastNonAmend = (pred: (m: any) => any) =>
+      [...msgs].reverse().find((m: any) => !isAmend(m) && pred(m));
+    const scoreMsg = lastNonAmend((m: any) => getScoreVal(m) != null);
+    const score = scoreMsg ? getScoreVal(scoreMsg) : {};
+    const clockMsg = lastNonAmend((m: any) => getSeconds(m) != null);
+    const rawSeconds = clockMsg ? getSeconds(clockMsg) : 0;
+    const minute = Math.floor(rawSeconds / 60);
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
     return {
@@ -74,7 +58,7 @@ export default function LivePage() {
       Score1: score.Participant1?.Total?.Goals ?? 0,
       Score2: score.Participant2?.Total?.Goals ?? 0,
       Minute: minute,
-      Seconds: seconds,
+      RawSeconds: rawSeconds,
       Status: STATUS_NAMES[statusId] ?? 'LIVE',
       StatusId: statusId,
     };
@@ -371,7 +355,6 @@ export default function LivePage() {
                 score1={e.Score1 ?? 0}
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
-                seconds={e.Seconds ?? 0}
                 status={e.Status || 'live'}
               />
             </div>

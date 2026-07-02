@@ -69,7 +69,8 @@
     "txcc": "Cobertura Cancelada",
     "txcs": "Cobertura Suspendida",
     "p": "Postergado",
-    "worldCup": "World Cup"
+    "worldCup": "World Cup",
+    "minute": "Minuto {m}"
   },
   "MarketDetail": {
     "home": "Local",
