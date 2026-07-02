@@ -7,6 +7,8 @@ import { LiveFeedItem } from '../../components/LiveFeedItem';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
 
+const FINISHED_IDS = [5, 10, 13];
+
 const STATUS_NAMES: Record<number, string> = {
   1: 'NS', 2: 'H1', 3: 'HT', 4: 'H2', 5: 'F',
   6: 'WET', 7: 'ET1', 8: 'HTET', 9: 'ET2', 10: 'FET',
@@ -14,7 +16,7 @@ const STATUS_NAMES: Record<number, string> = {
   16: 'C', 17: 'TXCC', 18: 'TXCS', 19: 'P',
 };
 
-const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 6, 7, 8, 9, 11, 12, 14]);
 
 export default function LivePage() {
   const { client } = useTxLine();
@@ -115,6 +117,7 @@ export default function LivePage() {
         if (result.status !== 'fulfilled') continue;
         const d = parseSnapshot(result.value);
         if (!d) continue;
+        if (FINISHED_IDS.includes(d.StatusId)) continue;
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
         d.Participant2 = candidate.Participant2 ?? candidate.participant2 ?? '';
@@ -172,14 +175,25 @@ export default function LivePage() {
           ids.map((id: number) => client.getScoresSnapshot(id))
         );
         const updates: any[] = [];
+        const finishedIds: number[] = [];
         for (const r of snapshots) {
           if (r.status !== 'fulfilled') continue;
           const d = parseSnapshot(r.value);
-          if (d) updates.push(d);
+          if (!d) continue;
+          if (FINISHED_IDS.includes(d.StatusId)) {
+            finishedIds.push(d.FixtureId);
+            continue;
+          }
+          updates.push(d);
         }
-        if (updates.length === 0) return;
         setEvents(prev => {
-          const next = [...prev];
+          let next = [...prev];
+          if (finishedIds.length > 0) {
+            const set = new Set(finishedIds);
+            next = next.filter(e => !set.has(e.FixtureId));
+            if (updates.length === 0) return next;
+          }
+          if (updates.length === 0) return next;
           for (const u of updates) {
             const idx = next.findIndex(e => e.FixtureId === u.FixtureId);
             if (idx >= 0) next[idx] = u;
