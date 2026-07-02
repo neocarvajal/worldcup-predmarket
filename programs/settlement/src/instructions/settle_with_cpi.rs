@@ -123,11 +123,19 @@ pub fn handler(
 
     let escrow_account_info = ctx.accounts.escrow.to_account_info();
     let escrow_amount = ctx.accounts.escrow.amount;
-    let escrow_key = ctx.accounts.escrow.key();
-    let vault_bump = ctx.accounts.escrow.vault_bump;
+    let depositor_key = ctx.accounts.escrow.depositor.key();
+    let recipient_key = ctx.accounts.escrow.recipient.key();
+    let nonce_bytes = ctx.accounts.escrow.nonce.to_le_bytes();
+    let bump = ctx.accounts.escrow.bump;
 
-    let vault_seeds = &[b"vault", escrow_key.as_ref(), &[vault_bump]];
-    let vault_signer = &[&vault_seeds[..]];
+    let escrow_seeds = &[
+        b"escrow",
+        depositor_key.as_ref(),
+        recipient_key.as_ref(),
+        &nonce_bytes,
+        &[bump],
+    ];
+    let escrow_signer = &[&escrow_seeds[..]];
 
     let destination = if depositor_won {
         ctx.accounts.depositor_token_account.to_account_info()
@@ -144,7 +152,7 @@ pub fn handler(
                 to: destination,
                 authority: escrow_account_info,
             },
-            vault_signer,
+            escrow_signer,
         ),
         escrow_amount,
         ctx.accounts.mint.decimals,
