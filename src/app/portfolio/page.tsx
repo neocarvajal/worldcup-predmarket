@@ -77,10 +77,11 @@ export default function PortfolioPage() {
       // Check fixture status for active escrows that might be finished
       const activeWithFid = data.filter((e: any) => {
         const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-        return k === 'Active' && e.account.fixtureId;
+        return k === 'Active' && e.account.fixture_id;
       });
+
       for (const e of activeWithFid) {
-        const fid = Number(e.account.fixtureId);
+        const fid = Number(e.account.fixture_id);
         if (!fixtureStatus[fid]) checkFixture(fid);
       }
     } catch (e: any) {
@@ -103,7 +104,7 @@ export default function PortfolioPage() {
     const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
     const raw = bet?.matchStartTime;
     const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
-    const fid = e.account.fixtureId ? Number(e.account.fixtureId) : undefined;
+    const fid = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
     map[e.pubkey.toBase58()] = isMatchOver(e.account, matchStart, fid);
     return map;
   }, {});
