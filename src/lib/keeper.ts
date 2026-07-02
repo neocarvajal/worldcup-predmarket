@@ -246,7 +246,7 @@ export async function settleActiveEscrows(
     const escrowB58 = pubkey.toBase58();
 
     // Check if fixture is finished via scores endpoint
-    let score1 = 0, score2 = 0, statusId = 0;
+    let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
     try {
       const scoresRaw: any = await txlineRequest(
         txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
@@ -255,10 +255,14 @@ export async function settleActiveEscrows(
       const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
       const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
       if (lastMsg) {
-        statusId = lastMsg.StatusId ?? 0;
-        const s = lastMsg.Score || {};
+        statusId = lastMsg.StatusId ?? lastMsg.Update?.StatusId ?? 0;
+        const s = lastMsg.Score ?? lastMsg.Update?.Score ?? {};
         score1 = s.Participant1?.Total?.Goals ?? 0;
         score2 = s.Participant2?.Total?.Goals ?? 0;
+      }
+      for (const m of msgs) {
+        const ts = m.Ts ?? m.Update?.Ts ?? 0;
+        if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
       }
     } catch (e: any) {
       results.push({
@@ -269,9 +273,12 @@ export async function settleActiveEscrows(
       continue;
     }
 
-    if (![5, 10, 13].includes(statusId)) {
-      if (force) {
-        console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId})`);
+    const isFinishedStatus = [5, 10, 13].includes(statusId);
+    const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
+
+    if (!isFinishedStatus) {
+      if (force || timeHeuristic) {
+        console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId}, timeHeuristic=${timeHeuristic})`);
       } else {
         results.push({
           escrowPubkey: escrowB58, fixtureId, fixtureName,
@@ -431,7 +438,7 @@ export async function settleSingleEscrow(
 
   const { fixtureId, fixtureName, depositor, recipient, mint } = decoded;
 
-  let score1 = 0, score2 = 0, statusId = 0;
+  let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
   try {
     const scoresRaw: any = await txlineRequest(
       txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
@@ -439,18 +446,25 @@ export async function settleSingleEscrow(
     const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
     const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
     if (lastMsg) {
-      statusId = lastMsg.StatusId ?? 0;
-      const s = lastMsg.Score || {};
+      statusId = lastMsg.StatusId ?? lastMsg?.Update?.StatusId ?? 0;
+      const s = lastMsg.Score ?? lastMsg?.Update?.Score ?? {};
       score1 = s.Participant1?.Total?.Goals ?? 0;
       score2 = s.Participant2?.Total?.Goals ?? 0;
+    }
+    for (const m of msgs) {
+      const ts = m.Ts ?? m.Update?.Ts ?? 0;
+      if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
     }
   } catch (e: any) {
     return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `Scores fetch: ${e.message}` };
   }
 
-  if (![5, 10, 13].includes(statusId)) {
-    if (force) {
-      console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId})`);
+  const isFinishedStatus = [5, 10, 13].includes(statusId);
+  const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
+
+  if (!isFinishedStatus) {
+    if (force || timeHeuristic) {
+      console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId}, timeHeuristic=${timeHeuristic})`);
     } else {
       return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `StatusId ${statusId}` };
     }
