@@ -64,19 +64,20 @@ export const MarketList: React.FC = () => {
       const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
       const candidates = worldCup.filter((f: any) => f.StartTime > now - THREE_HOURS_MS);
 
-      // Check fixture status in parallel, filter out finished ones
+      const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
+
       const results = await Promise.all(
         candidates.map(async (f: any) => {
-          const maxDuration = 2.5 * 60 * 60 * 1000;
+          const maxDuration = 2.25 * 60 * 60 * 1000;
           try {
             const data = await client.getScoresSnapshot(f.FixtureId);
             const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
             const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-            const statusFinished = FINISHED_IDS.includes(last?.StatusId ?? 0);
-            // Time heuristic: if match started > 2.5h ago, treat as finished
-            // (soccer matches are ~2h; this catches TxLINE update delays)
+            const statusId = last ? getStatusId(last) : 0;
+            const statusFinished = FINISHED_IDS.includes(statusId);
+            const hasStatus = statusId > 0;
             const timeFinished = f.StartTime + maxDuration < now;
-            return { ...f, _finished: statusFinished || timeFinished };
+            return { ...f, _finished: statusFinished || (!hasStatus && timeFinished) };
           } catch {
             return { ...f, _finished: f.StartTime + maxDuration < now };
           }

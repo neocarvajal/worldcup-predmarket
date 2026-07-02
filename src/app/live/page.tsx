@@ -16,7 +16,7 @@ const STATUS_NAMES: Record<number, string> = {
   16: 'C', 17: 'TXCC', 18: 'TXCS', 19: 'P',
 };
 
-const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 6, 7, 8, 9, 11, 12, 14]);
+const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
 export default function LivePage() {
   const { client } = useTxLine();
