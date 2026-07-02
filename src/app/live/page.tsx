@@ -35,6 +35,20 @@ export default function LivePage() {
     const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
     const getScore = (m: any) => m.Score ?? m.Update?.Score ?? null;
     const getClock = (m: any) => m.Clock ?? m.Update?.Clock ?? null;
+    // Debug: sample Clock from each StatusId
+    if (typeof window !== 'undefined' && !(window as any).__debugClock) {
+      (window as any).__debugClock = true;
+      const clockBySid: any = {};
+      for (const m of msgs) {
+        const sid = getStatusId(m);
+        const c = getClock(m);
+        if (!clockBySid[sid] && c) clockBySid[sid] = JSON.stringify(c);
+      }
+      console.log('[debug] Clock by StatusId:', clockBySid);
+      console.log('[debug] all Clock samples:', msgs.slice(0, 8).map((m: any, i: number) =>
+        `[${i}] sid=${getStatusId(m)} clock=${JSON.stringify(getClock(m))}`
+      ).join('\n'));
+    }
     // StatusId is monotonic (only increases). action_amend messages inherit the
     // original action's StatusId (e.g., amend of H1 action during HT has StatusId=2).
     // Picking the **highest** StatusId among all displayable messages naturally
