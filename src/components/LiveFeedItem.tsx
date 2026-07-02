@@ -182,10 +182,17 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
               {score2}
             </span>
           </div>
-          {isPlaying && minute != null && minute > 0 && (
+          {minute != null && (isPlaying || isPaused) && (
             <span className="flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
-              <span className="text-[10px] font-medium text-danger">{minute}&apos;</span>
+              {isPlaying && (
+                <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
+              )}
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: isPlaying ? 'var(--danger)' : 'var(--text-muted)' }}
+              >
+                {minute}&apos;
+              </span>
             </span>
           )}
         </div>

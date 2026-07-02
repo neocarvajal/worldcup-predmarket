@@ -44,10 +44,20 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score/clock: most recent message with Score data (use maxStatus as fallback)
-    const lastData = [...msgs].reverse().find((m: any) => getScore(m) != null) ?? maxStatus;
-    const score = getScore(lastData) ?? {};
-    const clock = getClock(lastData) ?? {};
+    // Score: among messages WITH Score data, pick the one with the highest
+    // StatusId (amends carry score from the original action's phase, not current).
+    // Ties are broken by array position — later = more recent.
+    const withScore = msgs.filter((m: any) => getScore(m) != null);
+    const bestScore = withScore.length > 0
+      ? withScore.reduce((best: any, m: any) => {
+          const s = getStatusId(m), bs = getStatusId(best);
+          return s > bs || (s === bs) ? m : best;
+        })
+      : maxStatus;
+    const score = getScore(bestScore) ?? {};
+    // Clock: use the most recent message with Clock data (independent of Score)
+    const lastClock = [...msgs].reverse().find((m: any) => getClock(m) != null);
+    const clock = getClock(lastClock) ?? {};
     let minute = 0;
     if (clock.Seconds != null) {
       minute = Math.max(0, Math.floor((periodSeconds(statusId) - clock.Seconds) / 60));
