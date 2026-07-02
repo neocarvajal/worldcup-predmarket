@@ -327,7 +327,7 @@ export async function settleWithCpi(
       fs.update_count ?? fs.updateStats?.updateCount ?? 0,
       new BN(fs.min_timestamp ?? fs.updateStats?.minTimestamp ?? 0),
       new BN(fs.max_timestamp ?? fs.updateStats?.maxTimestamp ?? 0),
-      Object.values(fs.update_sub_tree_root ?? fs.eventsSubTreeRoot ?? new Array(32).fill(0)),
+      Object.values(fs.update_sub_tree_root ?? fs.updateSubTreeRoot ?? fs.eventsSubTreeRoot ?? new Array(32).fill(0)),
       fixtureProofNodes,
       mainProofNodes,
     )
