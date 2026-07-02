@@ -79,14 +79,20 @@ export const NavBar: React.FC = () => {
             </button>
 
             {dropdownOpen && (
-              <div
-                className="absolute left-1/2 -translate-x-1/2 top-11 w-[90vw] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top"
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                }}
-              >
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  style={{ background: 'rgba(0,0,0,0.5)' }}
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 top-11 w-[90vw] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top z-50"
+                  style={{
+                    background: '#0b0b18',
+                    border: '1px solid rgba(220,235,2,0.15)',
+                    boxShadow: '0 0 30px rgba(220,235,2,0.10), 0 8px 32px rgba(0,0,0,0.6)',
+                  }}
+                >
                 <div
                   className="flex items-center justify-between px-4 py-3"
                   style={{ borderBottom: '1px solid var(--border)' }}
@@ -155,6 +161,7 @@ export const NavBar: React.FC = () => {
                   )}
                 </div>
               </div>
+              </>
             )}
           </div>
 
