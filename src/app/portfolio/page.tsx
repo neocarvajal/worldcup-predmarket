@@ -22,6 +22,17 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [settling, setSettling] = useState(false);
+  const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
+
+  async function checkFixture(id: number): Promise<void> {
+    try {
+      const resp = await fetch(`/api/keeper/fixture-status?fixtureId=${id}`);
+      const data = await resp.json();
+      if (data && typeof data.finished === 'boolean') {
+        setFixtureStatus(prev => ({ ...prev, [id]: { finished: data.finished, statusId: data.statusId, score1: data.score1, score2: data.score2 } }));
+      }
+    } catch {}
+  }
 
   const handleSettle = async (escrowPubkey: string) => {
     setSettling(true);
@@ -41,7 +52,7 @@ export default function PortfolioPage() {
     }
   };
 
-  function isMatchOver(acc: any, matchStartMs?: number): boolean {
+  function isMatchOver(acc: any, matchStartMs?: number, fixtureId?: number): boolean {
     if (!acc) return false;
     if (acc.expiry && acc.expiry > 0) {
       const expiryMs = Number(acc.expiry) * 1000;
@@ -51,6 +62,7 @@ export default function PortfolioPage() {
       const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
       if (Date.now() > matchStartMs + FOUR_HOURS_MS) return true;
     }
+    if (fixtureId && fixtureStatus[fixtureId]?.finished) return true;
     return false;
   }
 
@@ -62,6 +74,15 @@ export default function PortfolioPage() {
       const data = await fetchUserEscrows(connection, publicKey);
       data.sort((a: any, b: any) => Number(b.account.nonce) - Number(a.account.nonce));
       setEscrows(data);
+      // Check fixture status for active escrows that might be finished
+      const activeWithFid = data.filter((e: any) => {
+        const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
+        return k === 'Active' && e.account.fixtureId;
+      });
+      for (const e of activeWithFid) {
+        const fid = Number(e.account.fixtureId);
+        if (!fixtureStatus[fid]) checkFixture(fid);
+      }
     } catch (e: any) {
       setError(e?.message || 'Error al cargar');
     } finally {
@@ -82,7 +103,8 @@ export default function PortfolioPage() {
     const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
     const raw = bet?.matchStartTime;
     const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
-    map[e.pubkey.toBase58()] = isMatchOver(e.account, matchStart);
+    const fid = e.account.fixtureId ? Number(e.account.fixtureId) : undefined;
+    map[e.pubkey.toBase58()] = isMatchOver(e.account, matchStart, fid);
     return map;
   }, {});
 
