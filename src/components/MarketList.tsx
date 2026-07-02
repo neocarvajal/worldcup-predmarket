@@ -50,13 +50,34 @@ export const MarketList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const FINISHED_IDS = [5, 10, 13];
+
   const load = async () => {
     try {
       setError(null);
       setLoading(true);
       const data = await client.getFixtures();
       const all: any[] = Array.isArray(data) ? data : data?.fixtures ?? data?.Fixtures ?? [];
-      setFixtures(all.filter((f: any) => (f.CompetitionId ?? f.competitionId ?? 0) === 72));
+      const worldCup = all.filter((f: any) => (f.CompetitionId ?? f.competitionId ?? 0) === 72);
+
+      const now = Date.now();
+      const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+      const candidates = worldCup.filter((f: any) => f.StartTime > now - THREE_HOURS_MS);
+
+      // Check fixture status in parallel, filter out finished ones
+      const results = await Promise.all(
+        candidates.map(async (f: any) => {
+          try {
+            const data = await client.getScoresSnapshot(f.FixtureId);
+            const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
+            const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+            return { ...f, _finished: FINISHED_IDS.includes(last?.StatusId ?? 0) };
+          } catch {
+            return { ...f, _finished: false };
+          }
+        }),
+      );
+      setFixtures(results.filter((f: any) => !f._finished));
     } catch (e: any) {
       if (e instanceof TxLineAuthError || e?.response?.status === 403) {
         setError('auth');
@@ -139,7 +160,7 @@ export const MarketList: React.FC = () => {
     );
   }
 
-  if (fixtures.length === 0) {
+  if (fixtures.length === 0 && !loading) {
     return (
       <div className="text-center py-16 animate-scaleIn">
         <div

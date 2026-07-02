@@ -78,6 +78,8 @@
     "draw": "Draw",
     "vs": "VS",
     "selectPrediction": "Select your prediction",
+    "matchFinished": "Match finished",
+    "matchFinishedDesc": "This match has ended. No more bets accepted.",
     "selections": "selection(s) in your bet",
     "selectOutcome": "Select an outcome to bet",
     "month": {

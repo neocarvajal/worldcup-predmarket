@@ -20,25 +20,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid fixtureId' }, { status: 400 });
   }
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${TXLINE_JWT}`,
-  };
-  if (TXLINE_API_TOKEN) headers['X-Api-Token'] = TXLINE_API_TOKEN;
+  async function fetchSnapshot(jwt: string, apiToken: string) {
+    const h: Record<string, string> = { Authorization: `Bearer ${jwt}` };
+    if (apiToken) h['X-Api-Token'] = apiToken;
+    const res = await fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h });
+    if (!res.ok) return null;
+    return res.json();
+  }
 
   try {
-    const resp = await fetch(
-      `${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`,
-      { headers },
-    );
-    if (!resp.ok) {
-      return NextResponse.json({
-        fixtureId,
-        finished: false,
-        error: `TxLINE returned ${resp.status}`,
-      });
+    let data = await fetchSnapshot(TXLINE_JWT, TXLINE_API_TOKEN);
+
+    // If 403, try guest JWT
+    if (!data) {
+      const guestRes = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
+      if (guestRes.ok) {
+        const guestBody: any = await guestRes.json();
+        data = await fetchSnapshot(guestBody.token, '');
+      }
     }
 
-    const data = await resp.json();
+    if (!data) {
+      return NextResponse.json({ fixtureId, finished: false, error: 'TxLINE returned 403' });
+    }
+
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
     const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
     const statusId = lastMsg?.StatusId ?? 0;

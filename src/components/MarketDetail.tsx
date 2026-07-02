@@ -61,6 +61,7 @@ export const MarketDetail: React.FC = () => {
   const [odds, setOdds] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<'1' | 'X' | '2' | null>(null);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
     if (!fixtureId) return;
@@ -86,6 +87,11 @@ export const MarketDetail: React.FC = () => {
         );
         setOdds(found || items[0] || r);
       }),
+      client.getScoresSnapshot(fid).then((r: any) => {
+        const msgs = Array.isArray(r) ? r : (r?.messages ?? [r]);
+        const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+        setFinished([5, 10, 13].includes(last?.StatusId ?? 0));
+      }).catch(() => setFinished(false)),
     ]).catch(console.error).finally(() => setLoading(false));
   }, [fixtureId, client]);
 
@@ -99,6 +105,7 @@ export const MarketDetail: React.FC = () => {
   const awayOdds = odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
 
   const handleSelect = (selection: '1' | 'X' | '2') => {
+    if (finished) return;
     setSelected(selection);
     const label = selection === '1' ? p1 : selection === '2' ? p2 : t('draw');
     const oddVal = selection === '1' ? homeOdds : selection === '2' ? awayOdds : drawOdds;
@@ -175,7 +182,22 @@ export const MarketDetail: React.FC = () => {
       </div>
 
       <div className="mb-6">
-        <h3 className="title-card mb-3 text-center">{t('selectPrediction')}</h3>
+        <h3 className="title-card mb-3 text-center">
+          {finished ? t('matchFinished') : t('selectPrediction')}
+        </h3>
+        {finished ? (
+          <div
+            className="rounded-2xl p-5 text-center"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>
+              {t('matchFinishedDesc')}
+            </p>
+          </div>
+        ) : (
         <div className="flex gap-3">
           <OddsButton
             name={p1}
@@ -199,6 +221,7 @@ export const MarketDetail: React.FC = () => {
             flag={flag2}
           />
         </div>
+        )}
       </div>
 
       <div className="card text-center py-4" style={{ borderColor: selections.length > 0 ? 'var(--accent)' : 'var(--border)' }}>

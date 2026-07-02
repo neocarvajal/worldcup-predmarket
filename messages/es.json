@@ -78,6 +78,8 @@
     "draw": "Empate",
     "vs": "VS",
     "selectPrediction": "Seleccioná tu predicción",
+    "matchFinished": "Partido finalizado",
+    "matchFinishedDesc": "Este partido ya finalizó. No se aceptan más apuestas.",
     "selections": "selección(es) en tu apuesta",
     "selectOutcome": "Seleccioná un resultado para apostar",
     "month": {
