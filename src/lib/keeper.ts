@@ -11,7 +11,7 @@ import {
 import { BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
 
-const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
+const SETTLEMENT_PROGRAM_ID = new PublicKey('E4Y1BwM5BDXzTSkoACbwTT6Zg86wHETDWMNPLh4Hriu6');
 const TXLINE_PROGRAM_ID = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
 
 function enc(s: string): Uint8Array {
@@ -82,6 +82,7 @@ interface ActiveEscrow {
   depositor: PublicKey;
   recipient: PublicKey;
   nonce: bigint;
+  fixtureId: number;
   fixtureName: string;
   selection: number;
   mint: PublicKey;
@@ -94,7 +95,7 @@ const ESCOW_STATE_ACTIVE = 0;
 const ESCOW_DISCRIMINATOR_BYTES = Buffer.from(ESCOW_DISCRIMINATOR);
 
 /** Minimum size for a fully-initialized Escrow (discriminator 8 + all fields up to and including vault_bump) */
-const MIN_ESCROW_SIZE = 211;
+const MIN_ESCROW_SIZE = 219;
 
 function decodeEscrow(buf: Buffer): ActiveEscrow | null {
   if (buf.length < MIN_ESCROW_SIZE) return null;
@@ -114,51 +115,55 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
   const nonce = readU64(buf, off);
   off += 8;
 
-  // 4. fixture_name (string)
+  // 4. fixture_id (u64, 8 bytes)
+  const fixtureId = Number(readU64(buf, off));
+  off += 8;
+
+  // 5. fixture_name (string)
   const [fixtureName, strAdv] = readString(buf, off);
   off += strAdv;
 
-  // 5. selection (u8)
+  // 6. selection (u8)
   const selection = buf[off];
   off += 1;
 
-  // 6. label (string)
+  // 7. label (string)
   const [, strAdv2] = readString(buf, off);
   off += strAdv2;
 
-  // 7. odds (u64)
+  // 8. odds (u64)
   off += 8;
 
-  // 8. mint (pubkey, 32 bytes)
+  // 9. mint (pubkey, 32 bytes)
   const mint = readPubkey(buf, off);
   off += 32;
 
-  // 9. vault (pubkey, 32 bytes)
+  // 10. vault (pubkey, 32 bytes)
   off += 32;
 
-  // 10. amount (u64)
+  // 11. amount (u64)
   const amount = readU64(buf, off);
   off += 8;
 
-  // 11. expiry (i64)
+  // 12. expiry (i64)
   off += 8;
 
-  // 12. state (EscrowState enum, 1 byte variant index)
+  // 13. depositor_won (bool, 1 byte)
+  off += 1;
+
+  // 14. state (EscrowState enum, 1 byte variant index)
   const state = buf[off];
   off += 1;
 
-  // 13. bump (u8)
+  // 15. bump (u8)
   off += 1;
 
-  // 14. vault_bump (u8)
+  // 16. vault_bump (u8)
   off += 1;
-
-  // 15. depositor_won (bool)
-  // (skip — not needed)
 
   if (state !== ESCOW_STATE_ACTIVE) return null;
 
-  return { pubkey: null!, depositor, recipient, nonce, fixtureName, selection, mint, amount };
+  return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, mint, amount };
 }
 
 export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
@@ -179,21 +184,6 @@ export async function fetchActiveEscrows(connection: Connection): Promise<Active
   return results;
 }
 
-interface TxLineFixture {
-  FixtureId: number;
-  Participant1: string;
-  Participant2: string;
-  StatusId?: number;
-  StartTime?: number;
-  Ts?: number;
-  Competition?: string;
-  CompetitionId?: number;
-  FixtureGroupId?: number;
-  Participant1Id?: number;
-  Participant2Id?: number;
-  Participant1IsHome?: boolean;
-}
-
 async function txlineRequest(
   txlineUrl: string,
   path: string,
@@ -209,16 +199,6 @@ async function txlineRequest(
   });
   if (!res.ok) throw new Error(`TxLINE ${path}: ${res.status} ${res.statusText}`);
   return res.json();
-}
-
-function normalizeParticipantName(name: string): string {
-  return name.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-function parseFixtureName(fixtureName: string): [string, string] {
-  const parts = fixtureName.split(/\s+vs\s+/i);
-  if (parts.length === 2) return [parts[0].trim(), parts[1].trim()];
-  return [fixtureName, ''];
 }
 
 interface SettlementResult {
@@ -238,73 +218,25 @@ export async function settleActiveEscrows(
   txlineUrl: string,
   txlineJwt: string,
   txlineApiToken: string,
-  fixtureNameToIdMap?: Record<string, number>,
+  _fixtureNameToIdMap?: Record<string, number>,
   force: boolean = false,
 ): Promise<SettlementResult[]> {
   const results: SettlementResult[] = [];
   const idl = SETTLEMENT_IDL;
 
-  // 1. Fetch fixtures from TxLINE to build name→fixtureId map
-  let fixtures: TxLineFixture[] = [];
-  try {
-    const snap = await txlineRequest(txlineUrl, '/api/fixtures/snapshot', txlineJwt, txlineApiToken);
-    fixtures = snap?.Fixtures ?? snap?.fixtures ?? snap ?? [];
-  } catch (e: any) {
-    console.warn('Could not fetch TxLINE fixtures:', e.message);
-  }
-
-  const nameToFixture = new Map<string, TxLineFixture>();
-  for (const f of fixtures) {
-    const n1 = normalizeParticipantName(f.Participant1 || '');
-    const n2 = normalizeParticipantName(f.Participant2 || '');
-    if (n1 && n2) {
-      nameToFixture.set(`${n1} vs ${n2}`, f);
-      nameToFixture.set(`${n2} vs ${n1}`, f);
-    }
-  }
-
-  // 2. Fetch active escrows
+  // 1. Fetch active escrows
   const escrows = await fetchActiveEscrows(connection);
   if (escrows.length === 0) return [];
 
-  // 3. Prepare Anchor program for instruction building
+  // 2. Prepare Anchor program for instruction building
   const wallet = keypairToWallet(keeper);
   const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
   const program = new Program(idl, provider);
 
-  // 4. For each escrow, try to settle
+  // 3. For each escrow, try to settle
   for (const escrow of escrows) {
-    const { pubkey, fixtureName, depositor, recipient, mint, selection } = escrow;
+    const { pubkey, fixtureId, fixtureName, depositor, recipient, mint, selection } = escrow;
     const escrowB58 = pubkey.toBase58();
-
-    const [p1Name, p2Name] = parseFixtureName(fixtureName);
-    const p1n = normalizeParticipantName(p1Name);
-    const p2n = normalizeParticipantName(p2Name);
-
-    // Resolve fixtureId
-    let fixtureId: number | null = null;
-    let fixture: TxLineFixture | undefined;
-
-    if (fixtureNameToIdMap?.[fixtureName]) {
-      fixtureId = fixtureNameToIdMap[fixtureName];
-    }
-
-    if (!fixtureId) {
-      const key1 = `${p1n} vs ${p2n}`;
-      const key2 = `${p2n} vs ${p1n}`;
-      fixture = nameToFixture.get(key1) ?? nameToFixture.get(key2);
-      if (fixture) fixtureId = fixture.FixtureId;
-    }
-
-    if (!fixtureId) {
-      results.push({
-        escrowPubkey: escrowB58,
-        fixtureId: null, fixtureName,
-        status: 'skipped',
-        error: 'No matching fixture found in TxLINE',
-      });
-      continue;
-    }
 
     // Check if fixture is finished via scores endpoint
     let score1 = 0, score2 = 0, statusId = 0;
@@ -467,7 +399,7 @@ export async function settleSingleEscrow(
   txlineJwt: string,
   txlineApiToken: string,
   escrowPubkey: PublicKey,
-  fixtureNameToIdMap?: Record<string, number>,
+  _fixtureNameToIdMap?: Record<string, number>,
   force: boolean = false,
 ): Promise<SettlementResult> {
   const accountInfo = await connection.getAccountInfo(escrowPubkey);
@@ -481,46 +413,7 @@ export async function settleSingleEscrow(
   }
   decoded.pubkey = escrowPubkey;
 
-  const { fixtureName, depositor, recipient, mint, selection } = decoded;
-  const [p1Name, p2Name] = parseFixtureName(fixtureName);
-  const p1n = normalizeParticipantName(p1Name);
-  const p2n = normalizeParticipantName(p2Name);
-
-  let fixtures: TxLineFixture[] = [];
-  try {
-    const snap = await txlineRequest(txlineUrl, '/api/fixtures/snapshot', txlineJwt, txlineApiToken);
-    fixtures = snap?.Fixtures ?? snap?.fixtures ?? snap ?? [];
-  } catch (e: any) {
-    console.warn('Could not fetch TxLINE fixtures:', e.message);
-  }
-
-  const nameToFixture = new Map<string, TxLineFixture>();
-  for (const f of fixtures) {
-    const n1 = normalizeParticipantName(f.Participant1 || '');
-    const n2 = normalizeParticipantName(f.Participant2 || '');
-    if (n1 && n2) {
-      nameToFixture.set(`${n1} vs ${n2}`, f);
-      nameToFixture.set(`${n2} vs ${n1}`, f);
-    }
-  }
-
-  let fixtureId: number | null = null;
-  let fixture: TxLineFixture | undefined;
-
-  if (fixtureNameToIdMap?.[fixtureName]) {
-    fixtureId = fixtureNameToIdMap[fixtureName];
-  }
-
-  if (!fixtureId) {
-    const key1 = `${p1n} vs ${p2n}`;
-    const key2 = `${p2n} vs ${p1n}`;
-    fixture = nameToFixture.get(key1) ?? nameToFixture.get(key2);
-    if (fixture) fixtureId = fixture.FixtureId;
-  }
-
-  if (!fixtureId) {
-    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId: null, fixtureName, status: 'skipped', error: 'No matching fixture found in TxLINE' };
-  }
+  const { fixtureId, fixtureName, depositor, recipient, mint } = decoded;
 
   let score1 = 0, score2 = 0, statusId = 0;
   try {

@@ -7,14 +7,14 @@ pub mod state;
 
 use instructions::*;
 
-declare_id!("EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx");
+declare_id!("E4Y1BwM5BDXzTSkoACbwTT6Zg86wHETDWMNPLh4Hriu6");
 
 #[program]
 pub mod settlement {
     use super::*;
 
-    pub fn init_escrow(ctx: Context<InitEscrow>, expiry: i64, nonce: u64, fixture_name: String, selection: u8, label: String, odds: u64) -> Result<()> {
-        instructions::init_escrow::handler(ctx, expiry, nonce, fixture_name, selection, label, odds)
+    pub fn init_escrow(ctx: Context<InitEscrow>, expiry: i64, nonce: u64, fixture_id: u64, fixture_name: String, selection: u8, label: String, odds: u64) -> Result<()> {
+        instructions::init_escrow::handler(ctx, expiry, nonce, fixture_id, fixture_name, selection, label, odds)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {

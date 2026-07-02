@@ -6,6 +6,7 @@ pub struct Escrow {
     pub depositor: Pubkey,
     pub recipient: Pubkey,
     pub nonce: u64,
+    pub fixture_id: u64,
     #[max_len(64)]
     pub fixture_name: String,
     pub selection: u8,

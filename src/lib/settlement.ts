@@ -11,7 +11,7 @@ import {
 } from '@solana/spl-token';
 import bs58 from 'bs58';
 
-const SETTLEMENT_PROGRAM_ID = new PublicKey('EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx');
+const SETTLEMENT_PROGRAM_ID = new PublicKey('E4Y1BwM5BDXzTSkoACbwTT6Zg86wHETDWMNPLh4Hriu6');
 let cachedIdl: Idl | null = null;
 
 function enc(s: string): Uint8Array {
@@ -66,6 +66,7 @@ export async function initEscrowWithDeposit(
     mint: PublicKey;
     amount: bigint;
     expiry: bigint;
+    fixtureId: number;
     fixtureName: string;
     selection: number;
     label: string;
@@ -105,6 +106,7 @@ export async function initEscrowWithDeposit(
       .initEscrow(
         new BN(params.expiry.toString()),
         new BN(nonce.toString()),
+        new BN(params.fixtureId),
         params.fixtureName,
         params.selection,
         params.label,

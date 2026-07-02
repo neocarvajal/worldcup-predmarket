@@ -19,14 +19,10 @@ async function handle(req: NextRequest) {
   const txlineUrl = process.env.TXLINE_API_URL || 'https://txline-dev.txodds.com';
   const txlineJwt = process.env.TXLINE_JWT || '';
   const payerSecretKey = process.env.PAYER_SECRET_KEY;
-  const fixtureNameToIdRaw = process.env.FIXTURE_NAME_TO_ID || '{}';
 
   if (!payerSecretKey) {
     return NextResponse.json({ error: 'PAYER_SECRET_KEY not configured' }, { status: 500 });
   }
-
-  let fixtureNameToId: Record<string, number> = {};
-  try { fixtureNameToId = JSON.parse(fixtureNameToIdRaw); } catch { /* ignore */ }
 
   const connection = new Connection(rpcUrl, 'confirmed');
   const keeper = Keypair.fromSecretKey(new Uint8Array(JSON.parse(payerSecretKey)));
@@ -50,7 +46,7 @@ async function handle(req: NextRequest) {
     if (escrowParam) {
       const result = await settleSingleEscrow(
         connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken,
-        new PublicKey(escrowParam), fixtureNameToId, true,
+        new PublicKey(escrowParam), undefined, true,
       );
       return NextResponse.json({
         ok: result.status === 'settled',
@@ -59,7 +55,7 @@ async function handle(req: NextRequest) {
       });
     } else {
       const results = await settleActiveEscrows(
-        connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, fixtureNameToId, force,
+        connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, undefined, force,
       );
       return NextResponse.json({
         ok: true,

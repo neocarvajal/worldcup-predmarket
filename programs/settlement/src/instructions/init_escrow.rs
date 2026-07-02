@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use crate::state::{Escrow, EscrowState};
 
 #[derive(Accounts)]
-#[instruction(expiry: i64, nonce: u64, fixture_name: String, selection: u8, label: String, odds: u64)]
+#[instruction(expiry: i64, nonce: u64, fixture_id: u64, fixture_name: String, selection: u8, label: String, odds: u64)]
 pub struct InitEscrow<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
@@ -23,11 +23,12 @@ pub struct InitEscrow<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<InitEscrow>, expiry: i64, nonce: u64, fixture_name: String, selection: u8, label: String, odds: u64) -> Result<()> {
+pub fn handler(ctx: Context<InitEscrow>, expiry: i64, nonce: u64, fixture_id: u64, fixture_name: String, selection: u8, label: String, odds: u64) -> Result<()> {
     let escrow = &mut ctx.accounts.escrow;
     escrow.depositor = ctx.accounts.depositor.key();
     escrow.recipient = ctx.accounts.recipient.key();
     escrow.nonce = nonce;
+    escrow.fixture_id = fixture_id;
     escrow.fixture_name = fixture_name;
     escrow.selection = selection;
     escrow.label = label;

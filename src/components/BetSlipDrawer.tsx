@@ -72,6 +72,7 @@ export const BetSlipDrawer: React.FC = () => {
         mint: USDC_MINT,
         amount: amountLamports,
         expiry,
+        fixtureId: s.fixtureId,
         fixtureName: s.fixtureName,
         selection: SEL_MAP[s.selection] ?? 0,
         label: s.label,
