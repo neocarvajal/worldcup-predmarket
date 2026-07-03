@@ -13,18 +13,49 @@ const STATUS_NAMES: Record<number, string> = {
   11: 'WPE', 12: 'PE', 13: 'FPE', 14: 'I', 15: 'A',
   16: 'C', 17: 'TXCC', 18: 'TXCS', 19: 'P',
 };
-const STORAGE_KEY = 'match-watcher:started';
+const STORAGE_STARTED = 'match-watcher:started';
+const STORAGE_STATS = 'match-watcher:stats';
 
-function loadNotified(): Set<number> {
+interface FixtureStats {
+  score1: number;
+  score2: number;
+  yellow1: number;
+  yellow2: number;
+  red1: number;
+  red2: number;
+}
+
+function loadSet(key: string): Set<number> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch { return new Set(); }
 }
 
-function saveNotified(ids: Set<number>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids))); } catch {}
+function saveSet(key: string, ids: Set<number>) {
+  try { localStorage.setItem(key, JSON.stringify(Array.from(ids))); } catch {} }
+
+function loadStatsMap(): Map<number, FixtureStats> {
+  if (typeof window === 'undefined') return new Map();
+  try {
+    const raw = localStorage.getItem(STORAGE_STATS);
+    if (!raw) return new Map();
+    const parsed = JSON.parse(raw);
+    const map = new Map<number, FixtureStats>();
+    for (const [k, v] of Object.entries(parsed)) {
+      map.set(Number(k), v as FixtureStats);
+    }
+    return map;
+  } catch { return new Map(); }
+}
+
+function saveStatsMap(map: Map<number, FixtureStats>) {
+  try {
+    const obj: Record<string, FixtureStats> = {};
+    map.forEach((v, k) => { obj[String(k)] = v; });
+    localStorage.setItem(STORAGE_STATS, JSON.stringify(obj));
+  } catch {}
 }
 
 function parseSnapshot(snap: any, cache: Map<number, any>): any {
@@ -39,13 +70,22 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
   const statusId = getStatusId(maxStatus);
 
   let maxScore1 = 0, maxScore2 = 0, maxSeconds = 0;
+  let maxYellow1 = 0, maxYellow2 = 0, maxRed1 = 0, maxRed2 = 0;
   for (const m of msgs) {
     const s = getScoreVal(m);
     if (s) {
-      const g1 = s.Participant1?.Total?.Goals;
-      const g2 = s.Participant2?.Total?.Goals;
-      if (g1 != null && g1 > maxScore1) maxScore1 = g1;
-      if (g2 != null && g2 > maxScore2) maxScore2 = g2;
+      const t1 = s.Participant1?.Total;
+      const t2 = s.Participant2?.Total;
+      if (t1) {
+        if (t1.Goals != null && t1.Goals > maxScore1) maxScore1 = t1.Goals;
+        if (t1.YellowCards != null && t1.YellowCards > maxYellow1) maxYellow1 = t1.YellowCards;
+        if (t1.RedCards != null && t1.RedCards > maxRed1) maxRed1 = t1.RedCards;
+      }
+      if (t2) {
+        if (t2.Goals != null && t2.Goals > maxScore2) maxScore2 = t2.Goals;
+        if (t2.YellowCards != null && t2.YellowCards > maxYellow2) maxYellow2 = t2.YellowCards;
+        if (t2.RedCards != null && t2.RedCards > maxRed2) maxRed2 = t2.RedCards;
+      }
     }
     const secs = getSeconds(m);
     if (secs != null && secs > maxSeconds) maxSeconds = secs;
@@ -59,6 +99,10 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
     Participant2: cached.Participant2 ?? '',
     Score1: maxScore1,
     Score2: maxScore2,
+    Yellow1: maxYellow1,
+    Yellow2: maxYellow2,
+    Red1: maxRed1,
+    Red2: maxRed2,
     Minute: minute,
     Status: STATUS_NAMES[statusId] ?? 'LIVE',
     StatusId: statusId,
@@ -70,10 +114,11 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const { addNotification } = useNotifications();
   const tn = useTranslations('Notifications');
 
-  const startedRef = useRef<Set<number>>(loadNotified());
+  const startedRef = useRef<Set<number>>(loadSet(STORAGE_STARTED));
   const settledRef = useRef<Set<number>>(new Set());
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
+  const statsRef = useRef<Map<number, FixtureStats>>(loadStatsMap());
 
   const poll = useCallback(async () => {
     try {
@@ -124,7 +169,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
 
         if (!startedRef.current.has(d.FixtureId) && d.StatusId >= 2) {
           startedRef.current.add(d.FixtureId);
-          saveNotified(startedRef.current);
+          saveSet(STORAGE_STARTED, startedRef.current);
           const label = `${d.Participant1 || ''} vs ${d.Participant2 || ''}`;
           addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
           fetch('/api/push/send', {
@@ -133,6 +178,72 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
             body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('matchStarted'), body: label }),
           }).catch(() => {});
         }
+
+        const prev = statsRef.current.get(d.FixtureId);
+        const p1 = d.Participant1 || '';
+        const p2 = d.Participant2 || '';
+        const minute = d.Minute;
+
+        if (prev) {
+          if (d.Score1 > prev.score1) {
+            addNotification({ title: tn('goal'), body: `${p1} ${d.Score1}-${d.Score2} ${p2} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p1} ${d.Score1}-${d.Score2} ${p2} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.Score2 > prev.score2) {
+            addNotification({ title: tn('goal'), body: `${p2} ${d.Score1}-${d.Score2} ${p1} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p2} ${d.Score1}-${d.Score2} ${p1} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.Yellow1 > prev.yellow1) {
+            addNotification({ title: tn('yellowCard'), body: `${p1} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('yellowCard'), body: `${p1} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.Yellow2 > prev.yellow2) {
+            addNotification({ title: tn('yellowCard'), body: `${p2} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('yellowCard'), body: `${p2} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.Red1 > prev.red1) {
+            addNotification({ title: tn('redCard'), body: `${p1} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('redCard'), body: `${p1} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.Red2 > prev.red2) {
+            addNotification({ title: tn('redCard'), body: `${p2} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('redCard'), body: `${p2} (${minute}')` }),
+            }).catch(() => {});
+          }
+        }
+
+        statsRef.current.set(d.FixtureId, {
+          score1: d.Score1,
+          score2: d.Score2,
+          yellow1: d.Yellow1,
+          yellow2: d.Yellow2,
+          red1: d.Red1,
+          red2: d.Red2,
+        });
+        saveStatsMap(statsRef.current);
       }
     } catch {}
   }, [client, addNotification, tn]);

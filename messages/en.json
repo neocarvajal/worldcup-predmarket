@@ -283,7 +283,10 @@
     "retry": "Retry"
   },
   "Notifications": {
-    "matchStarted": "Match Started"
+    "matchStarted": "Match Started",
+    "goal": "⚽ GOAL!",
+    "yellowCard": "🟨 Yellow Card",
+    "redCard": "🟥 Red Card"
   },
   "Docs": {
     "title": "Documentation",

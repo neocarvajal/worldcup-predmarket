@@ -283,7 +283,10 @@
     "retry": "Reintentar"
   },
   "Notifications": {
-    "matchStarted": "Partido Iniciado"
+    "matchStarted": "Partido Iniciado",
+    "goal": "⚽ ¡GOL!",
+    "yellowCard": "🟨 Tarjeta Amarilla",
+    "redCard": "🟥 Tarjeta Roja"
   },
   "Docs": {
     "title": "Documentación",
