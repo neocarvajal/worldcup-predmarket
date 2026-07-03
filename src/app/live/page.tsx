@@ -93,14 +93,14 @@ export default function LivePage() {
         }
       }
       const now = Date.now();
-      const window = 3.5 * 60 * 60 * 1000;
+      const win = 4.5 * 60 * 60 * 1000;
       const candidates = fixtures.filter(f => {
         const cid = f.CompetitionId ?? f.competitionId ?? 0;
         if (cid !== 72) return false;
         const rawStart: number = f.StartTime ?? f.startTime ?? 0;
         if (rawStart <= 0) return false;
         const startTimeMs = rawStart > 1e12 ? rawStart : rawStart * 1000;
-        return Math.abs(now - startTimeMs) < window;
+        return Math.abs(now - startTimeMs) < win;
       });
       if (candidates.length === 0) {
         setConnectionState('connected');
@@ -160,7 +160,7 @@ export default function LivePage() {
       const fixtures: any[] = data?.Fixtures ?? data?.fixtures ?? data ?? [];
       if (!Array.isArray(fixtures)) return;
       const now = Date.now();
-      const win = 3.5 * 60 * 60 * 1000;
+          const win = 4.5 * 60 * 60 * 1000;
       for (const f of fixtures) {
         const cid = f.CompetitionId ?? f.competitionId ?? 0;
         if (cid !== 72) continue;

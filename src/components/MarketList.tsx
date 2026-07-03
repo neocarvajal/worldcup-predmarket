@@ -61,21 +61,24 @@ export const MarketList: React.FC = () => {
       const worldCup = all.filter((f: any) => (f.CompetitionId ?? f.competitionId ?? 0) === 72);
 
       const now = Date.now();
-      const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-      const candidates = worldCup.filter((f: any) => f.StartTime > now - THREE_HOURS_MS);
+      const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+      const candidates = worldCup.filter((f: any) => f.StartTime > now - FOUR_HOURS_MS);
 
       const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
 
+      const LIVE_IDS = new Set([2, 3, 4, 6, 7, 8, 9, 11, 12, 14]);
+
       const results = await Promise.all(
         candidates.map(async (f: any) => {
-          const maxDuration = 2.25 * 60 * 60 * 1000;
+          const maxDuration = 2.5 * 60 * 60 * 1000;
           try {
             const data = await client.getScoresSnapshot(f.FixtureId);
             const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
             const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
             const statusId = last ? getStatusId(last) : 0;
             const statusFinished = FINISHED_IDS.includes(statusId);
-            const timeFinished = f.StartTime + maxDuration < now;
+            const isLive = LIVE_IDS.has(statusId);
+            const timeFinished = !isLive && f.StartTime + maxDuration < now;
             return { ...f, _finished: statusFinished || timeFinished };
           } catch {
             return { ...f, _finished: f.StartTime + maxDuration < now };
