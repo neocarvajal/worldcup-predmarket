@@ -6,7 +6,6 @@ import { TxLineAuthError } from '../../txlineSkill';
 import { LiveFeedItem } from '../../components/LiveFeedItem';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
-import { useNotifications } from '../../context/NotificationContext';
 
 const FINISHED_IDS = [5, 10, 13];
 
@@ -22,15 +21,12 @@ const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
 export default function LivePage() {
   const { client } = useTxLine();
   const t = useTranslations('Live');
-  const tn = useTranslations('Notifications');
-  const { addNotification } = useNotifications();
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
   const settledRef = useRef<Set<number>>(new Set());
-  const startedRef = useRef<Set<number>>(new Set());
 
   const parseSnapshot = useCallback((snap: any): any => {
     const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
@@ -131,16 +127,6 @@ export default function LivePage() {
           }
           continue;
         }
-        if (!startedRef.current.has(fid) && d.StatusId >= 2) {
-          startedRef.current.add(fid);
-          const label = `${d.Participant1 || candidate.Participant1 || ''} vs ${d.Participant2 || candidate.Participant2 || ''}`;
-          addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
-          fetch('/api/push/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fixtureId: fid, title: tn('matchStarted'), body: label }),
-          }).catch(() => {});
-        }
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
         d.Participant2 = candidate.Participant2 ?? candidate.participant2 ?? '';
@@ -219,16 +205,6 @@ export default function LivePage() {
                 .catch(() => {});
             }
             continue;
-          }
-          if (!startedRef.current.has(d.FixtureId) && d.StatusId >= 2) {
-            startedRef.current.add(d.FixtureId);
-            const label = `${d.Participant1 || ''} vs ${d.Participant2 || ''}`;
-            addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
-            fetch('/api/push/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('matchStarted'), body: label }),
-            }).catch(() => {});
           }
           updates.push(d);
         }

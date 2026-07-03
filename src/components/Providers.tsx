@@ -16,6 +16,7 @@ import {
 import { TxLineProvider } from '../context/TxLineContext';
 import { BetSlipProvider } from '../context/BetSlipContext';
 import { NotificationProvider } from '../context/NotificationContext';
+import { MatchWatcherProvider } from '../context/MatchWatcherContext';
 import { NavBar } from './NavBar';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -51,12 +52,14 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
           <TxLineProvider>
             <BetSlipProvider>
               <NotificationProvider>
-                <div className="flex flex-col min-h-screen bg-primary">
-                  <NavBar />
-                  <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
-                    {children}
-                  </main>
-                </div>
+                <MatchWatcherProvider>
+                  <div className="flex flex-col min-h-screen bg-primary">
+                    <NavBar />
+                    <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+                      {children}
+                    </main>
+                  </div>
+                </MatchWatcherProvider>
               </NotificationProvider>
             </BetSlipProvider>
           </TxLineProvider>
