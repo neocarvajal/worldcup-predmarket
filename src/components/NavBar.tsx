@@ -27,8 +27,8 @@ export const NavBar: React.FC = () => {
         setDropdownOpen(false);
       }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
   }, [dropdownOpen]);
 
   return (
@@ -74,7 +74,8 @@ export const NavBar: React.FC = () => {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 top-11 z-50">
+              // <div className="absolute left-1/2 -translate-x-1/2 top-11 z-50">
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 pointer-events-none">
                 <div
                   className="w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top"
                   style={{
