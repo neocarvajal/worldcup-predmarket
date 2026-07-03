@@ -52,11 +52,6 @@ export const NavBar: React.FC = () => {
           <span className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             {t('brand')}
           </span>
-          {isLive && (
-            <span className="flex items-center ml-1">
-              <span className="w-2 h-2 rounded-full bg-danger animate-pulse-dot" />
-            </span>
-          )}
         </Link>
 
         <div className="flex items-center gap-3">
@@ -79,80 +74,82 @@ export const NavBar: React.FC = () => {
             </button>
 
             {dropdownOpen && (
-              <div
-                className="absolute left-1/2 -translate-x-1/2 top-11 w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top z-50"
-                style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                }}
-              >
+              <div className="absolute left-1/2 -translate-x-1/2 top-11 z-50">
                 <div
-                  className="flex items-center justify-between px-4 py-3"
-                  style={{ borderBottom: '1px solid var(--border)' }}
+                  className="w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                  }}
                 >
-                  <span className="text-xs font-semibold">{t('notifications')}</span>
-                  {notifications.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {unreadCount > 0 && (
+                  <div
+                    className="flex items-center justify-between px-4 py-3"
+                    style={{ borderBottom: '1px solid var(--border)' }}
+                  >
+                    <span className="text-xs font-semibold">{t('notifications')}</span>
+                    {notifications.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="text-[10px] font-semibold transition-all hover:opacity-70"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            {t('markAllRead')}
+                          </button>
+                        )}
                         <button
-                          onClick={markAllAsRead}
+                          onClick={clearAll}
                           className="text-[10px] font-semibold transition-all hover:opacity-70"
-                          style={{ color: 'var(--accent)' }}
+                          style={{ color: 'var(--text-muted)' }}
                         >
-                          {t('markAllRead')}
+                          {t('clearAll')}
                         </button>
-                      )}
-                      <button
-                        onClick={clearAll}
-                        className="text-[10px] font-semibold transition-all hover:opacity-70"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {t('clearAll')}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="max-h-[320px] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="text-center py-10">
-                      <BellIcon width={24} height={24} style={{ color: 'var(--text-muted)' }} className="mx-auto mb-2 opacity-40" />
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('noNotifications')}</p>
-                    </div>
-                  ) : (
-                    notifications.map(n => (
-                      <button
-                        key={n.id}
-                        onClick={() => { markAsRead(n.id); if (n.escrowPubkey) setDropdownOpen(false); }}
-                        className="w-full text-left px-4 py-3 transition-all duration-150 hover:opacity-80 active:opacity-60"
-                        style={{
-                          background: n.read ? 'transparent' : 'var(--accent-dim)',
-                          borderBottom: '1px solid var(--border)',
-                        }}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              {!n.read && (
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{ background: 'var(--accent)' }}
-                                />
-                              )}
-                              <span className="text-xs font-semibold truncate">{n.title}</span>
+                  <div className="max-h-[320px] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-10">
+                        <BellIcon width={24} height={24} style={{ color: 'var(--text-muted)' }} className="mx-auto mb-2 opacity-40" />
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('noNotifications')}</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <button
+                          key={n.id}
+                          onClick={() => { markAsRead(n.id); if (n.escrowPubkey) setDropdownOpen(false); }}
+                          className="w-full text-left px-4 py-3 transition-all duration-150 hover:opacity-80 active:opacity-60"
+                          style={{
+                            background: n.read ? 'transparent' : 'var(--accent-dim)',
+                            borderBottom: '1px solid var(--border)',
+                          }}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                {!n.read && (
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ background: 'var(--accent)' }}
+                                  />
+                                )}
+                                <span className="text-xs font-semibold truncate">{n.title}</span>
+                              </div>
+                              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                {n.body}
+                              </p>
+                              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                                {new Date(n.timestamp).toLocaleString()}
+                              </span>
                             </div>
-                            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                              {n.body}
-                            </p>
-                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                              {new Date(n.timestamp).toLocaleString()}
-                            </span>
                           </div>
-                        </div>
-                      </button>
-                    ))
-                  )}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             )}
