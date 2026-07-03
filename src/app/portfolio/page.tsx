@@ -38,7 +38,7 @@ export default function PortfolioPage() {
     } catch {}
   }
 
-  async function settleOne(escrowPubkey: string, fixtureName: string): Promise<boolean> {
+  async function settleOne(escrowPubkey: string, fixtureName: string, fixtureId?: number): Promise<boolean> {
     try {
       const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST' });
       const data = await resp.json();
@@ -50,6 +50,19 @@ export default function PortfolioPage() {
           type: won ? 'won' : 'lost',
           escrowPubkey,
         });
+        const walletStr = publicKey?.toBase58();
+        if (walletStr && fixtureId) {
+          fetch('/api/push/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: walletStr,
+              title: won ? '🎉 Apuesta ganada' : '😞 Apuesta perdida',
+              body: `${fixtureName} — ${won ? 'Liquidación exitosa' : 'Tu apuesta no acertó'}`,
+              fixtureId,
+            }),
+          }).catch(() => {});
+        }
         return true;
       }
       return false;
@@ -132,7 +145,8 @@ export default function PortfolioPage() {
       for (const e of toSettle) {
         const key = e.pubkey.toBase58();
         const fixtureName = e.account.fixture_name || loadBet(publicKey!.toBase58(), key)?.fixtureName || `Partido`;
-        const ok = await settleOne(key, fixtureName);
+        const fidNum = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
+        const ok = await settleOne(key, fixtureName, fidNum);
         if (ok) setSettledKeys(prev => new Set(prev).add(key));
       }
       setAutoSettling(false);

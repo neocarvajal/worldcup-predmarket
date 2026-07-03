@@ -135,6 +135,11 @@ export default function LivePage() {
           startedRef.current.add(fid);
           const label = `${d.Participant1 || candidate.Participant1 || ''} vs ${d.Participant2 || candidate.Participant2 || ''}`;
           addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
+          fetch('/api/push/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fixtureId: fid, title: tn('matchStarted'), body: label }),
+          }).catch(() => {});
         }
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
@@ -219,6 +224,11 @@ export default function LivePage() {
             startedRef.current.add(d.FixtureId);
             const label = `${d.Participant1 || ''} vs ${d.Participant2 || ''}`;
             addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('matchStarted'), body: label }),
+            }).catch(() => {});
           }
           updates.push(d);
         }

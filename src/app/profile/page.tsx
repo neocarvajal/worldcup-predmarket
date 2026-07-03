@@ -18,6 +18,7 @@ import {
   GlobeIcon,
   ReloadIcon,
 } from '@radix-ui/react-icons';
+import { PushToggle } from '../../components/PushToggle';
 
 export default function ProfilePage() {
   const { publicKey, signTransaction, disconnect } = useWallet();
@@ -338,6 +339,14 @@ export default function ProfilePage() {
                   </button>
                 </div>
               )}
+
+              <div style={{ height: 1, background: 'var(--border)' }} />
+
+              {/* Notificaciones Push */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('pushNotifications')}</span>
+                <PushToggle wallet={publicKey?.toBase58()} />
+              </div>
 
               <div style={{ height: 1, background: 'var(--border)' }} />
 

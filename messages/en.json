@@ -239,6 +239,7 @@
     "activate": "Activate",
     "activationError": "Error activating TxLINE",
     "retry": "Retry",
+    "pushNotifications": "Push Notifications",
     "imageUri": "Image URI (on-chain)",
     "xHandle": "X / Twitter (on-chain)",
     "savedOnSolana": "Profile saved on Solana",
