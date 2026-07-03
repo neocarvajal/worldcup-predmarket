@@ -179,12 +179,12 @@
     "step4desc": "El keeper resuelve las apuestas al finalizar",
     "network": "Red",
     "free": "Gratuito",
-    "footerTitle": "World Cup Prediction Market — Hackathon 2026",
+    "footerTitle": "WorldCup PredMarket — Hackathon 2026",
     "documentation": "Documentación"
   },
   "Markets": {
     "title": "Partidos",
-    "subtitle": "Mundial 2026 · Predicciones"
+    "subtitle": "WorldCup PredMarket"
   },
   "Live": {
     "title": "En Vivo",
@@ -287,11 +287,11 @@
   },
   "Docs": {
     "title": "Documentación",
-    "subtitle": "Cómo funciona PredMarket",
+    "subtitle": "Cómo funciona WorldCup PredMarket",
     "sections": {
       "whatIs": {
         "title": "¿Qué es este proyecto?",
-        "content": "PredMarket es un mercado de predicción descentralizado construido sobre Solana. Permite apostar en resultados de partidos del Mundial 2026 usando USDT como colateral, con liquidación automática basada en datos verificables de TxLINE."
+        "content": "WorldCup PredMarket es un mercado de predicción descentralizado construido sobre Solana. Permite apostar en resultados de partidos del Mundial 2026 usando USDT como colateral, con liquidación automática basada en datos verificables de TxLINE."
       },
       "wallet": {
         "title": "Conexión de wallet",

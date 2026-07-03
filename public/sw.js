@@ -8,7 +8,7 @@ self.addEventListener('activate', function (event) {
 
 self.addEventListener('push', function (event) {
   var data = {
-    title: 'PredMarket',
+    title: 'WorldCup PredMarket',
     body: '',
   };
 

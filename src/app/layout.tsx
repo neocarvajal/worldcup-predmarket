@@ -17,7 +17,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale}>
       <head>
-        <title>World Cup Prediction Market</title>
+        <title>WorldCup PredMarket</title>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="alternate icon" href="/favicon.ico" type="image/x-icon" />
       </head>

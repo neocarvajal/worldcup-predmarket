@@ -33,7 +33,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
     new SolanaMobileWalletAdapter({
       addressSelector: createDefaultAddressSelector(),
       appIdentity: {
-        name: 'World Cup Predictions',
+          name: 'WorldCup PredMarket',
         uri: typeof window !== 'undefined' ? window.location.origin : 'https://worldcup-hackathon.vercel.app',
         icon: '/favicon.svg',
       },
