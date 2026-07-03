@@ -287,6 +287,44 @@
   },
   "Docs": {
     "title": "Documentation",
-    "subtitle": "How World Cup Predictions works"
+    "subtitle": "How World Cup Predictions works",
+    "sections": {
+      "whatIs": {
+        "title": "What is this project?",
+        "content": "World Cup Predictions is a decentralized prediction market built on Solana. It lets you bet on 2026 World Cup match outcomes using USDT as collateral, with automatic settlement based on verifiable data from TxLINE."
+      },
+      "wallet": {
+        "title": "Wallet Connection",
+        "content": "You need a Solana wallet (Phantom, Backpack, or Solflare) configured on Devnet. Connect it by clicking \"Connect Wallet\" in the top-right corner. No KYC or registration — just connect your wallet and start."
+      },
+      "txline": {
+        "title": "Activate TxLINE subscription",
+        "content": "Before your first bet, you need to activate a free TxLINE subscription (Tier 1). This lets you access match data and odds verifiable on-chain. Activation requires a wallet signature (free)."
+      },
+      "betting": {
+        "title": "How betting works",
+        "content": ["Pick a match on the Markets page.", "Select the outcome: 1 (home), X (draw), or 2 (away).", "Enter the amount in USDT and confirm the transaction.", "Your bet stays in an escrow (smart contract) until the match ends.", "When finished, the keeper settles automatically: if you win, you get your stake + winnings."]
+      },
+      "payout": {
+        "title": "Payout calculation",
+        "content": "Odds are shown with up to 3 decimals (e.g., 2.000 = 2.0x). Payout is calculated as: amount × odds. If you bet 10 USDT at 2.5 odds, you get 25 USDT if you win."
+      },
+      "settlement": {
+        "title": "Automatic settlement",
+        "content": "You don't need to do anything to collect. The keeper bot checks every 5 minutes if matches have ended. If your bet is correct, the escrow settles and funds arrive automatically in your wallet. It also settles when loading your portfolio if a finished match is detected."
+      },
+      "tech": {
+        "title": "Technology",
+        "content": ["Solana — high-speed, low-cost blockchain.", "Anchor — framework for Solana programs.", "TxLINE — sports oracle with on-chain verifiable data.", "USDT — stablecoin used as collateral.", "Supabase — database and backend for the keeper bot."]
+      },
+      "faucet": {
+        "title": "Faucet",
+        "content": "You need USDT on Devnet to bet. Visit the Faucet page from the main menu to receive test USDT. If you don't have SOL for gas, use the Solana Devnet faucet."
+      },
+      "security": {
+        "title": "Security",
+        "content": "Funds for each bet are locked in an escrow (Anchor program). Only the keeper can settle, and only when the fixture is verified on-chain. No intermediaries or centralized custody."
+      }
+    }
   }
 }

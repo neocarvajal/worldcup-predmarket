@@ -287,6 +287,44 @@
   },
   "Docs": {
     "title": "Documentación",
-    "subtitle": "Cómo funciona World Cup Predictions"
+    "subtitle": "Cómo funciona World Cup Predictions",
+    "sections": {
+      "whatIs": {
+        "title": "¿Qué es este proyecto?",
+        "content": "World Cup Predictions es un mercado de predicción descentralizado construido sobre Solana. Permite apostar en resultados de partidos del Mundial 2026 usando USDT como colateral, con liquidación automática basada en datos verificables de TxLINE."
+      },
+      "wallet": {
+        "title": "Conexión de wallet",
+        "content": "Necesitas una wallet de Solana (Phantom, Backpack o Solflare) configurada en Devnet. Conéctala haciendo clic en \"Connect Wallet\" en la esquina superior derecha. No hay verificación KYC ni registro — solo conecta tu wallet y comienza."
+      },
+      "txline": {
+        "title": "Activar suscripción TxLINE",
+        "content": "Antes de tu primera apuesta, necesitas activar una suscripción gratuita a TxLINE (Tier 1). Esto te permite acceder a datos de partidos y odds verificables on-chain. La activación requiere una firma de wallet (sin costo)."
+      },
+      "betting": {
+        "title": "Cómo funciona una apuesta",
+        "content": ["Elige un partido en la página Markets.", "Selecciona el resultado: 1 (local), X (empate) o 2 (visitante).", "Ingresa el monto en USDT y confirma la transacción.", "Tu apuesta queda en un escrow (contrato inteligente) hasta que el partido termine.", "Al finalizar, el keeper liquida automáticamente: si acertaste, recibes tu stake + ganancias."]
+      },
+      "payout": {
+        "title": "Cálculo de payout",
+        "content": "Las odds se muestran con hasta 3 decimales (ej: 2.000 = 2.0x). El payout se calcula como: monto × odds. Si apuestas 10 USDT a odds 2.5, recibes 25 USDT si ganas."
+      },
+      "settlement": {
+        "title": "Liquidación automática",
+        "content": "No necesitas hacer nada para cobrar. El keeper bot verifica cada 5 minutos si los partidos terminaron. Si tu apuesta está en lo correcto, el escrow se liquida y recibes los fondos automáticamente en tu wallet. También se liquida al cargar tu portfolio si detecta un partido finalizado."
+      },
+      "tech": {
+        "title": "Tecnología",
+        "content": ["Solana — blockchain de alta velocidad y bajo costo.", "Anchor — framework para programas Solana.", "TxLINE — oráculo deportivo con datos verificables on-chain.", "USDT — moneda estable utilizada como colateral.", "Supabase — base de datos y backend para el keeper bot."]
+      },
+      "faucet": {
+        "title": "Faucet",
+        "content": "Necesitas USDT en Devnet para apostar. Visita la página Faucet desde el menú principal para recibir USDT de prueba. Si no tienes SOL para gas, usa el faucet de Solana Devnet."
+      },
+      "security": {
+        "title": "Seguridad",
+        "content": "Los fondos de cada apuesta están bloqueados en un escrow (programa Anchor). Solo el keeper puede liquidar, y solo cuando el fixture está verificado on-chain. No hay intermediarios ni custodia centralizada."
+      }
+    }
   }
 }
