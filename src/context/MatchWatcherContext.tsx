@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { useTxLine } from './TxLineContext';
 import { useNotifications } from './NotificationContext';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
+import { tTeam } from '../lib/teams';
 
 const FINISHED_IDS = [5, 10, 13];
 const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
@@ -131,6 +133,8 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const statsRef = useRef<Map<number, FixtureStats>>(loadStatsMap());
   const enabledRef = useRef(notificationsEnabled);
   enabledRef.current = notificationsEnabled;
+  const localeRef = useRef('en');
+  localeRef.current = useLocale();
 
   const poll = useCallback(async () => {
     try {
@@ -194,8 +198,9 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         }
 
         const prev = statsRef.current.get(d.FixtureId);
-        const p1 = d.Participant1 || '';
-        const p2 = d.Participant2 || '';
+        const locale = localeRef.current;
+        const p1 = tTeam(d.Participant1 || '', locale);
+        const p2 = tTeam(d.Participant2 || '', locale);
         const minute = d.Minute;
 
         if (prev && enabledRef.current) {

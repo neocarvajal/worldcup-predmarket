@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { useTxLine } from '../context/TxLineContext';
 import { useBetSlip } from '../context/BetSlipContext';
 import { getFlag } from '../lib/flags';
+import { tTeam } from '../lib/teams';
 import { OddsButton } from './OddsButton';
 import { BetSlipDrawer } from './BetSlipDrawer';
 
@@ -95,8 +97,9 @@ export const MarketDetail: React.FC = () => {
     ]).catch(console.error).finally(() => setLoading(false));
   }, [fixtureId, client]);
 
-  const p1 = fixture?.Participant1 || fixture?.participant1 || t('home');
-  const p2 = fixture?.Participant2 || fixture?.participant2 || t('away');
+  const locale = useLocale();
+  const p1 = tTeam(fixture?.Participant1 || fixture?.participant1 || t('home'), locale);
+  const p2 = tTeam(fixture?.Participant2 || fixture?.participant2 || t('away'), locale);
   const competition = fixture?.Competition || fixture?.competition || '';
   const startTime = fixture?.StartTime || fixture?.startTime;
 

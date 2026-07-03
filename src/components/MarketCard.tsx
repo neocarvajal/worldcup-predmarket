@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { getFlag } from '../lib/flags';
+import { tTeam } from '../lib/teams';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 interface MarketCardProps {
@@ -92,6 +94,9 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const startDate = parseDate(startTime);
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
+  const locale = useLocale();
+  const show1 = tTeam(participant1, locale);
+  const show2 = tTeam(participant2, locale);
   const t = useTranslations('MarketCard');
   const months = [
     t('monthShort.1'), t('monthShort.2'), t('monthShort.3'), t('monthShort.4'),
@@ -144,7 +149,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             >
               <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
             </div>
-            <span className="text-sm font-semibold truncate">{participant1}</span>
+            <span className="text-sm font-semibold truncate">{show1}</span>
           </div>
 
           {/* VS */}
@@ -159,7 +164,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
           {/* Team 2 */}
           <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
-            <span className="text-sm font-semibold truncate">{participant2}</span>
+            <span className="text-sm font-semibold truncate">{show2}</span>
             <div
               className="flex items-center justify-center shrink-0"
               style={{

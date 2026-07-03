@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { getFlag } from '../lib/flags';
+import { tTeam } from '../lib/teams';
 
 const TXLINE_PLAYING = new Set(['H1', 'H2', 'ET1', 'ET2', 'PE']);
 const TXLINE_PAUSED = new Set(['HT', 'HTET', 'WET', 'WPE']);
@@ -22,6 +24,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
   fixtureId, participant1, participant2, score1, score2, minute, status,
 }) => {
   const t = useTranslations('LiveFeedItem');
+  const locale = useLocale();
   const s = status?.toUpperCase() || '';
   const isPlaying = TXLINE_PLAYING.has(s);
   const isPaused = TXLINE_PAUSED.has(s);
@@ -32,6 +35,8 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
 
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
+  const show1 = tTeam(participant1, locale);
+  const show2 = tTeam(participant2, locale);
   const statusLabel = t(s.toLowerCase());
 
   function Badge() {
@@ -163,7 +168,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
           >
             <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
           </div>
-          <span className="text-sm font-semibold truncate">{participant1}</span>
+          <span className="text-sm font-semibold truncate">{show1}</span>
         </div>
 
         <div className="flex flex-col items-center shrink-0">
@@ -198,7 +203,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
-          <span className="text-sm font-semibold truncate">{participant2}</span>
+          <span className="text-sm font-semibold truncate">{show2}</span>
           <div
             className="flex items-center justify-center shrink-0"
             style={{
