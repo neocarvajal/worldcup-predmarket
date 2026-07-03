@@ -71,6 +71,7 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
 
   let maxScore1 = 0, maxScore2 = 0, maxSeconds = 0;
   let maxYellow1 = 0, maxYellow2 = 0, maxRed1 = 0, maxRed2 = 0;
+  let currentScore1 = 0, currentScore2 = 0;
   for (const m of msgs) {
     const s = getScoreVal(m);
     if (s) {
@@ -89,6 +90,13 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
     }
     const secs = getSeconds(m);
     if (secs != null && secs > maxSeconds) maxSeconds = secs;
+    if (secs != null && secs >= maxSeconds) {
+      const ls = getScoreVal(m);
+      if (ls) {
+        if (ls.Participant1?.Total?.Goals != null) currentScore1 = ls.Participant1.Total.Goals;
+        if (ls.Participant2?.Total?.Goals != null) currentScore2 = ls.Participant2.Total.Goals;
+      }
+    }
   }
   const minute = Math.floor(maxSeconds / 60);
   const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
@@ -99,6 +107,8 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
     Participant2: cached.Participant2 ?? '',
     Score1: maxScore1,
     Score2: maxScore2,
+    CurrentScore1: currentScore1,
+    CurrentScore2: currentScore2,
     Yellow1: maxYellow1,
     Yellow2: maxYellow2,
     Red1: maxRed1,
@@ -185,20 +195,36 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         const minute = d.Minute;
 
         if (prev) {
-          if (d.Score1 > prev.score1) {
-            addNotification({ title: tn('goal'), body: `${p1} ${d.Score1}-${d.Score2} ${p2} (${minute}')`, type: 'info' });
+          if (d.CurrentScore1 > prev.score1) {
+            addNotification({ title: tn('goal'), body: `${p1} ${d.CurrentScore1}:${d.CurrentScore2} ${p2} (${minute}')`, type: 'info' });
             fetch('/api/push/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p1} ${d.Score1}-${d.Score2} ${p2} (${minute}')` }),
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p1} ${d.CurrentScore1}:${d.CurrentScore2} ${p2} (${minute}')` }),
             }).catch(() => {});
           }
-          if (d.Score2 > prev.score2) {
-            addNotification({ title: tn('goal'), body: `${p2} ${d.Score1}-${d.Score2} ${p1} (${minute}')`, type: 'info' });
+          if (d.CurrentScore2 > prev.score2) {
+            addNotification({ title: tn('goal'), body: `${p2} ${d.CurrentScore1}:${d.CurrentScore2} ${p1} (${minute}')`, type: 'info' });
             fetch('/api/push/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p2} ${d.Score1}-${d.Score2} ${p1} (${minute}')` }),
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goal'), body: `${p2} ${d.CurrentScore1}:${d.CurrentScore2} ${p1} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.CurrentScore1 < prev.score1) {
+            addNotification({ title: tn('goalAnnulled'), body: `${p1} ${d.CurrentScore1}:${d.CurrentScore2} ${p2} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goalAnnulled'), body: `${p1} ${d.CurrentScore1}:${d.CurrentScore2} ${p2} (${minute}')` }),
+            }).catch(() => {});
+          }
+          if (d.CurrentScore2 < prev.score2) {
+            addNotification({ title: tn('goalAnnulled'), body: `${p2} ${d.CurrentScore1}:${d.CurrentScore2} ${p1} (${minute}')`, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('goalAnnulled'), body: `${p2} ${d.CurrentScore1}:${d.CurrentScore2} ${p1} (${minute}')` }),
             }).catch(() => {});
           }
           if (d.Yellow1 > prev.yellow1) {
@@ -236,8 +262,8 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         }
 
         statsRef.current.set(d.FixtureId, {
-          score1: d.Score1,
-          score2: d.Score2,
+          score1: d.CurrentScore1,
+          score2: d.CurrentScore2,
           yellow1: d.Yellow1,
           yellow2: d.Yellow2,
           red1: d.Red1,

@@ -285,6 +285,7 @@
   "Notifications": {
     "matchStarted": "Match Started",
     "goal": "⚽ GOAL!",
+    "goalAnnulled": "❌ Goal Annulled",
     "yellowCard": "🟨 Yellow Card",
     "redCard": "🟥 Red Card"
   },
