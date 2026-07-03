@@ -394,7 +394,7 @@ export default function LandingPage() {
               className="text-xs font-semibold transition-all duration-200 hover:opacity-70"
               style={{ color: 'var(--text-muted)' }}
             >
-              Documentación
+              {t('documentation')}
             </Link>
           </div>
           <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)' }}>

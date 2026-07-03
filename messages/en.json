@@ -179,7 +179,8 @@
     "step4desc": "The keeper settles bets automatically after the match",
     "network": "Network",
     "free": "Free",
-    "footerTitle": "World Cup Prediction Market — Hackathon 2026"
+    "footerTitle": "World Cup Prediction Market — Hackathon 2026",
+    "documentation": "Documentation"
   },
   "Markets": {
     "title": "Matches",
@@ -283,5 +284,9 @@
   },
   "Notifications": {
     "matchStarted": "Match Started"
+  },
+  "Docs": {
+    "title": "Documentation",
+    "subtitle": "How World Cup Predictions works"
   }
 }

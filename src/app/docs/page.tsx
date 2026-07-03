@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
+import { useTranslations } from 'next-intl';
 
 const sections = [
   {
@@ -54,6 +55,7 @@ const sections = [
 ];
 
 export default function DocsPage() {
+  const t = useTranslations('Docs');
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
       <div className="flex items-center gap-3 mb-6">
@@ -68,8 +70,8 @@ export default function DocsPage() {
           <ArrowLeftIcon width={16} height={16} style={{ color: 'var(--text-primary)' }} />
         </Link>
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Documentación</h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Cómo funciona World Cup Predictions</p>
+          <h1 className="text-xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('subtitle')}</p>
         </div>
       </div>
 

@@ -179,7 +179,8 @@
     "step4desc": "El keeper resuelve las apuestas al finalizar",
     "network": "Red",
     "free": "Gratuito",
-    "footerTitle": "World Cup Prediction Market — Hackathon 2026"
+    "footerTitle": "World Cup Prediction Market — Hackathon 2026",
+    "documentation": "Documentación"
   },
   "Markets": {
     "title": "Partidos",
@@ -283,5 +284,9 @@
   },
   "Notifications": {
     "matchStarted": "Partido Iniciado"
+  },
+  "Docs": {
+    "title": "Documentación",
+    "subtitle": "Cómo funciona World Cup Predictions"
   }
 }

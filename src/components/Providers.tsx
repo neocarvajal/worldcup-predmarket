@@ -53,7 +53,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
               <NotificationProvider>
                 <div className="flex flex-col min-h-screen bg-primary">
                   <NavBar />
-                  <main className="flex-1 pb-20 overflow-y-auto">
+                  <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
                     {children}
                   </main>
                 </div>

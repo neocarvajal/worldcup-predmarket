@@ -41,7 +41,7 @@ export const NavBar: React.FC = () => {
         borderBottom: '1px solid var(--nav-border)',
       }}
     >
-      <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-2.5">
+      <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-2.5 gap-2">
         <Link href="/" className="flex items-center gap-3 group">
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-extrabold transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(220,235,2,0.35)]"
@@ -80,7 +80,7 @@ export const NavBar: React.FC = () => {
 
             {dropdownOpen && (
               <div
-                className="absolute left-1/2 -translate-x-1/2 top-11 w-[calc(100vw-32px)] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top z-50"
+                className="absolute right-0 top-11 w-[calc(100vw-32px)] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top-right z-50"
                 style={{
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border)',
