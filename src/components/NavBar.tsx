@@ -33,7 +33,7 @@ export const NavBar: React.FC = () => {
 
   return (
     <nav
-      className="sticky top-0 z-30"
+      className="sticky top-0 z-50"
       style={{
         background: 'rgba(8,8,13,0.88)',
         backdropFilter: 'blur(20px)',
@@ -80,7 +80,7 @@ export const NavBar: React.FC = () => {
 
             {dropdownOpen && (
               <div
-                className="absolute right-0 top-11 w-[calc(100vw-32px)] max-w-[320px] rounded-2xl overflow-hidden animate-scaleIn origin-top-right z-50"
+                className="absolute left-1/2 -translate-x-1/2 top-11 w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top z-50"
                 style={{
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border)',

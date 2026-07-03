@@ -27,8 +27,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <DappGuard>
               {children}
             </DappGuard>
-            <BottomNavWrapper />
           </Providers>
+          <BottomNavWrapper />
         </NextIntlClientProvider>
       </body>
     </html>
