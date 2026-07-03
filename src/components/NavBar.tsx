@@ -77,7 +77,7 @@ export const NavBar: React.FC = () => {
               // <div className="absolute left-1/2 -translate-x-1/2 top-11 z-50">
               <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 pointer-events-none">
                 <div
-                  className="w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top"
+                  className="w-[90vw] max-w-[360px] rounded-2xl overflow-hidden animate-scaleIn origin-top pointer-events-auto"
                   style={{
                     background: 'var(--bg-secondary)',
                     border: '1px solid var(--border)',
