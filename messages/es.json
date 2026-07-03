@@ -287,11 +287,11 @@
   },
   "Docs": {
     "title": "Documentación",
-    "subtitle": "Cómo funciona World Cup Predictions",
+    "subtitle": "Cómo funciona PredMarket",
     "sections": {
       "whatIs": {
         "title": "¿Qué es este proyecto?",
-        "content": "World Cup Predictions es un mercado de predicción descentralizado construido sobre Solana. Permite apostar en resultados de partidos del Mundial 2026 usando USDT como colateral, con liquidación automática basada en datos verificables de TxLINE."
+        "content": "PredMarket es un mercado de predicción descentralizado construido sobre Solana. Permite apostar en resultados de partidos del Mundial 2026 usando USDT como colateral, con liquidación automática basada en datos verificables de TxLINE."
       },
       "wallet": {
         "title": "Conexión de wallet",
