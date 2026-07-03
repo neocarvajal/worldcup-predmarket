@@ -279,5 +279,8 @@
     "depositing": "Depositando...",
     "withdrawing": "Retirando...",
     "retry": "Reintentar"
+  },
+  "Notifications": {
+    "matchStarted": "Partido Iniciado"
   }
 }
