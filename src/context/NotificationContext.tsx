@@ -15,13 +15,16 @@ export interface Notification {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  notificationsEnabled: boolean;
   addNotification: (n: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
+  toggleNotifications: () => void;
 }
 
 const STORAGE_KEY = 'txline:notifications';
+const ENABLED_KEY = 'txline:notifications-enabled';
 
 const NotificationContext = createContext<NotificationState | null>(null);
 
@@ -36,10 +39,15 @@ function loadNotifications(): Notification[] {
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     setNotifications(loadNotifications());
     setInitialized(true);
+    try {
+      const stored = localStorage.getItem(ENABLED_KEY);
+      if (stored !== null) setNotificationsEnabled(stored === 'true');
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -47,6 +55,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications)); } catch {}
     }
   }, [notifications, initialized]);
+
+  useEffect(() => {
+    try { localStorage.setItem(ENABLED_KEY, String(notificationsEnabled)); } catch {}
+  }, [notificationsEnabled]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -67,8 +79,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotifications([]);
   }, []);
 
+  const toggleNotifications = useCallback(() => {
+    setNotificationsEnabled(prev => !prev);
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, addNotification, markAsRead, markAllAsRead, clearAll }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, notificationsEnabled, addNotification, markAsRead, markAllAsRead, clearAll, toggleNotifications }}>
       {children}
     </NotificationContext.Provider>
   );

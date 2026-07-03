@@ -33,7 +33,7 @@ export function PushToggle({ wallet }: { wallet?: string }) {
 
   const handleClick = () => {
     if (state === 'subscribed') unsubscribe();
-    else if (state === 'granted' || state === 'prompt') subscribe();
+    else subscribe();
   };
 
   return (
@@ -45,7 +45,7 @@ export function PushToggle({ wallet }: { wallet?: string }) {
         {icon}
         {label}
       </span>
-      {(state === 'prompt' || state === 'granted' || state === 'subscribed') && (
+      {(state === 'prompt' || state === 'granted' || state === 'subscribed' || state === 'error') && (
         <button
           onClick={handleClick}
           className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all duration-200 active:scale-95"
@@ -54,7 +54,7 @@ export function PushToggle({ wallet }: { wallet?: string }) {
             color: state === 'subscribed' ? 'var(--danger)' : '#000',
           }}
         >
-          {state === 'subscribed' ? 'Desactivar' : 'Activar'}
+          {state === 'subscribed' ? 'Desactivar' : state === 'error' ? 'Reintentar' : 'Activar'}
         </button>
       )}
     </div>

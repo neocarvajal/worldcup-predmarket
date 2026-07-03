@@ -11,7 +11,7 @@
     "markets": "Partidos",
     "live": "En Vivo",
     "faucet": "Faucet",
-    "myBets": "Mis Bets",
+    "myBets": "Apuestas",
     "profile": "Perfil"
   },
   "MarketCard": {
@@ -205,7 +205,7 @@
     "matches": "partidos"
   },
   "Portfolio": {
-    "title": "Mis Bets",
+    "title": "Apuestas",
     "subtitle": "Tus predicciones on-chain",
     "bets": "apuestas",
     "total": "Total",

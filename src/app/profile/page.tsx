@@ -19,6 +19,7 @@ import {
   ReloadIcon,
 } from '@radix-ui/react-icons';
 import { PushToggle } from '../../components/PushToggle';
+import { useNotifications } from '../../context/NotificationContext';
 
 export default function ProfilePage() {
   const { publicKey, signTransaction, disconnect } = useWallet();
@@ -26,6 +27,7 @@ export default function ProfilePage() {
   const { client } = useTxLine();
   const t = useTranslations('Profile');
   const { state: subState, subscribe } = useAutoSubscribe();
+  const { notificationsEnabled, toggleNotifications } = useNotifications();
   const [balance, setBalance] = useState<number | null>(null);
   const [totalBets, setTotalBets] = useState(0);
   const [wonBets, setWonBets] = useState(0);
@@ -346,6 +348,24 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('pushNotifications')}</span>
                 <PushToggle wallet={publicKey?.toBase58()} />
+              </div>
+
+              <div style={{ height: 1, background: 'var(--border)' }} />
+
+              {/* Notificaciones in-app */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Notificaciones in-app</span>
+                <button
+                  onClick={toggleNotifications}
+                  className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200 active:scale-95 ${!notificationsEnabled ? 'opacity-60' : ''}`}
+                  style={{
+                    background: notificationsEnabled ? 'rgba(34,197,94,0.08)' : 'var(--bg-surface)',
+                    color: notificationsEnabled ? 'var(--success)' : 'var(--text-muted)',
+                    border: `1px solid ${notificationsEnabled ? 'rgba(34,197,94,0.2)' : 'var(--border)'}`,
+                  }}
+                >
+                  {notificationsEnabled ? 'Activadas' : 'Desactivadas'}
+                </button>
               </div>
 
               <div style={{ height: 1, background: 'var(--border)' }} />

@@ -121,7 +121,7 @@ function parseSnapshot(snap: any, cache: Map<number, any>): any {
 
 export function MatchWatcherProvider({ children }: { children: React.ReactNode }) {
   const { client } = useTxLine();
-  const { addNotification } = useNotifications();
+  const { addNotification, notificationsEnabled } = useNotifications();
   const tn = useTranslations('Notifications');
 
   const startedRef = useRef<Set<number>>(loadSet(STORAGE_STARTED));
@@ -129,6 +129,8 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
   const statsRef = useRef<Map<number, FixtureStats>>(loadStatsMap());
+  const enabledRef = useRef(notificationsEnabled);
+  enabledRef.current = notificationsEnabled;
 
   const poll = useCallback(async () => {
     try {
@@ -180,13 +182,15 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         if (!startedRef.current.has(d.FixtureId) && d.StatusId >= 2) {
           startedRef.current.add(d.FixtureId);
           saveSet(STORAGE_STARTED, startedRef.current);
-          const label = `${d.Participant1 || ''} vs ${d.Participant2 || ''}`;
-          addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
-          fetch('/api/push/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('matchStarted'), body: label }),
-          }).catch(() => {});
+          if (enabledRef.current) {
+            const label = `${d.Participant1 || ''} vs ${d.Participant2 || ''}`;
+            addNotification({ title: tn('matchStarted'), body: label, type: 'info' });
+            fetch('/api/push/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fixtureId: d.FixtureId, title: tn('matchStarted'), body: label }),
+            }).catch(() => {});
+          }
         }
 
         const prev = statsRef.current.get(d.FixtureId);
@@ -194,7 +198,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         const p2 = d.Participant2 || '';
         const minute = d.Minute;
 
-        if (prev) {
+        if (prev && enabledRef.current) {
           if (d.CurrentScore1 > prev.score1) {
             addNotification({ title: tn('goal'), body: `${p1} ${d.CurrentScore1}:${d.CurrentScore2} ${p2} (${minute}')`, type: 'info' });
             fetch('/api/push/send', {
