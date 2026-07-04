@@ -7,6 +7,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
 } from '@solana/spl-token';
 import { BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
@@ -87,6 +88,7 @@ interface ActiveEscrow {
   selection: number;
   mint: PublicKey;
   amount: bigint;
+  odds: number;
 }
 
 const ESCOW_DISCRIMINATOR = [31, 213, 123, 187, 186, 22, 218, 155];
@@ -131,7 +133,8 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
   const [, strAdv2] = readString(buf, off);
   off += strAdv2;
 
-  // 8. odds (u64)
+  // 8. odds (u64, scaled by 1000)
+  const odds = Number(readU64(buf, off));
   off += 8;
 
   // 9. mint (pubkey, 32 bytes)
@@ -163,7 +166,7 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
 
   if (state !== ESCOW_STATE_ACTIVE) return null;
 
-  return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, mint, amount };
+  return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, mint, amount, odds };
 }
 
 export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
@@ -331,24 +334,45 @@ export async function settleActiveEscrows(
         connection.getAccountInfo(depositorAta),
         connection.getAccountInfo(callerAta),
       ]);
-      const createAtaInstructions: TransactionInstruction[] = [];
+      const settlementInstructions: TransactionInstruction[] = [];
       if (!depositorAtaInfo) {
-        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        settlementInstructions.push(createAssociatedTokenAccountInstruction(
           keeper.publicKey, depositorAta, depositor, mint,
           TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
         ));
       }
       if (!recipientAtaInfo) {
-        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        settlementInstructions.push(createAssociatedTokenAccountInstruction(
           keeper.publicKey, recipientAta, recipient, mint,
           TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
         ));
       }
       if (!callerAtaInfo) {
-        createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+        settlementInstructions.push(createAssociatedTokenAccountInstruction(
           keeper.publicKey, callerAta, keeper.publicKey, mint,
           TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
         ));
+      }
+
+      // Prefund vault if it doesn't have enough USDT for the full payout
+      const vaultTokenAccount = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_PROGRAM_ID);
+      try {
+        const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
+        const vaultAmount = Number(vaultBalance.value.amount);
+        const depositAmount = Number(escrow.amount) / 1_000_000;
+        const payoutNeeded = Math.floor(depositAmount * escrow.odds / 1000);
+        const payoutInBase = payoutNeeded * 1_000_000;
+        if (vaultAmount < payoutNeeded) {
+          const shortfallBase = payoutInBase - vaultAmount * 1_000_000;
+          if (shortfallBase > 0) {
+            console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutNeeded} USDT, have ${vaultAmount}, shortfall ${shortfallBase / 1_000_000} USDT`);
+            settlementInstructions.push(createTransferInstruction(
+              callerAta, vaultTokenAccount, keeper.publicKey, shortfallBase, [], TOKEN_PROGRAM_ID,
+            ));
+          }
+        }
+      } catch (e: any) {
+        console.warn(`[keeper] Could not check vault balance for ${fixtureName}: ${e.message}`);
       }
 
       const instruction = await program.methods
@@ -402,7 +426,7 @@ export async function settleActiveEscrows(
       const message = new TransactionMessage({
         payerKey: keeper.publicKey,
         recentBlockhash: blockhash,
-        instructions: [cuIx, ...createAtaInstructions, instruction],
+        instructions: [cuIx, ...settlementInstructions, instruction],
       }).compileToV0Message();
       const tx = new VersionedTransaction(message);
       tx.sign([keeper]);
@@ -445,7 +469,7 @@ export async function settleSingleEscrow(
   }
   decoded.pubkey = escrowPubkey;
 
-  const { fixtureId, fixtureName, depositor, recipient, mint } = decoded;
+  const { fixtureId, fixtureName, depositor, recipient, mint, amount, odds } = decoded;
 
   let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
   try {
@@ -517,24 +541,45 @@ export async function settleSingleEscrow(
       connection.getAccountInfo(depositorAta),
       connection.getAccountInfo(callerAta),
     ]);
-    const createAtaInstructions: TransactionInstruction[] = [];
+    const settlementInstructions: TransactionInstruction[] = [];
     if (!depositorAtaInfo) {
-      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+      settlementInstructions.push(createAssociatedTokenAccountInstruction(
         keeper.publicKey, depositorAta, depositor, mint,
         TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
       ));
     }
     if (!recipientAtaInfo) {
-      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+      settlementInstructions.push(createAssociatedTokenAccountInstruction(
         keeper.publicKey, recipientAta, recipient, mint,
         TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
       ));
     }
     if (!callerAtaInfo) {
-      createAtaInstructions.push(createAssociatedTokenAccountInstruction(
+      settlementInstructions.push(createAssociatedTokenAccountInstruction(
         keeper.publicKey, callerAta, keeper.publicKey, mint,
         TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
       ));
+    }
+
+    // Prefund vault if it doesn't have enough USDT for the full payout
+    const vaultTokenAccount = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_PROGRAM_ID);
+    try {
+      const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
+      const vaultAmount = Number(vaultBalance.value.amount);
+      const depositAmount = Number(amount) / 1_000_000;
+      const payoutNeeded = Math.floor(depositAmount * odds / 1000);
+      const payoutInBase = payoutNeeded * 1_000_000;
+      if (vaultAmount < payoutNeeded) {
+        const shortfallBase = payoutInBase - vaultAmount * 1_000_000;
+        if (shortfallBase > 0) {
+          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutNeeded} USDT, have ${vaultAmount}, shortfall ${shortfallBase / 1_000_000} USDT`);
+          settlementInstructions.push(createTransferInstruction(
+            callerAta, vaultTokenAccount, keeper.publicKey, shortfallBase, [], TOKEN_PROGRAM_ID,
+          ));
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[keeper] Could not check vault balance for ${fixtureName}: ${e.message}`);
     }
 
     const instruction = await program.methods
@@ -588,7 +633,7 @@ export async function settleSingleEscrow(
     const message = new TransactionMessage({
       payerKey: keeper.publicKey,
       recentBlockhash: blockhash,
-      instructions: [cuIx, ...createAtaInstructions, instruction],
+      instructions: [cuIx, ...settlementInstructions, instruction],
     }).compileToV0Message();
     const tx = new VersionedTransaction(message);
     tx.sign([keeper]);
