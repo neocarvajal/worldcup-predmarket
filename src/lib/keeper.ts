@@ -358,18 +358,15 @@ export async function settleActiveEscrows(
       const vaultTokenAccount = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_PROGRAM_ID);
       try {
         const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
-        const vaultAmount = Number(vaultBalance.value.amount);
-        const depositAmount = Number(escrow.amount) / 1_000_000;
-        const payoutNeeded = Math.floor(depositAmount * escrow.odds / 1000);
-        const payoutInBase = payoutNeeded * 1_000_000;
-        if (vaultAmount < payoutNeeded) {
-          const shortfallBase = payoutInBase - vaultAmount * 1_000_000;
-          if (shortfallBase > 0) {
-            console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutNeeded} USDT, have ${vaultAmount}, shortfall ${shortfallBase / 1_000_000} USDT`);
-            settlementInstructions.push(createTransferInstruction(
-              callerAta, vaultTokenAccount, keeper.publicKey, shortfallBase, [], TOKEN_PROGRAM_ID,
-            ));
-          }
+        const vaultAmountUi = Number(vaultBalance.value.amount);
+        const depositAmountUi = Number(escrow.amount);
+        const payoutBaseUi = Math.floor(depositAmountUi * escrow.odds / 1000);
+        if (vaultAmountUi < payoutBaseUi) {
+          const shortfall = payoutBaseUi - vaultAmountUi;
+          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi} base, have ${vaultAmountUi}, shortfall ${shortfall}`);
+          settlementInstructions.push(createTransferInstruction(
+            callerAta, vaultTokenAccount, keeper.publicKey, shortfall, [], TOKEN_PROGRAM_ID,
+          ));
         }
       } catch (e: any) {
         console.warn(`[keeper] Could not check vault balance for ${fixtureName}: ${e.message}`);
@@ -565,18 +562,15 @@ export async function settleSingleEscrow(
     const vaultTokenAccount = getAssociatedTokenAddressSync(mint, vault, true, TOKEN_PROGRAM_ID);
     try {
       const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
-      const vaultAmount = Number(vaultBalance.value.amount);
-      const depositAmount = Number(amount) / 1_000_000;
-      const payoutNeeded = Math.floor(depositAmount * odds / 1000);
-      const payoutInBase = payoutNeeded * 1_000_000;
-      if (vaultAmount < payoutNeeded) {
-        const shortfallBase = payoutInBase - vaultAmount * 1_000_000;
-        if (shortfallBase > 0) {
-          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutNeeded} USDT, have ${vaultAmount}, shortfall ${shortfallBase / 1_000_000} USDT`);
-          settlementInstructions.push(createTransferInstruction(
-            callerAta, vaultTokenAccount, keeper.publicKey, shortfallBase, [], TOKEN_PROGRAM_ID,
-          ));
-        }
+      const vaultAmountUi = Number(vaultBalance.value.amount);
+      const depositAmountUi = Number(amount);
+      const payoutBaseUi = Math.floor(depositAmountUi * odds / 1000);
+      if (vaultAmountUi < payoutBaseUi) {
+        const shortfallUi = payoutBaseUi - vaultAmountUi;
+        console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfallUi}`);
+        settlementInstructions.push(createTransferInstruction(
+          callerAta, vaultTokenAccount, keeper.publicKey, shortfallUi, [], TOKEN_PROGRAM_ID,
+        ));
       }
     } catch (e: any) {
       console.warn(`[keeper] Could not check vault balance for ${fixtureName}: ${e.message}`);
