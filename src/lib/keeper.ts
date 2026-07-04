@@ -1,6 +1,6 @@
 import {
   Connection, PublicKey, Keypair, VersionedTransaction, TransactionMessage,
-  TransactionInstruction,
+  TransactionInstruction, ComputeBudgetProgram,
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -398,10 +398,11 @@ export async function settleActiveEscrows(
         .instruction();
 
       const { blockhash } = await connection.getLatestBlockhash();
+      const cuIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
       const message = new TransactionMessage({
         payerKey: keeper.publicKey,
         recentBlockhash: blockhash,
-        instructions: [...createAtaInstructions, instruction],
+        instructions: [cuIx, ...createAtaInstructions, instruction],
       }).compileToV0Message();
       const tx = new VersionedTransaction(message);
       tx.sign([keeper]);
@@ -410,6 +411,8 @@ export async function settleActiveEscrows(
 
       results.push({ escrowPubkey: escrowB58, fixtureId, fixtureName, status: 'settled', txSig: sig });
     } catch (e: any) {
+      console.error(`[keeper] settleActiveEscrows error for ${fixtureName}:`, e.message);
+      if (e.logs) console.error('[keeper] Simulation logs:', JSON.stringify(e.logs, null, 2));
       results.push({
         escrowPubkey: escrowB58, fixtureId, fixtureName,
         status: 'error',
@@ -581,10 +584,11 @@ export async function settleSingleEscrow(
       .instruction();
 
     const { blockhash } = await connection.getLatestBlockhash();
+    const cuIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
     const message = new TransactionMessage({
       payerKey: keeper.publicKey,
       recentBlockhash: blockhash,
-      instructions: [...createAtaInstructions, instruction],
+      instructions: [cuIx, ...createAtaInstructions, instruction],
     }).compileToV0Message();
     const tx = new VersionedTransaction(message);
     tx.sign([keeper]);
@@ -593,6 +597,8 @@ export async function settleSingleEscrow(
 
     return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'settled', txSig: sig };
   } catch (e: any) {
+    console.error(`[keeper] settleSingleEscrow error for ${fixtureName}:`, e.message);
+    if (e.logs) console.error('[keeper] Simulation logs:', JSON.stringify(e.logs, null, 2));
     return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'error', error: `Settle tx: ${e.message}` };
   }
 }

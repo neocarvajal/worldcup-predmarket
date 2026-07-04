@@ -79,6 +79,8 @@ export default function PortfolioPage() {
         return true;
       }
       const errMsg = data.result?.error || data.error || 'No disponible';
+      console.error(`[portfolio] settleOne failed for ${fixtureName}:`, errMsg);
+      if (data.result?.logs) console.error('[portfolio] Simulation logs:', JSON.stringify(data.result.logs, null, 2));
       addNotification({
         title: '⚠️ No se pudo liquidar',
         body: `${fixtureName} — ${errMsg}`,
@@ -87,6 +89,7 @@ export default function PortfolioPage() {
       });
       return false;
     } catch (e: any) {
+      console.error(`[portfolio] settleOne network error for ${fixtureName}:`, e?.message);
       addNotification({
         title: '⚠️ Error al liquidar',
         body: `${fixtureName} — ${e?.message || 'Error de red o timeout'}`,
@@ -171,11 +174,21 @@ export default function PortfolioPage() {
         const fixtureName = e.account.fixture_name || loadBet(publicKey!.toBase58(), key)?.fixtureName || `Partido`;
         const fidNum = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
         const ok = await settleOne(key, fixtureName, fidNum);
-        if (ok) setSettledKeys(prev => new Set(prev).add(key));
+        if (ok) {
+          setSettledKeys(prev => new Set(prev).add(key));
+          setEscrows(prev => prev.map(esc =>
+            esc.pubkey.toBase58() === key
+              ? { ...esc, account: { ...esc.account, state: { Settled: {} } } }
+              : esc
+          ));
+        }
       }
+      const settledFids = toSettle
+        .map(e => e.account.fixture_id ? Number(e.account.fixture_id) : null)
+        .filter((id): id is number => id != null);
+      for (const fid of [...new Set(settledFids)]) checkFixture(fid);
       setAutoSettling(false);
       autoSettlingRef.current = false;
-      setTimeout(() => load(), 3000);
     })();
   }, [loading, escrows, publicKey, fixtureStatus]);
 
