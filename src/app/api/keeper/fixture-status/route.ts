@@ -4,7 +4,8 @@ const TXLINE_API_URL = process.env.NEXT_PUBLIC_TXLINE_API_URL || 'https://txline
 const TXLINE_JWT = process.env.TXLINE_JWT || '';
 const TXLINE_API_TOKEN = process.env.TXLINE_API_TOKEN || '';
 
-const FINISHED_STATUS_IDS = [5, 10, 13];
+// 100 = TxLINE's new END status for game_finalised messages
+const FINISHED_STATUS_IDS = [5, 10, 13, 100];
 
 function isFinishedStatus(statusId: number): boolean {
   return FINISHED_STATUS_IDS.includes(statusId);
@@ -31,7 +32,6 @@ export async function GET(req: NextRequest) {
   try {
     let data = await fetchSnapshot(TXLINE_JWT, TXLINE_API_TOKEN);
 
-    // If 403, try guest JWT
     if (!data) {
       const guestRes = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
       if (guestRes.ok) {
@@ -46,46 +46,30 @@ export async function GET(req: NextRequest) {
 
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
 
-    // Latest score from the last message that has Score data
-    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
-    const scoreObj = lastScore?.Score || {};
-    const score1 = scoreObj.Participant1?.Total?.Goals ?? 0;
-    const score2 = scoreObj.Participant2?.Total?.Goals ?? 0;
-
-    // Scan all messages for game_finalised (TxLINE's new END status)
+    // Prefer game_finalised Action message (TxLINE's new END status with StatusId=100)
     const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
-    const finishedFromAction = finalisedMsg != null;
-    const statusId = finalisedMsg?.StatusId ?? 0;
 
-    // If no game_finalised message, check last snapshot status
-    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-    const lastStatusId = lastMsg?.StatusId ?? 0;
-    const fallbackFinished = !finishedFromAction && isFinishedStatus(lastStatusId);
+    let statusId: number;
+    let finished: boolean;
 
-    const result: Record<string, any> = {
-      fixtureId,
-      finished: finishedFromAction || fallbackFinished,
-      statusId: finishedFromAction ? statusId : lastStatusId,
-      score1,
-      score2,
-      msgCount: msgs.length,
-      game_finalised_found: finishedFromAction,
-      game_finalised_msg_index: finalisedMsg ? msgs.indexOf(finalisedMsg) : -1,
-    };
-
-    // Debug fields
-    if (lastMsg) {
-      result.last_action = lastMsg.Action ?? null;
-      result.last_gameState = lastMsg.GameState ?? null;
+    if (finalisedMsg) {
+      statusId = finalisedMsg.StatusId ?? 0;
+      finished = true;
+    } else {
+      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+      statusId = lastMsg?.StatusId ?? 0;
+      finished = isFinishedStatus(statusId);
     }
 
-    return NextResponse.json(result);
+    // Latest score from the last message that has Score data
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const score = lastScore?.Score || {};
+    const score1 = score.Participant1?.Total?.Goals ?? 0;
+    const score2 = score.Participant2?.Total?.Goals ?? 0;
+
+    return NextResponse.json({ fixtureId, finished, statusId, score1, score2 });
   } catch (e: any) {
-    return NextResponse.json({
-      fixtureId,
-      finished: false,
-      error: e.message,
-    });
+    return NextResponse.json({ fixtureId, finished: false, error: e.message });
   }
 }
 

@@ -251,17 +251,22 @@ export async function settleActiveEscrows(
       const scoresRaw: any = await txlineRequest(
         txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
       );
-      // Response is an array of Fusion messages — pick the last one (latest state)
       const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
-      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-      if (lastMsg) {
-        statusId = lastMsg.StatusId ?? lastMsg.Update?.StatusId ?? 0;
-        const s = lastMsg.Score ?? lastMsg.Update?.Score ?? {};
-        score1 = s.Participant1?.Total?.Goals ?? 0;
-        score2 = s.Participant2?.Total?.Goals ?? 0;
+      // Scan all messages for game_finalised (TxLINE's new END status with StatusId=100)
+      const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
+      if (finalisedMsg) {
+        statusId = finalisedMsg.StatusId ?? 0;
+      } else {
+        const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+        statusId = lastMsg?.StatusId ?? 0;
       }
+      // Latest score from the last message that has Score data
+      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+      const s = lastScore?.Score ?? {};
+      score1 = s.Participant1?.Total?.Goals ?? 0;
+      score2 = s.Participant2?.Total?.Goals ?? 0;
       for (const m of msgs) {
-        const ts = m.Ts ?? m.Update?.Ts ?? 0;
+        const ts = m.Ts ?? 0;
         if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
       }
     } catch (e: any) {
@@ -273,7 +278,8 @@ export async function settleActiveEscrows(
       continue;
     }
 
-    const isFinishedStatus = [5, 10, 13].includes(statusId);
+    const FINISHED_STATUS_IDS = [5, 10, 13, 100];
+    const isFinishedStatus = FINISHED_STATUS_IDS.includes(statusId);
     const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
 
     if (!isFinishedStatus) {
@@ -444,22 +450,27 @@ export async function settleSingleEscrow(
       txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
     );
     const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
-    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-    if (lastMsg) {
-      statusId = lastMsg.StatusId ?? lastMsg?.Update?.StatusId ?? 0;
-      const s = lastMsg.Score ?? lastMsg?.Update?.Score ?? {};
-      score1 = s.Participant1?.Total?.Goals ?? 0;
-      score2 = s.Participant2?.Total?.Goals ?? 0;
+    const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
+    if (finalisedMsg) {
+      statusId = finalisedMsg.StatusId ?? 0;
+    } else {
+      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+      statusId = lastMsg?.StatusId ?? 0;
     }
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const s = lastScore?.Score ?? {};
+    score1 = s.Participant1?.Total?.Goals ?? 0;
+    score2 = s.Participant2?.Total?.Goals ?? 0;
     for (const m of msgs) {
-      const ts = m.Ts ?? m.Update?.Ts ?? 0;
+      const ts = m.Ts ?? 0;
       if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
     }
   } catch (e: any) {
     return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `Scores fetch: ${e.message}` };
   }
 
-  const isFinishedStatus = [5, 10, 13].includes(statusId);
+  const FINISHED_STATUS_IDS = [5, 10, 13, 100];
+  const isFinishedStatus = FINISHED_STATUS_IDS.includes(statusId);
   const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
 
   if (!isFinishedStatus) {
