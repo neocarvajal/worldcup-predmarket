@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
     const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
     const keys = lastMsg ? Object.keys(lastMsg).sort() : [];
     const statusId = lastMsg?.StatusId ?? 0;
-    const statusSoccerId = lastMsg?.statusSoccerId ?? null;
-    const action = lastMsg?.action ?? null;
+    const action = lastMsg?.Action ?? null;
+    const gameState = lastMsg?.GameState ?? null;
     const score = lastMsg?.Score || {};
     const score1 = score.Participant1?.Total?.Goals ?? 0;
     const score2 = score.Participant2?.Total?.Goals ?? 0;
@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
       fixtureId,
       finished: isFinishedStatus(statusId),
       statusId,
-      statusSoccerId,
       action,
+      gameState,
       score1,
       score2,
       msgCount: msgs.length,
