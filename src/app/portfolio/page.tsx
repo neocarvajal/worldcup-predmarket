@@ -47,11 +47,10 @@ export default function PortfolioPage() {
       clearTimeout(timeout);
       const data = await resp.json();
       if (data.ok && data.result?.status === 'settled') {
-        const won = data.result.outcome === 'won';
         addNotification({
-          title: won ? '🎉 Apuesta ganada' : '😞 Apuesta perdida',
-          body: `${fixtureName} — ${won ? 'Liquidación exitosa' : 'Tu apuesta no acertó'}`,
-          type: won ? 'won' : 'lost',
+          title: '✅ Apuesta liquidada',
+          body: fixtureName,
+          type: 'settled',
           escrowPubkey,
         });
         const walletStr = publicKey?.toBase58();
@@ -61,19 +60,26 @@ export default function PortfolioPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               wallet: walletStr,
-              title: won ? '🎉 Apuesta ganada' : '😞 Apuesta perdida',
-              body: `${fixtureName} — ${won ? 'Liquidación exitosa' : 'Tu apuesta no acertó'}`,
+              title: 'Apuesta liquidada',
+              body: fixtureName,
               fixtureId,
             }),
           }).catch(() => {});
         }
         return true;
       }
+      const errMsg = data.result?.error || data.error || 'No disponible';
+      addNotification({
+        title: '⚠️ No se pudo liquidar',
+        body: `${fixtureName} — ${errMsg}`,
+        type: 'info',
+        escrowPubkey,
+      });
       return false;
-    } catch {
+    } catch (e: any) {
       addNotification({
         title: '⚠️ Error al liquidar',
-        body: `${fixtureName} — No se pudo liquidar automáticamente.`,
+        body: `${fixtureName} — ${e?.message || 'Error de red o timeout'}`,
         type: 'info',
         escrowPubkey,
       });
