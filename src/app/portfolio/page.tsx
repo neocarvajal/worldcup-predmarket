@@ -451,6 +451,7 @@ export default function PortfolioPage() {
                 >
                   <PositionCard
                     fixtureName={fixtureName}
+                    fixtureId={Number(acc.fixture_id) || undefined}
                     selection={selection}
                     amount={Number(acc.amount || 0) / 1_000_000}
                     odds={odds}

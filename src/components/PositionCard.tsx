@@ -6,6 +6,7 @@ import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon }
 
 interface PositionCardProps {
   fixtureName: string;
+  fixtureId?: number;
   selection: string;
   amount: number;
   odds: number;
@@ -85,7 +86,7 @@ function CountdownSmall({ target }: { target: Date }) {
 }
 
 export const PositionCard: React.FC<PositionCardProps> = ({
-  fixtureName, selection, amount, odds, payout, status, expiry,
+  fixtureName, fixtureId, selection, amount, odds, payout, status, expiry,
 }) => {
   const t = useTranslations('PositionCard');
   const cfg = statusConfig[status];
@@ -105,6 +106,11 @@ export const PositionCard: React.FC<PositionCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-sm font-semibold truncate">{fixtureName}</h3>
+            {fixtureId != null && (
+              <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                #{fixtureId}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
