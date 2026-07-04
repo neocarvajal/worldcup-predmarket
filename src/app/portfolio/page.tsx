@@ -9,7 +9,7 @@ import { fetchUserEscrows } from '../../lib/settlement';
 import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
 import { useNotifications } from '../../context/NotificationContext';
-import { StackIcon, TargetIcon, ReloadIcon, UpdateIcon } from '@radix-ui/react-icons';
+import { StackIcon, TargetIcon, ReloadIcon } from '@radix-ui/react-icons';
 
 export default function PortfolioPage() {
   const { publicKey } = useWallet();
@@ -22,7 +22,6 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
-  const [autoSettling, setAutoSettling] = useState(false);
   const [settledKeys, setSettledKeys] = useState<Set<string>>(new Set());
   const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
   const fixtureStatusRef = useRef<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
@@ -152,7 +151,7 @@ export default function PortfolioPage() {
     }
   }, [publicKey, setVisible]);
 
-  // Auto-settle: run after escrows load, settle match-over escrows one by one
+  // Auto-settle: transparent background settlement
   useEffect(() => {
     if (loading || escrows.length === 0 || autoSettlingRef.current) return;
     const toSettle = escrows.filter((e: any) => {
@@ -167,7 +166,6 @@ export default function PortfolioPage() {
     });
     if (toSettle.length === 0) return;
     autoSettlingRef.current = true;
-    setAutoSettling(true);
     (async () => {
       for (const e of toSettle) {
         const key = e.pubkey.toBase58();
@@ -183,11 +181,6 @@ export default function PortfolioPage() {
           ));
         }
       }
-      const settledFids = toSettle
-        .map(e => e.account.fixture_id ? Number(e.account.fixture_id) : null)
-        .filter((id): id is number => id != null);
-      for (const fid of [...new Set(settledFids)]) checkFixture(fid);
-      setAutoSettling(false);
       autoSettlingRef.current = false;
     })();
   }, [loading, escrows, publicKey, fixtureStatus]);
@@ -330,21 +323,6 @@ export default function PortfolioPage() {
             </button>
           ))}
         </div>
-
-        {/* Auto-settling indicator */}
-        {autoSettling && (
-          <div
-            className="flex items-center gap-2 px-4 py-2.5 mb-3 rounded-xl text-xs font-semibold animate-slideUp"
-            style={{
-              background: 'var(--accent-dim)',
-              color: 'var(--accent)',
-              border: '1px solid rgba(220,235,2,0.15)',
-            }}
-          >
-            <UpdateIcon width={14} height={14} className="animate-spin" />
-            {t('settling')}
-          </div>
-        )}
 
         {/* Content */}
         {loading ? (

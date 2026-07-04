@@ -355,22 +355,18 @@ export async function settleActiveEscrows(
       }
 
       // Prefund vault if it doesn't have enough USDT for the full payout
-      // (vault token account is not a standard ATA — query by owner)
+      // (vault PDA IS the token account — NOT an ATA)
       try {
-        const vaultTokenAccounts = await connection.getTokenAccountsByOwner(vault, { mint });
-        if (vaultTokenAccounts.value.length > 0) {
-          const vaultTokenAccount = vaultTokenAccounts.value[0].pubkey;
-          const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
-          const vaultAmountUi = Number(vaultBalance.value.amount);
-          const depositAmountUi = Number(escrow.amount);
-          const payoutBaseUi = Math.floor(depositAmountUi * escrow.odds / 1000);
-          if (vaultAmountUi < payoutBaseUi) {
-            const shortfall = payoutBaseUi - vaultAmountUi;
-            console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfall}`);
-            settlementInstructions.push(createTransferInstruction(
-              callerAta, vaultTokenAccount, keeper.publicKey, shortfall, [], TOKEN_PROGRAM_ID,
-            ));
-          }
+        const vaultBalance = await connection.getTokenAccountBalance(vault);
+        const vaultAmountUi = Number(vaultBalance.value.amount);
+        const depositAmountUi = Number(escrow.amount);
+        const payoutBaseUi = Math.floor(depositAmountUi * escrow.odds / 1000);
+        if (vaultAmountUi < payoutBaseUi) {
+          const shortfall = payoutBaseUi - vaultAmountUi;
+          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfall}`);
+          settlementInstructions.push(createTransferInstruction(
+            callerAta, vault, keeper.publicKey, shortfall, [], TOKEN_PROGRAM_ID,
+          ));
         }
       } catch (e: any) {
         console.warn(`[keeper] Could not prefund vault for ${fixtureName}: ${e.message}`);
@@ -563,22 +559,18 @@ export async function settleSingleEscrow(
     }
 
     // Prefund vault if it doesn't have enough USDT for the full payout
-    // (vault token account is not a standard ATA — query by owner)
+    // (vault PDA IS the token account — NOT an ATA)
     try {
-      const vaultTokenAccounts = await connection.getTokenAccountsByOwner(vault, { mint });
-      if (vaultTokenAccounts.value.length > 0) {
-        const vaultTokenAccount = vaultTokenAccounts.value[0].pubkey;
-        const vaultBalance = await connection.getTokenAccountBalance(vaultTokenAccount);
-        const vaultAmountUi = Number(vaultBalance.value.amount);
-        const depositAmountUi = Number(amount);
-        const payoutBaseUi = Math.floor(depositAmountUi * odds / 1000);
-        if (vaultAmountUi < payoutBaseUi) {
-          const shortfallUi = payoutBaseUi - vaultAmountUi;
-          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfallUi}`);
-          settlementInstructions.push(createTransferInstruction(
-            callerAta, vaultTokenAccount, keeper.publicKey, shortfallUi, [], TOKEN_PROGRAM_ID,
-          ));
-        }
+      const vaultBalance = await connection.getTokenAccountBalance(vault);
+      const vaultAmountUi = Number(vaultBalance.value.amount);
+      const depositAmountUi = Number(amount);
+      const payoutBaseUi = Math.floor(depositAmountUi * odds / 1000);
+      if (vaultAmountUi < payoutBaseUi) {
+        const shortfallUi = payoutBaseUi - vaultAmountUi;
+        console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfallUi}`);
+        settlementInstructions.push(createTransferInstruction(
+          callerAta, vault, keeper.publicKey, shortfallUi, [], TOKEN_PROGRAM_ID,
+        ));
       }
     } catch (e: any) {
       console.warn(`[keeper] Could not prefund vault for ${fixtureName}: ${e.message}`);
