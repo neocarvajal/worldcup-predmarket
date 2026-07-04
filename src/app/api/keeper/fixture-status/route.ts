@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
 
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
     const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+    const keys = lastMsg ? Object.keys(lastMsg).sort() : [];
     const statusId = lastMsg?.StatusId ?? 0;
     const statusSoccerId = lastMsg?.statusSoccerId ?? null;
     const action = lastMsg?.action ?? null;
@@ -61,6 +62,8 @@ export async function GET(req: NextRequest) {
       action,
       score1,
       score2,
+      msgCount: msgs.length,
+      msgKeys: keys,
     });
   } catch (e: any) {
     return NextResponse.json({
