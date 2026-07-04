@@ -17,6 +17,7 @@ const STATUS_NAMES: Record<number, string> = {
 };
 const STORAGE_STARTED = 'match-watcher:started';
 const STORAGE_STATS = 'match-watcher:stats';
+const STORAGE_SETTLED = 'match-watcher:settled';
 
 interface FixtureStats {
   score1: number;
@@ -127,7 +128,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const tn = useTranslations('Notifications');
 
   const startedRef = useRef<Set<number>>(loadSet(STORAGE_STARTED));
-  const settledRef = useRef<Set<number>>(new Set());
+  const settledRef = useRef<Set<number>>(loadSet(STORAGE_SETTLED));
   const cacheRef = useRef<Map<number, any>>(new Map());
   const trackedRef = useRef<Set<number>>(new Set());
   const statsRef = useRef<Map<number, FixtureStats>>(loadStatsMap());
@@ -177,6 +178,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         if (FINISHED_IDS.includes(d.StatusId)) {
           if (!settledRef.current.has(d.FixtureId)) {
             settledRef.current.add(d.FixtureId);
+            saveSet(STORAGE_SETTLED, settledRef.current);
             fetch(`/api/keeper/trigger-settle?fixtureId=${d.FixtureId}`, { method: 'POST' })
               .catch(() => {});
           }
@@ -284,9 +286,14 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   }, [client, addNotification, tn]);
 
   useEffect(() => {
-    poll();
-    const interval = setInterval(poll, 15_000);
-    return () => clearInterval(interval);
+    let timer: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+    async function run() {
+      await poll();
+      if (!cancelled) timer = setTimeout(run, 15_000);
+    }
+    run();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [poll]);
 
   return <>{children}</>;

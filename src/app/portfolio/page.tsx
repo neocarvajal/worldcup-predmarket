@@ -25,6 +25,7 @@ export default function PortfolioPage() {
   const [autoSettling, setAutoSettling] = useState(false);
   const [settledKeys, setSettledKeys] = useState<Set<string>>(new Set());
   const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
+  const checkedFixturesRef = useRef<Set<number>>(new Set());
   const { addNotification } = useNotifications();
   const autoSettlingRef = useRef(false);
 
@@ -40,7 +41,10 @@ export default function PortfolioPage() {
 
   async function settleOne(escrowPubkey: string, fixtureName: string, fixtureId?: number): Promise<boolean> {
     try {
-      const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST' });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST', signal: controller.signal });
+      clearTimeout(timeout);
       const data = await resp.json();
       if (data.ok && data.result?.status === 'settled') {
         const won = data.result.outcome === 'won';
@@ -105,10 +109,15 @@ export default function PortfolioPage() {
         return k === 'Active' && e.account.fixture_id;
       });
 
+      const checks: Promise<void>[] = [];
       for (const e of activeWithFid) {
         const fid = Number(e.account.fixture_id);
-        if (!fixtureStatus[fid]) checkFixture(fid);
+        if (!checkedFixturesRef.current.has(fid)) {
+          checkedFixturesRef.current.add(fid);
+          checks.push(checkFixture(fid));
+        }
       }
+      if (checks.length > 0) await Promise.all(checks);
     } catch (e: any) {
       setError(e?.message || 'Error al cargar');
     } finally {
@@ -153,7 +162,7 @@ export default function PortfolioPage() {
       autoSettlingRef.current = false;
       setTimeout(() => load(), 3000);
     })();
-  }, [loading, escrows, publicKey]);
+  }, [loading, escrows, publicKey, fixtureStatus]);
 
   const escrowMatchOver = escrows.reduce((map: Record<string, boolean>, e: any) => {
     const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
