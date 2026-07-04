@@ -7,7 +7,6 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
-  createTransferInstruction,
 } from '@solana/spl-token';
 import { BN, AnchorProvider, Wallet, Program } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
@@ -238,6 +237,9 @@ export async function settleActiveEscrows(
     : escrows;
   if (fixtureFilter != null && filtered.length === 0) return [];
 
+  // Sort by amount ascending to maximize settlements with limited keeper balance
+  filtered.sort((a, b) => Number(a.amount) - Number(b.amount));
+
   // 3. Prepare Anchor program for instruction building
   const wallet = keypairToWallet(keeper);
   const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
@@ -354,22 +356,14 @@ export async function settleActiveEscrows(
         ));
       }
 
-      // Prefund vault if it doesn't have enough USDT for the full payout
-      // (vault PDA IS the token account — NOT an ATA)
-      try {
-        const vaultBalance = await connection.getTokenAccountBalance(vault);
-        const vaultAmountUi = Number(vaultBalance.value.amount);
-        const depositAmountUi = Number(escrow.amount);
-        const payoutBaseUi = Math.floor(depositAmountUi * escrow.odds / 1000);
-        if (vaultAmountUi < payoutBaseUi) {
-          const shortfall = payoutBaseUi - vaultAmountUi;
-          console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfall}`);
-          settlementInstructions.push(createTransferInstruction(
-            callerAta, vault, keeper.publicKey, shortfall, [], TOKEN_PROGRAM_ID,
-          ));
-        }
-      } catch (e: any) {
-        console.warn(`[keeper] Could not prefund vault for ${fixtureName}: ${e.message}`);
+      // Vault already has the deposit — profit is paid from caller (keeper) ATA.
+      // No need to prefund. The settlement will fail if keeper balance is insufficient.
+      const payoutBaseUi = Math.floor(Number(escrow.amount) * escrow.odds / 1000);
+      const profitUi = payoutBaseUi - Number(escrow.amount);
+      const callerBalance = await connection.getTokenAccountBalance(callerAta);
+      const callerAmountUi = Number(callerBalance.value.amount);
+      if (callerAmountUi < profitUi) {
+        console.warn(`[keeper] Low balance for ${fixtureName}: have ${callerAmountUi}, profit needs ${profitUi}`);
       }
 
       const instruction = await program.methods
@@ -558,22 +552,17 @@ export async function settleSingleEscrow(
       ));
     }
 
-    // Prefund vault if it doesn't have enough USDT for the full payout
-    // (vault PDA IS the token account — NOT an ATA)
+    // Vault already has the deposit — profit is paid from caller (keeper) ATA.
+    const payoutBaseUi = Math.floor(Number(amount) * odds / 1000);
+    const profitUi = payoutBaseUi - Number(amount);
     try {
-      const vaultBalance = await connection.getTokenAccountBalance(vault);
-      const vaultAmountUi = Number(vaultBalance.value.amount);
-      const depositAmountUi = Number(amount);
-      const payoutBaseUi = Math.floor(depositAmountUi * odds / 1000);
-      if (vaultAmountUi < payoutBaseUi) {
-        const shortfallUi = payoutBaseUi - vaultAmountUi;
-        console.log(`[keeper] Prefunding vault for ${fixtureName}: need ${payoutBaseUi}, have ${vaultAmountUi}, shortfall ${shortfallUi}`);
-        settlementInstructions.push(createTransferInstruction(
-          callerAta, vault, keeper.publicKey, shortfallUi, [], TOKEN_PROGRAM_ID,
-        ));
+      const callerBalance = await connection.getTokenAccountBalance(callerAta);
+      const callerAmountUi = Number(callerBalance.value.amount);
+      if (callerAmountUi < profitUi) {
+        console.warn(`[keeper] Low balance for ${fixtureName}: have ${callerAmountUi}, profit needs ${profitUi}`);
       }
     } catch (e: any) {
-      console.warn(`[keeper] Could not prefund vault for ${fixtureName}: ${e.message}`);
+      console.warn(`[keeper] Could not check caller balance for ${fixtureName}: ${e.message}`);
     }
 
     const instruction = await program.methods

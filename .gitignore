@@ -44,3 +44,6 @@ target/
 *.tsbuildinfo
 next-env.d.ts
 keys/
+
+# Solana keypairs
+/keys/*.json
