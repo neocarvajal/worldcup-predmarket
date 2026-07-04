@@ -45,26 +45,41 @@ export async function GET(req: NextRequest) {
     }
 
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
-    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-    const keys = lastMsg ? Object.keys(lastMsg).sort() : [];
-    const statusId = lastMsg?.StatusId ?? 0;
-    const action = lastMsg?.Action ?? null;
-    const gameState = lastMsg?.GameState ?? null;
-    const score = lastMsg?.Score || {};
-    const score1 = score.Participant1?.Total?.Goals ?? 0;
-    const score2 = score.Participant2?.Total?.Goals ?? 0;
 
-    return NextResponse.json({
+    // Latest score from the last message that has Score data
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const scoreObj = lastScore?.Score || {};
+    const score1 = scoreObj.Participant1?.Total?.Goals ?? 0;
+    const score2 = scoreObj.Participant2?.Total?.Goals ?? 0;
+
+    // Scan all messages for game_finalised (TxLINE's new END status)
+    const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
+    const finishedFromAction = finalisedMsg != null;
+    const statusId = finalisedMsg?.StatusId ?? 0;
+
+    // If no game_finalised message, check last snapshot status
+    const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+    const lastStatusId = lastMsg?.StatusId ?? 0;
+    const fallbackFinished = !finishedFromAction && isFinishedStatus(lastStatusId);
+
+    const result: Record<string, any> = {
       fixtureId,
-      finished: isFinishedStatus(statusId),
-      statusId,
-      action,
-      gameState,
+      finished: finishedFromAction || fallbackFinished,
+      statusId: finishedFromAction ? statusId : lastStatusId,
       score1,
       score2,
       msgCount: msgs.length,
-      msgKeys: keys,
-    });
+      game_finalised_found: finishedFromAction,
+      game_finalised_msg_index: finalisedMsg ? msgs.indexOf(finalisedMsg) : -1,
+    };
+
+    // Debug fields
+    if (lastMsg) {
+      result.last_action = lastMsg.Action ?? null;
+      result.last_gameState = lastMsg.GameState ?? null;
+    }
+
+    return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({
       fixtureId,
