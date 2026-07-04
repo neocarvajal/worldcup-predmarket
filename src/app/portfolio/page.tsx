@@ -25,18 +25,28 @@ export default function PortfolioPage() {
   const [autoSettling, setAutoSettling] = useState(false);
   const [settledKeys, setSettledKeys] = useState<Set<string>>(new Set());
   const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
-  const checkedFixturesRef = useRef<Set<number>>(new Set());
+  const fixtureStatusRef = useRef<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
   const { addNotification } = useNotifications();
   const autoSettlingRef = useRef(false);
 
   async function checkFixture(id: number): Promise<void> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const resp = await fetch(`/api/keeper/fixture-status?fixtureId=${id}`);
+      const resp = await fetch(`/api/keeper/fixture-status?fixtureId=${id}`, { signal: controller.signal });
+      clearTimeout(timeout);
       const data = await resp.json();
       if (data && typeof data.finished === 'boolean') {
-        setFixtureStatus(prev => ({ ...prev, [id]: { finished: data.finished, statusId: data.statusId, score1: data.score1, score2: data.score2 } }));
+        const entry = { finished: data.finished, statusId: data.statusId, score1: data.score1, score2: data.score2 };
+        fixtureStatusRef.current = { ...fixtureStatusRef.current, [id]: entry };
+        setFixtureStatus(fixtureStatusRef.current);
       }
-    } catch {}
+    } catch {
+      clearTimeout(timeout);
+      delete fixtureStatusRef.current[id];
+      fixtureStatusRef.current = { ...fixtureStatusRef.current };
+      setFixtureStatus(fixtureStatusRef.current);
+    }
   }
 
   async function settleOne(escrowPubkey: string, fixtureName: string, fixtureId?: number): Promise<boolean> {
@@ -97,7 +107,7 @@ export default function PortfolioPage() {
       const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
       if (Date.now() > matchStartMs + FOUR_HOURS_MS) return true;
     }
-    if (fixtureId && fixtureStatus[fixtureId]?.finished) return true;
+    if (fixtureId && fixtureStatusRef.current[fixtureId]?.finished) return true;
     return false;
   }
 
@@ -115,15 +125,14 @@ export default function PortfolioPage() {
         return k === 'Active' && e.account.fixture_id;
       });
 
-      const checks: Promise<void>[] = [];
+      const checkPromises: Promise<void>[] = [];
       for (const e of activeWithFid) {
         const fid = Number(e.account.fixture_id);
-        if (!checkedFixturesRef.current.has(fid)) {
-          checkedFixturesRef.current.add(fid);
-          checks.push(checkFixture(fid));
+        if (!fixtureStatusRef.current[fid]) {
+          checkPromises.push(checkFixture(fid));
         }
       }
-      if (checks.length > 0) await Promise.all(checks);
+      await Promise.allSettled(checkPromises);
     } catch (e: any) {
       setError(e?.message || 'Error al cargar');
     } finally {
