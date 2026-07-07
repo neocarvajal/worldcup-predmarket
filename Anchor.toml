@@ -1,5 +1,5 @@
 [toolchain]
-anchor_version = "1.0.0"
+anchor_version = "1.1.2"
 
 [provider]
 cluster = "Localnet"
@@ -7,6 +7,9 @@ wallet = "~/.config/solana/id.json"
 
 [programs.localnet]
 settlement = "EzZq6p4Li3uoXY5QzVHGTZGh2u2dYKKyWKYbYTPQY5vx"
+
+[programs.devnet]
+settlement = "E4Y1BwM5BDXzTSkoACbwTT6Zg86wHETDWMNPLh4Hriu6"
 
 [workspace]
 types = "target/types"

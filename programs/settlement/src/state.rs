@@ -35,6 +35,8 @@ pub enum EscrowState {
 pub struct UserProfile {
     pub authority: Pubkey,
     #[max_len(256)]
+    pub txline_api_token: String,
+    #[max_len(256)]
     pub image_uri: String,
     #[max_len(50)]
     pub x_handle: String,

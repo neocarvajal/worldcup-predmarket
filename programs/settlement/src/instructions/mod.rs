@@ -6,6 +6,7 @@ pub mod claim;
 pub mod cancel;
 pub mod init_profile;
 pub mod update_profile;
+pub mod set_txline_token;
 
 pub use init_escrow::*;
 pub use deposit::*;
@@ -15,3 +16,4 @@ pub use claim::*;
 pub use cancel::*;
 pub use init_profile::*;
 pub use update_profile::*;
+pub use set_txline_token::*;

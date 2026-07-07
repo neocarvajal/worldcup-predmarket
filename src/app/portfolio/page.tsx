@@ -75,6 +75,17 @@ export default function PortfolioPage() {
             }),
           }).catch(() => {});
         }
+        // Re-fetch escrow from chain to get depositor_won
+        try {
+          const fresh = await fetchUserEscrows(connection, publicKey!);
+          const updated = fresh.find(e => e.pubkey.toBase58() === escrowPubkey);
+          if (updated) {
+            setEscrows(prev => prev.map(esc =>
+              esc.pubkey.toBase58() === escrowPubkey ? updated : esc
+            ));
+            return true;
+          }
+        } catch {}
         return true;
       }
       const errMsg = data.result?.error || data.error || 'No disponible';
@@ -174,11 +185,6 @@ export default function PortfolioPage() {
         const ok = await settleOne(key, fixtureName, fidNum);
         if (ok) {
           setSettledKeys(prev => new Set(prev).add(key));
-          setEscrows(prev => prev.map(esc =>
-            esc.pubkey.toBase58() === key
-              ? { ...esc, account: { ...esc.account, state: { Settled: {} } } }
-              : esc
-          ));
         }
       }
       autoSettlingRef.current = false;
@@ -447,7 +453,7 @@ export default function PortfolioPage() {
                     amount={Number(acc.amount || 0) / 1_000_000}
                     odds={odds}
                     payout={payout}
-                    status={isSettled ? 'won' : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
+                    status={isSettled ? (acc.depositor_won ? 'won' : 'lost') : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
                   />
                 </div>

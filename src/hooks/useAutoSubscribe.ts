@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useTxLine } from '../context/TxLineContext';
+import { fetchUserProfile, setTxLineToken } from '../lib/settlement';
+import { saveTokens } from '../lib/persistence';
 import nacl from 'tweetnacl';
 
 export type SubscriptionState = 'idle' | 'checking' | 'needed' | 'subscribing' | 'activating' | 'done' | 'error';
@@ -124,6 +126,16 @@ export function useAutoSubscribe() {
         );
       }
 
+      // Persistir token on-chain en UserProfile
+      try {
+        const token = client.getApiToken();
+        if (token) {
+          await setTxLineToken(connection, { publicKey, signTransaction }, token);
+        }
+      } catch (onChainErr: any) {
+        console.warn('[subscribe] No se pudo guardar token on-chain:', onChainErr?.message);
+      }
+
       setState('done');
     } catch (e: any) {
       setError(e?.message || 'Error en la suscripción automática');
@@ -135,18 +147,31 @@ export function useAutoSubscribe() {
     if (publicKey && state === 'idle') {
       setState('checking');
       (async () => {
-        const restored = await client.restoreForWallet(publicKey.toBase58());
+        const walletStr = publicKey.toBase58();
+        // 1. localStorage
+        const restored = await client.restoreForWallet(walletStr);
         if (restored && client.hasApiToken) {
           setState('done');
-        } else {
-          setState('needed');
+          return;
         }
+        // 2. On-chain UserProfile como tercer fallback
+        try {
+          const profile = await fetchUserProfile(connection, publicKey);
+          if (profile?.account?.txline_api_token) {
+            const token = profile.account.txline_api_token;
+            client.setTokens(token, token);
+            saveTokens(walletStr, { jwt: token, apiToken: token });
+            setState('done');
+            return;
+          }
+        } catch {}
+        setState('needed');
       })();
     }
     if (!publicKey) {
       setState('idle');
     }
-  }, [publicKey, client, state]);
+  }, [publicKey, client, state, connection]);
 
   return { state, error, subscribe };
 }

@@ -14,7 +14,18 @@ function authUrl(path: string): string {
   return isBrowser ? `/api/txline/auth${path}` : `${TXLINE_AUTH_URL}${path}`;
 }
 
+function isSupabaseAvailable(): boolean {
+  const url = typeof process !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+    : '';
+  return url.startsWith('https://');
+}
+
 async function saveToSupabase(wallet: string, jwt: string, apiToken: string): Promise<void> {
+  if (!isSupabaseAvailable()) {
+    console.warn('[txline] Supabase no configurado — token solo en localStorage');
+    return;
+  }
   try {
     await fetch('/api/user/token', {
       method: 'POST',
@@ -25,6 +36,7 @@ async function saveToSupabase(wallet: string, jwt: string, apiToken: string): Pr
 }
 
 async function loadFromSupabase(wallet: string): Promise<{ jwt: string; apiToken: string } | null> {
+  if (!isSupabaseAvailable()) return null;
   try {
     const res = await fetch(`/api/user/token?wallet=${encodeURIComponent(wallet)}`);
     const data = await res.json();
@@ -34,6 +46,7 @@ async function loadFromSupabase(wallet: string): Promise<{ jwt: string; apiToken
 }
 
 async function deleteFromSupabase(wallet: string): Promise<void> {
+  if (!isSupabaseAvailable()) return;
   try {
     await fetch(`/api/user/token?wallet=${encodeURIComponent(wallet)}`, { method: 'DELETE' });
   } catch { }
@@ -110,6 +123,15 @@ export class TxLineClient {
     return this.apiToken!;
   }
 
+  setTokens(jwt: string, apiToken: string): void {
+    this.jwt = jwt;
+    this.apiToken = apiToken;
+  }
+
+  getApiToken(): string | null {
+    return this.apiToken;
+  }
+
   get hasApiToken(): boolean {
     return !!this.apiToken;
   }
@@ -117,6 +139,23 @@ export class TxLineClient {
   private async ensureAuth(): Promise<{ jwt: string; apiToken: string | null }> {
     if (!this.jwt) await this.getGuestJwt();
     return { jwt: this.jwt!, apiToken: this.apiToken };
+  }
+
+  private async requestWithRetry<T = any>(
+    method: 'GET' | 'POST',
+    path: string,
+    opts: { query?: Record<string, any>; body?: any } = {}
+  ): Promise<T> {
+    try {
+      return await this.request(method, path, opts);
+    } catch (e: any) {
+      if (e?.response?.status === 401 && this.jwt) {
+        this.jwt = null;
+        await this.getGuestJwt();
+        return this.request(method, path, opts);
+      }
+      throw e;
+    }
   }
 
   private async request<T = any>(
@@ -142,11 +181,11 @@ export class TxLineClient {
   }
 
   async getFixtures(params: Record<string, any> = {}): Promise<any> {
-    return this.request('GET', '/fixtures/snapshot', { query: params });
+    return this.requestWithRetry('GET', '/fixtures/snapshot', { query: params });
   }
 
   async getOdds(fixtureId: number, params: Record<string, any> = {}): Promise<any> {
-    return this.request('GET', `/odds/snapshot/${fixtureId}`, { query: params });
+    return this.requestWithRetry('GET', `/odds/snapshot/${fixtureId}`, { query: params });
   }
 
   async getLiveOddsForFixture(fixtureId: number): Promise<{
@@ -175,7 +214,7 @@ export class TxLineClient {
   }
 
   async getScoresSnapshot(fixtureId: number): Promise<any> {
-    return this.request('GET', `/scores/snapshot/${fixtureId}`);
+    return this.requestWithRetry('GET', `/scores/snapshot/${fixtureId}`);
   }
 
   async streamScores(): Promise<ReadableStream<Uint8Array>> {

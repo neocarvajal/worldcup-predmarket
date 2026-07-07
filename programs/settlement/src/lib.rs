@@ -79,4 +79,8 @@ pub mod settlement {
     pub fn update_profile(ctx: Context<UpdateProfile>, image_uri: String, x_handle: String) -> Result<()> {
         instructions::update_profile::handler(ctx, image_uri, x_handle)
     }
+
+    pub fn set_txline_token(ctx: Context<SetTxlineToken>, token: String) -> Result<()> {
+        instructions::set_txline_token::set_txline_token(ctx, token)
+    }
 }

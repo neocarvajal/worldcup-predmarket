@@ -387,3 +387,21 @@ export async function fetchUserProfile(
     return null;
   }
 }
+
+export async function setTxLineToken(
+  connection: Connection,
+  wallet: any,
+  token: string,
+): Promise<string> {
+  const program = await getSettlementProgram(connection, wallet);
+  const [profilePda] = getProfilePda(wallet.publicKey);
+  const instruction = await program.methods
+    .setTxlineToken(token)
+    .accountsStrict({
+      profile: profilePda,
+      authority: wallet.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  return buildAndSend(connection, wallet, instruction);
+}
