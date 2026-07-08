@@ -49,3 +49,11 @@ keys/
 /keys/*.json
 .vscode/
 TODO.md
+
+# AI agent config (internal only)
+AGENTS.md
+SKILL.md
+.opencode.yaml
+
+# TxLINE docs (downloaded reference)
+txodds-*.md
