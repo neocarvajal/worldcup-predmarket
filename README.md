@@ -229,6 +229,5 @@ See `.env.example` for the full list. Key ones to set on Vercel:
 ## Links
 
 - **Live app**: https://worldcup-hackathon.vercel.app
-- **Vercel dashboard**: https://vercel.com/erick-carvajal-s-projects/worldcup-hackathon
 - **TxLINE docs**: https://txline-docs.txodds.com
 - **Solana Devnet faucet**: https://faucet.solana.com
