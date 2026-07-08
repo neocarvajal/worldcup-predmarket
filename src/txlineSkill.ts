@@ -62,7 +62,6 @@ export class TxLineClient {
   }
 
   private restoreFromEnv(): void {
-    this.jwt = process.env.NEXT_PUBLIC_TXLINE_JWT || null;
     this.apiToken = process.env.NEXT_PUBLIC_TXLINE_API_TOKEN || null;
   }
 

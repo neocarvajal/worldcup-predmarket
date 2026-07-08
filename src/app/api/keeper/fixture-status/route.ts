@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const TXLINE_API_URL = process.env.NEXT_PUBLIC_TXLINE_API_URL || 'https://txline-dev.txodds.com';
-const TXLINE_JWT = process.env.TXLINE_JWT || '';
-const TXLINE_API_TOKEN = process.env.TXLINE_API_TOKEN || '';
 
-// 100 = TxLINE's new END status for game_finalised messages
 const FINISHED_STATUS_IDS = [5, 10, 13, 100];
 
 function isFinishedStatus(statusId: number): boolean {
   return FINISHED_STATUS_IDS.includes(statusId);
+}
+
+async function getGuestJwt(): Promise<string> {
+  const res = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Guest JWT: ${res.status}`);
+  const data: any = await res.json();
+  return data.token;
 }
 
 export async function GET(req: NextRequest) {
@@ -21,28 +25,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid fixtureId' }, { status: 400 });
   }
 
-  async function fetchSnapshot(jwt: string, apiToken: string) {
-    const h: Record<string, string> = { Authorization: `Bearer ${jwt}` };
-    if (apiToken) h['X-Api-Token'] = apiToken;
-    const res = await fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h });
-    if (!res.ok) return null;
-    return res.json();
-  }
-
   try {
-    let data = await fetchSnapshot(TXLINE_JWT, TXLINE_API_TOKEN);
-
-    if (!data) {
-      const guestRes = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
-      if (guestRes.ok) {
-        const guestBody: any = await guestRes.json();
-        data = await fetchSnapshot(guestBody.token, '');
-      }
+    const jwt = await getGuestJwt();
+    const h: Record<string, string> = { Authorization: `Bearer ${jwt}` };
+    const res = await fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h });
+    if (!res.ok) {
+      return NextResponse.json({ fixtureId, finished: false, error: `TxLINE returned ${res.status}` });
     }
-
-    if (!data) {
-      return NextResponse.json({ fixtureId, finished: false, error: 'TxLINE returned 403' });
-    }
+    const data = await res.json();
 
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
 
