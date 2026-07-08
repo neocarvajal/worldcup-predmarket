@@ -10,6 +10,7 @@ export interface Notification {
   timestamp: number;
   read: boolean;
   escrowPubkey?: string;
+  path?: string;
 }
 
 interface NotificationState {

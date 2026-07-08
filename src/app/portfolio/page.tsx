@@ -56,36 +56,44 @@ export default function PortfolioPage() {
       clearTimeout(timeout);
       const data = await resp.json();
       if (data.ok && data.result?.status === 'settled') {
+        // Re-fetch escrow from chain to get depositorWon
+        let depositorWon: boolean | null = null;
+        try {
+          const fresh = await fetchUserEscrows(connection, publicKey!);
+          const updated = fresh.find(e => e.pubkey.toBase58() === escrowPubkey);
+          if (updated) {
+            depositorWon = updated.account.depositorWon;
+            setEscrows(prev => prev.map(esc =>
+              esc.pubkey.toBase58() === escrowPubkey ? updated : esc
+            ));
+          }
+        } catch {}
+
+        const isWin = depositorWon === true;
+        const title = isWin ? '🎉 You won!' : '😞 You lost';
+        const body = isWin ? `${fixtureName} — Payout sent to your wallet` : `${fixtureName} — Better luck next time`;
+        const notifType = isWin ? 'won' as const : 'lost' as const;
+
         addNotification({
-          title: '✅ Apuesta liquidada',
-          body: fixtureName,
-          type: 'settled',
+          title,
+          body,
+          type: notifType,
           escrowPubkey,
         });
+
         const walletStr = publicKey?.toBase58();
-        if (walletStr && fixtureId) {
+        if (walletStr) {
           fetch('/api/push/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               wallet: walletStr,
-              title: 'Apuesta liquidada',
-              body: fixtureName,
-              fixtureId,
+              title,
+              body,
+              data: { path: '/portfolio' },
             }),
           }).catch(() => {});
         }
-        // Re-fetch escrow from chain to get depositor_won
-        try {
-          const fresh = await fetchUserEscrows(connection, publicKey!);
-          const updated = fresh.find(e => e.pubkey.toBase58() === escrowPubkey);
-          if (updated) {
-            setEscrows(prev => prev.map(esc =>
-              esc.pubkey.toBase58() === escrowPubkey ? updated : esc
-            ));
-            return true;
-          }
-        } catch {}
         return true;
       }
       const errMsg = data.result?.error || data.error || 'No disponible';

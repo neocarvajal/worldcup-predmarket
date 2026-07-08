@@ -39,10 +39,11 @@ self.addEventListener('notificationclick', function (event) {
 
   var urlToOpen = new URL('/', self.location.origin);
 
-  if (event.notification.data && event.notification.data.fixtureId) {
-    urlToOpen.pathname = '/market/' + event.notification.data.fixtureId;
-  } else if (event.notification.data && event.notification.data.path) {
-    urlToOpen.pathname = event.notification.data.path;
+  var nd = event.notification.data;
+  if (nd && nd.path) {
+    urlToOpen.pathname = nd.path;
+  } else if (nd && nd.fixtureId) {
+    urlToOpen.pathname = '/market/' + nd.fixtureId;
   }
 
   event.waitUntil(

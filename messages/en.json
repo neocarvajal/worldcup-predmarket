@@ -18,8 +18,18 @@
     "finished": "Finished",
     "live": "Live",
     "monthShort": {
-      "1": "Jan", "2": "Feb", "3": "Mar", "4": "Apr", "5": "May", "6": "Jun",
-      "7": "Jul", "8": "Aug", "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"
+      "1": "Jan",
+      "2": "Feb",
+      "3": "Mar",
+      "4": "Apr",
+      "5": "May",
+      "6": "Jun",
+      "7": "Jul",
+      "8": "Aug",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dec"
     }
   },
   "MarketList": {
@@ -87,11 +97,27 @@
     "selections": "selection(s) in your bet",
     "selectOutcome": "Select an outcome to bet",
     "month": {
-      "1": "January", "2": "February", "3": "March", "4": "April", "5": "May", "6": "June",
-      "7": "July", "8": "August", "9": "September", "10": "October", "11": "November", "12": "December"
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
     },
     "dayShort": {
-      "0": "Sun", "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat"
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
     }
   },
   "BetSlipDrawer": {
@@ -283,11 +309,10 @@
     "retry": "Retry"
   },
   "Notifications": {
-    "matchStarted": "Match Started",
-    "goal": "⚽ GOAL!",
-    "goalAnnulled": "❌ Goal Annulled",
-    "yellowCard": "🟨 Yellow Card",
-    "redCard": "🟥 Red Card"
+    "matchStarted": "🏁 Match Started",
+    "matchFinished": "🎉 Match Finished",
+    "won": "🎉 You won!",
+    "lost": "😞 You lost"
   },
   "Docs": {
     "title": "Documentation",
@@ -307,7 +332,13 @@
       },
       "betting": {
         "title": "How betting works",
-        "content": ["Pick a match on the Markets page.", "Select the outcome: 1 (home), X (draw), or 2 (away).", "Enter the amount in USDT and confirm the transaction.", "Your bet stays in an escrow (smart contract) until the match ends.", "When finished, the keeper settles automatically: if you win, you get your stake + winnings."]
+        "content": [
+          "Pick a match on the Markets page.",
+          "Select the outcome: 1 (home), X (draw), or 2 (away).",
+          "Enter the amount in USDT and confirm the transaction.",
+          "Your bet stays in an escrow (smart contract) until the match ends.",
+          "When finished, the keeper settles automatically: if you win, you get your stake + winnings."
+        ]
       },
       "payout": {
         "title": "Payout calculation",
@@ -319,7 +350,13 @@
       },
       "tech": {
         "title": "Technology",
-        "content": ["Solana — high-speed, low-cost blockchain.", "Anchor — framework for Solana programs.", "TxLINE — sports oracle with on-chain verifiable data.", "USDT — stablecoin used as collateral.", "Supabase — database and backend for the keeper bot."]
+        "content": [
+          "Solana — high-speed, low-cost blockchain.",
+          "Anchor — framework for Solana programs.",
+          "TxLINE — sports oracle with on-chain verifiable data.",
+          "USDT — stablecoin used as collateral.",
+          "Supabase — database and backend for the keeper bot."
+        ]
       },
       "faucet": {
         "title": "Faucet",

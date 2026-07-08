@@ -18,8 +18,18 @@
     "finished": "Finalizado",
     "live": "En Vivo",
     "monthShort": {
-      "1": "Ene", "2": "Feb", "3": "Mar", "4": "Abr", "5": "May", "6": "Jun",
-      "7": "Jul", "8": "Ago", "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dic"
+      "1": "Ene",
+      "2": "Feb",
+      "3": "Mar",
+      "4": "Abr",
+      "5": "May",
+      "6": "Jun",
+      "7": "Jul",
+      "8": "Ago",
+      "9": "Sep",
+      "10": "Oct",
+      "11": "Nov",
+      "12": "Dic"
     }
   },
   "MarketList": {
@@ -87,11 +97,27 @@
     "selections": "selección(es) en tu apuesta",
     "selectOutcome": "Selecciona un resultado para apostar",
     "month": {
-      "1": "Enero", "2": "Febrero", "3": "Marzo", "4": "Abril", "5": "Mayo", "6": "Junio",
-      "7": "Julio", "8": "Agosto", "9": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
+      "1": "Enero",
+      "2": "Febrero",
+      "3": "Marzo",
+      "4": "Abril",
+      "5": "Mayo",
+      "6": "Junio",
+      "7": "Julio",
+      "8": "Agosto",
+      "9": "Septiembre",
+      "10": "Octubre",
+      "11": "Noviembre",
+      "12": "Diciembre"
     },
     "dayShort": {
-      "0": "Dom", "1": "Lun", "2": "Mar", "3": "Mié", "4": "Jue", "5": "Vie", "6": "Sáb"
+      "0": "Dom",
+      "1": "Lun",
+      "2": "Mar",
+      "3": "Mié",
+      "4": "Jue",
+      "5": "Vie",
+      "6": "Sáb"
     }
   },
   "BetSlipDrawer": {
@@ -220,8 +246,7 @@
     "noHistory": "No hay historial",
     "activeBetsWillAppear": "Tus predicciones activas aparecerán acá.",
     "finished": "Finalizadas",
-    "bet": "apuesta",
-    "bets": "apuestas"
+    "bet": "apuesta"
   },
   "Profile": {
     "notConnected": "No conectado",
@@ -283,11 +308,10 @@
     "retry": "Reintentar"
   },
   "Notifications": {
-    "matchStarted": "Partido Iniciado",
-    "goal": "⚽ ¡GOL!",
-    "goalAnnulled": "❌ Gol Anulado",
-    "yellowCard": "🟨 Tarjeta Amarilla",
-    "redCard": "🟥 Tarjeta Roja"
+    "matchStarted": "🏁 Partido Iniciado",
+    "matchFinished": "🎉 Partido Finalizado",
+    "won": "🎉 ¡Ganaste!",
+    "lost": "😞 Perdiste"
   },
   "Docs": {
     "title": "Documentación",
@@ -307,7 +331,13 @@
       },
       "betting": {
         "title": "Cómo funciona una apuesta",
-        "content": ["Elige un partido en la página Markets.", "Selecciona el resultado: 1 (local), X (empate) o 2 (visitante).", "Ingresa el monto en USDT y confirma la transacción.", "Tu apuesta queda en un escrow (contrato inteligente) hasta que el partido termine.", "Al finalizar, el keeper liquida automáticamente: si acertaste, recibes tu stake + ganancias."]
+        "content": [
+          "Elige un partido en la página Markets.",
+          "Selecciona el resultado: 1 (local), X (empate) o 2 (visitante).",
+          "Ingresa el monto en USDT y confirma la transacción.",
+          "Tu apuesta queda en un escrow (contrato inteligente) hasta que el partido termine.",
+          "Al finalizar, el keeper liquida automáticamente: si acertaste, recibes tu stake + ganancias."
+        ]
       },
       "payout": {
         "title": "Cálculo de payout",
@@ -319,7 +349,13 @@
       },
       "tech": {
         "title": "Tecnología",
-        "content": ["Solana — blockchain de alta velocidad y bajo costo.", "Anchor — framework para programas Solana.", "TxLINE — oráculo deportivo con datos verificables on-chain.", "USDT — moneda estable utilizada como colateral.", "Supabase — base de datos y backend para el keeper bot."]
+        "content": [
+          "Solana — blockchain de alta velocidad y bajo costo.",
+          "Anchor — framework para programas Solana.",
+          "TxLINE — oráculo deportivo con datos verificables on-chain.",
+          "USDT — moneda estable utilizada como colateral.",
+          "Supabase — base de datos y backend para el keeper bot."
+        ]
       },
       "faucet": {
         "title": "Faucet",

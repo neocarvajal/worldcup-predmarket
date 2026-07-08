@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useTranslations } from 'next-intl';
 import { BellIcon, Cross2Icon } from '@radix-ui/react-icons';
@@ -17,6 +17,7 @@ export const NavBar: React.FC = () => {
   const isLive = pathname === '/live';
   const isLanding = pathname === '/';
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +122,7 @@ export const NavBar: React.FC = () => {
                       notifications.map(n => (
                         <button
                           key={n.id}
-                          onClick={() => { markAsRead(n.id); if (n.escrowPubkey) setDropdownOpen(false); }}
+                          onClick={() => { markAsRead(n.id); setDropdownOpen(false); if (n.path) router.push(n.path); else if (n.escrowPubkey) router.push('/portfolio'); }}
                           className="w-full text-left px-4 py-3 transition-all duration-150 hover:opacity-80 active:opacity-60"
                           style={{
                             background: n.read ? 'transparent' : 'var(--accent-dim)',
