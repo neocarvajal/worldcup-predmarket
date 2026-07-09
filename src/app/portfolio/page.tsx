@@ -52,7 +52,7 @@ export default function PortfolioPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20000);
-      const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}`, { method: 'POST', signal: controller.signal });
+      const resp = await fetch(`/api/keeper/settle?escrow=${escrowPubkey}&force=1`, { method: 'POST', signal: controller.signal });
       clearTimeout(timeout);
       const data = await resp.json();
       if (data.ok && data.result?.status === 'settled') {

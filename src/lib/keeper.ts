@@ -252,12 +252,13 @@ export async function settleActiveEscrows(
 
     // Check if fixture is finished via scores endpoint
     let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
+    let hasGameFinalised = false;
     try {
       const scoresRaw: any = await txlineRequest(
         txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
       );
       const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
-      // Scan all messages for game_finalised (TxLINE's new END status with StatusId=100)
+      hasGameFinalised = msgs.some((m: any) => m.Action === 'game_finalised');
       const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
       if (finalisedMsg) {
         statusId = finalisedMsg.StatusId ?? 0;
@@ -284,7 +285,7 @@ export async function settleActiveEscrows(
     }
 
     const FINISHED_STATUS_IDS = [5, 10, 13, 100];
-    const isFinishedStatus = FINISHED_STATUS_IDS.includes(statusId);
+    const isFinishedStatus = hasGameFinalised || FINISHED_STATUS_IDS.includes(statusId);
     const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
 
     if (!isFinishedStatus) {
@@ -463,11 +464,13 @@ export async function settleSingleEscrow(
   const { fixtureId, fixtureName, depositor, recipient, mint, amount, odds } = decoded;
 
   let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
+  let hasGameFinalised = false;
   try {
     const scoresRaw: any = await txlineRequest(
       txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
     );
     const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
+    hasGameFinalised = msgs.some((m: any) => m.Action === 'game_finalised');
     const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
     if (finalisedMsg) {
       statusId = finalisedMsg.StatusId ?? 0;
@@ -487,19 +490,19 @@ export async function settleSingleEscrow(
     return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `Scores fetch: ${e.message}` };
   }
 
-  const FINISHED_STATUS_IDS = [5, 10, 13, 100];
-  const isFinishedStatus = FINISHED_STATUS_IDS.includes(statusId);
-  const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
+    const FINISHED_STATUS_IDS = [5, 10, 13, 100];
+    const isFinishedStatus = hasGameFinalised || FINISHED_STATUS_IDS.includes(statusId);
+    const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
 
-  if (!isFinishedStatus) {
-    if (force || timeHeuristic) {
-      console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId}, timeHeuristic=${timeHeuristic})`);
-    } else {
-      return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `StatusId ${statusId}` };
+    if (!isFinishedStatus) {
+      if (force || timeHeuristic) {
+        console.log(`[keeper] Force-settling ${fixtureName} (StatusId ${statusId}, timeHeuristic=${timeHeuristic})`);
+      } else {
+        return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'not_finished', error: `StatusId ${statusId}` };
+      }
     }
-  }
 
-  let validation: any;
+    let validation: any;
   try {
     validation = await txlineRequest(
       txlineUrl, `/api/fixtures/validation?fixtureId=${fixtureId}`, txlineJwt, txlineApiToken,
