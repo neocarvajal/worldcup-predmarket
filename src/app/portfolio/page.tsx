@@ -102,12 +102,24 @@ export default function PortfolioPage() {
         }
         return true;
       }
-      const errMsg = data.result?.error || data.error || 'No disponible';
-      console.error(`[portfolio] settleOne failed for ${fixtureName}:`, errMsg);
+      const rawErr = data.result?.error || data.error || 'No disponible';
+      console.error(`[portfolio] settleOne failed for ${fixtureName}:`, rawErr);
       if (data.result?.logs) console.error('[portfolio] Simulation logs:', JSON.stringify(data.result.logs, null, 2));
+      // Show human-friendly error only
+      let userMsg: string;
+      if (rawErr.includes('insufficient funds') || rawErr.includes('0x1')) {
+        userMsg = 'Saldo insuficiente del fondo de liquidez. El keeper necesita fondos para pagar ganancias.';
+      } else if (rawErr.includes('Scores fetch') || rawErr.includes('Validation fetch')) {
+        userMsg = 'No se pudo verificar el resultado con el oráculo. Intenta de nuevo.';
+      } else if (rawErr.includes('timeout') || rawErr.includes('abort')) {
+        userMsg = 'La solicitud tardó demasiado. Intenta de nuevo.';
+      } else {
+        const short = rawErr.split('.')[0]?.split(':')[0] || rawErr;
+        userMsg = short.length > 80 ? short.slice(0, 77) + '...' : short;
+      }
       addNotification({
         title: '⚠️ No se pudo liquidar',
-        body: `${fixtureName} — ${errMsg}`,
+        body: `${fixtureName} — ${userMsg}`,
         type: 'info',
         escrowPubkey,
       });
