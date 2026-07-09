@@ -41,6 +41,14 @@ export async function GET(req: NextRequest) {
 
     let statusId: number;
     let finished: boolean;
+    let startTime: number | undefined;
+
+    // Extract startTime from first message's FixtureInfo
+    const firstMsg = msgs.length > 0 ? msgs[0] : null;
+    const rawStart = firstMsg?.FixtureInfo?.StartTime ?? firstMsg?.StartTime;
+    if (rawStart != null) {
+      startTime = Number(rawStart) > 1e12 ? Number(rawStart) : Number(rawStart) * 1000;
+    }
 
     if (finalisedMsg) {
       statusId = finalisedMsg.StatusId ?? 0;
@@ -57,7 +65,7 @@ export async function GET(req: NextRequest) {
     const score1 = score.Participant1?.Total?.Goals ?? 0;
     const score2 = score.Participant2?.Total?.Goals ?? 0;
 
-    return NextResponse.json({ fixtureId, finished, statusId, score1, score2 });
+    return NextResponse.json({ fixtureId, finished, statusId, startTime, score1, score2 });
   } catch (e: any) {
     return NextResponse.json({ fixtureId, finished: false, error: e.message });
   }

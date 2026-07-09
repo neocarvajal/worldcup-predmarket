@@ -23,8 +23,8 @@ export default function PortfolioPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [settledKeys, setSettledKeys] = useState<Set<string>>(new Set());
-  const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
-  const fixtureStatusRef = useRef<Record<number, { finished: boolean; statusId?: number; score1?: number; score2?: number }>>({});
+  const [fixtureStatus, setFixtureStatus] = useState<Record<number, { finished: boolean; statusId?: number; startTime?: number; score1?: number; score2?: number }>>({});
+  const fixtureStatusRef = useRef<Record<number, { finished: boolean; statusId?: number; startTime?: number; score1?: number; score2?: number }>>({});
   const { addNotification } = useNotifications();
   const autoSettlingRef = useRef(false);
 
@@ -37,7 +37,11 @@ export default function PortfolioPage() {
       const data = await resp.json();
       if (data && typeof data.finished === 'boolean') {
         const prev = fixtureStatusRef.current[id];
-        const entry = { finished: data.finished, statusId: data.statusId, score1: data.score1, score2: data.score2 };
+        const entry = { finished: data.finished, statusId: data.statusId, startTime: data.startTime, score1: data.score1, score2: data.score2 };
+        // If API says not finished but match started > 3h ago, treat as finished
+        if (!entry.finished && entry.startTime && Date.now() > entry.startTime + 3 * 60 * 60 * 1000) {
+          entry.finished = true;
+        }
         // Avoid re-triggering state if nothing changed
         if (prev?.finished === entry.finished && prev?.statusId === entry.statusId) return;
         fixtureStatusRef.current = { ...fixtureStatusRef.current, [id]: entry };
@@ -152,20 +156,15 @@ export default function PortfolioPage() {
       }
       setSettledKeys(prev => new Set([...prev, ...settled]));
 
-      // Check fixture status for active escrows that might be finished
+      // Check fixture status for all active escrows
       const activeWithFid = data.filter((e: any) => {
         const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
         return k === 'Active' && e.account.fixture_id;
       });
 
-      const checkPromises: Promise<void>[] = [];
-      for (const e of activeWithFid) {
-        const fid = Number(e.account.fixture_id);
-        if (!fixtureStatusRef.current[fid]) {
-          checkPromises.push(checkFixture(fid));
-        }
-      }
-      await Promise.allSettled(checkPromises);
+      await Promise.allSettled(
+        activeWithFid.map((e: any) => checkFixture(Number(e.account.fixture_id)))
+      );
     } catch (e: any) {
       setError(e?.message || 'Error al cargar');
     } finally {
@@ -178,17 +177,13 @@ export default function PortfolioPage() {
   // Poll fixture-status every 30s for active escrows
   useEffect(() => {
     if (!publicKey || escrows.length === 0) return;
-    const active = escrows.filter((e: any) => {
-      const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
-      return k === 'Active';
-    });
-    if (active.length === 0) return;
     const timer = setInterval(() => {
+      const active = escrows.filter((e: any) => {
+        const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
+        return k === 'Active' && e.account.fixture_id;
+      });
       for (const e of active) {
-        const fid = Number(e.account.fixture_id);
-        if (fid && !fixtureStatusRef.current[fid]?.finished) {
-          checkFixture(fid);
-        }
+        checkFixture(Number(e.account.fixture_id));
       }
     }, 30_000);
     return () => clearInterval(timer);
