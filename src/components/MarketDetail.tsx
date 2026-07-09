@@ -69,33 +69,34 @@ export const MarketDetail: React.FC = () => {
   useEffect(() => {
     if (!fixtureId) return;
     const fid = parseInt(fixtureId);
-    Promise.all([
-      client.getFixtures({ fixtureId: fid }).then((r: any) => {
-        const items: any[] = Array.isArray(r) ? r : (r?.data ?? []);
-        const found = items.find(
-          (f: any) =>
-            f.FixtureId === fid ||
-            f.fixtureId === fid ||
-            Number(f.id) === fid
-        );
-        setFixture(found || items[0] || r);
-      }),
-      client.getOdds(fid).then((r: any) => {
-        const items: any[] = Array.isArray(r) ? r : (r?.data ?? r?.markets ?? []);
-        const found = items.find(
-          (m: any) =>
-            m.FixtureId === fid ||
-            m.fixtureId === fid ||
-            Number(m.fixture_id) === fid
-        );
-        setOdds(found || items[0] || r);
-      }),
-      client.getScoresSnapshot(fid).then((r: any) => {
-        const msgs = Array.isArray(r) ? r : (r?.messages ?? [r]);
-        const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-        setFinished([5, 10, 13].includes(last?.StatusId ?? 0));
-      }).catch(() => setFinished(false)),
-    ]).catch(console.error).finally(() => setLoading(false));
+    let pending = 3;
+    const dec = () => { pending--; if (pending === 0) setLoading(false); };
+
+    // Check fixture-status via our authoritative API (handles StatusId=100, game_finalised)
+    fetch(`/api/keeper/fixture-status?fixtureId=${fid}`).then(r => r.json()).then((data: any) => {
+      if (data && typeof data.finished === 'boolean') {
+        setFinished(data.finished);
+      }
+      dec();
+    }).catch(() => dec());
+
+    client.getFixtures({ fixtureId: fid }).then((r: any) => {
+      const items: any[] = Array.isArray(r) ? r : (r?.data ?? []);
+      const found = items.find(
+        (f: any) => f.FixtureId === fid || f.fixtureId === fid || Number(f.id) === fid
+      );
+      setFixture(found || items[0] || r);
+      dec();
+    }).catch(() => dec());
+
+    client.getOdds(fid).then((r: any) => {
+      const items: any[] = Array.isArray(r) ? r : (r?.data ?? r?.markets ?? []);
+      const found = items.find(
+        (m: any) => m.FixtureId === fid || m.fixtureId === fid || Number(m.fixture_id) === fid
+      );
+      setOdds(found || items[0] || r);
+      dec();
+    }).catch(() => dec());
   }, [fixtureId, client]);
 
   const locale = useLocale();
