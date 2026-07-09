@@ -37,12 +37,14 @@ export default function PortfolioPage() {
       const data = await resp.json();
       if (data && typeof data.finished === 'boolean') {
         const prev = fixtureStatusRef.current[id];
-        const entry = { finished: data.finished, statusId: data.statusId, startTime: data.startTime, score1: data.score1, score2: data.score2 };
+        const entry = { finished: data.finished, statusId: data.statusId, startTime: data.startTime ?? prev?.startTime, score1: data.score1, score2: data.score2 };
+        // Never regress: once we detect finished, keep it
+        if (prev?.finished) entry.finished = true;
         // If API says not finished but match started > 3h ago, treat as finished
         if (!entry.finished && entry.startTime && Date.now() > entry.startTime + 3 * 60 * 60 * 1000) {
           entry.finished = true;
         }
-        // Avoid re-triggering state if nothing changed
+        // Avoid re-triggering state if nothing changed (but still update ref)
         if (prev?.finished === entry.finished && prev?.statusId === entry.statusId) return;
         fixtureStatusRef.current = { ...fixtureStatusRef.current, [id]: entry };
         setFixtureStatus(fixtureStatusRef.current);
@@ -125,6 +127,8 @@ export default function PortfolioPage() {
   function isMatchOver(acc: any, matchStartMs?: number, fixtureId?: number): boolean {
     if (!acc) return false;
     if (fixtureId && fixtureStatusRef.current[fixtureId]?.finished) return true;
+    // Fallback: localStorage matchStartMs (from when bet was placed) + 2.5h
+    if (matchStartMs && Date.now() > matchStartMs + 2.5 * 60 * 60 * 1000) return true;
     if (acc.expiry && acc.expiry > 0) {
       const expiryMs = Number(acc.expiry) * 1000;
       if (Date.now() > expiryMs) return true;
@@ -132,10 +136,12 @@ export default function PortfolioPage() {
     return false;
   }
 
-  function canAutoSettle(acc: any, fixtureId?: number): boolean {
+  function canAutoSettle(acc: any, fixtureId?: number, matchStartMs?: number): boolean {
     if (!acc) return false;
     if (settledKeys.has(acc.pubkey?.toBase58?.() ?? '')) return false;
     if (fixtureId && fixtureStatusRef.current[fixtureId]?.finished) return true;
+    // Fallback: localStorage matchStartMs + 2.5h
+    if (matchStartMs && Date.now() > matchStartMs + 2.5 * 60 * 60 * 1000) return true;
     return false;
   }
 
@@ -203,7 +209,11 @@ export default function PortfolioPage() {
       const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
       if (k !== 'Active') return false;
       const fid = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
-      return canAutoSettle(e.account, fid);
+      const key = e.pubkey.toBase58();
+      const bet = loadBet(publicKey!.toBase58(), key);
+      const raw = bet?.matchStartTime;
+      const matchStartMs = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
+      return canAutoSettle(e.account, fid, matchStartMs);
     });
     if (toSettle.length === 0) return;
     autoSettlingRef.current = true;

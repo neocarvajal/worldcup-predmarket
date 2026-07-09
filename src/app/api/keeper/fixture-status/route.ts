@@ -28,12 +28,34 @@ export async function GET(req: NextRequest) {
   try {
     const jwt = await getGuestJwt();
     const h: Record<string, string> = { Authorization: `Bearer ${jwt}` };
-    const res = await fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h });
-    if (!res.ok) {
-      return NextResponse.json({ fixtureId, finished: false, error: `TxLINE returned ${res.status}` });
-    }
-    const data = await res.json();
 
+    // Always fetch fixtures snapshot in parallel to get startTime as fallback
+    const fixturesPromise = fetch(`${TXLINE_API_URL}/api/fixtures/snapshot/${fixtureId}`, { headers: h })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+
+    const scoresRes = await fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h });
+
+    let startTime: number | undefined;
+
+    // Get startTime from fixtures snapshot (most reliable source)
+    try {
+      const fixturesData = await fixturesPromise;
+      if (fixturesData) {
+        const msgs = Array.isArray(fixturesData) ? fixturesData : (fixturesData?.messages ?? [fixturesData]);
+        const firstMsg = msgs.length > 0 ? msgs[0] : null;
+        const rawStart = firstMsg?.FixtureInfo?.StartTime ?? firstMsg?.StartTime ?? firstMsg?.StartTimeUtc;
+        if (rawStart != null) {
+          startTime = Number(rawStart) > 1e12 ? Number(rawStart) : Number(rawStart) * 1000;
+        }
+      }
+    } catch {}
+
+    if (!scoresRes.ok) {
+      return NextResponse.json({ fixtureId, finished: false, startTime, error: `TxLINE scores returned ${scoresRes.status}` });
+    }
+
+    const data = await scoresRes.json();
     const msgs = Array.isArray(data) ? data : (data?.messages ?? [data]);
 
     // Prefer game_finalised Action message (TxLINE's new END status with StatusId=100)
@@ -41,13 +63,14 @@ export async function GET(req: NextRequest) {
 
     let statusId: number;
     let finished: boolean;
-    let startTime: number | undefined;
 
-    // Extract startTime from first message's FixtureInfo
-    const firstMsg = msgs.length > 0 ? msgs[0] : null;
-    const rawStart = firstMsg?.FixtureInfo?.StartTime ?? firstMsg?.StartTime;
-    if (rawStart != null) {
-      startTime = Number(rawStart) > 1e12 ? Number(rawStart) : Number(rawStart) * 1000;
+    // Extract startTime from scores first message's FixtureInfo if not already set
+    if (!startTime) {
+      const firstMsg = msgs.length > 0 ? msgs[0] : null;
+      const rawStart = firstMsg?.FixtureInfo?.StartTime ?? firstMsg?.StartTime;
+      if (rawStart != null) {
+        startTime = Number(rawStart) > 1e12 ? Number(rawStart) : Number(rawStart) * 1000;
+      }
     }
 
     if (finalisedMsg) {
