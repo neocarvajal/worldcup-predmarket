@@ -15,6 +15,7 @@ interface MarketCardProps {
   startTime: string | number;
   competition?: string;
   odds?: { home: number; draw: number; away: number };
+  finished?: boolean;
 }
 
 function parseDate(v: string | number): Date {
@@ -89,7 +90,7 @@ function formatDate(date: Date, months: string[]): string {
 }
 
 export const MarketCard: React.FC<MarketCardProps> = ({
-  fixtureId, participant1, participant2, startTime, competition, odds,
+  fixtureId, participant1, participant2, startTime, competition, odds, finished,
 }) => {
   const startDate = parseDate(startTime);
   const flag1 = getFlag(participant1);
@@ -103,6 +104,77 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     t('monthShort.5'), t('monthShort.6'), t('monthShort.7'), t('monthShort.8'),
     t('monthShort.9'), t('monthShort.10'), t('monthShort.11'), t('monthShort.12'),
   ];
+
+  if (finished) {
+    return (
+      <div className="block opacity-60 pointer-events-none">
+        <div
+          className="rounded-2xl p-5 transition-all duration-300"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {competition && (
+                <span
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: 'var(--accent-dim)',
+                    color: 'var(--accent)',
+                    border: '1px solid rgba(220,235,2,0.15)',
+                  }}
+                >
+                  {competition}
+                </span>
+              )}
+            </div>
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{
+                background: 'var(--bg-surface)',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {t('finished')}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <div
+                className="flex items-center justify-center shrink-0"
+                style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--border)' }}
+              >
+                <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
+              </div>
+              <span className="text-sm font-semibold truncate">{show1}</span>
+            </div>
+            <div className="flex flex-col items-center shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--text-muted)' }}>VS</span>
+            </div>
+            <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
+              <span className="text-sm font-semibold truncate">{show2}</span>
+              <div
+                className="flex items-center justify-center shrink-0"
+                style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--border)' }}
+              >
+                <span className="text-lg leading-none">{flag2 || '🏳️'}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+              {formatDate(startDate, months)}
+            </span>
+            <span className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{t('finished')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Link href={`/market/${fixtureId}`} className="block group">

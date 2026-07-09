@@ -36,15 +36,15 @@ export default function PortfolioPage() {
       clearTimeout(timeout);
       const data = await resp.json();
       if (data && typeof data.finished === 'boolean') {
+        const prev = fixtureStatusRef.current[id];
         const entry = { finished: data.finished, statusId: data.statusId, score1: data.score1, score2: data.score2 };
+        // Avoid re-triggering state if nothing changed
+        if (prev?.finished === entry.finished && prev?.statusId === entry.statusId) return;
         fixtureStatusRef.current = { ...fixtureStatusRef.current, [id]: entry };
         setFixtureStatus(fixtureStatusRef.current);
       }
     } catch {
       clearTimeout(timeout);
-      delete fixtureStatusRef.current[id];
-      fixtureStatusRef.current = { ...fixtureStatusRef.current };
-      setFixtureStatus(fixtureStatusRef.current);
     }
   }
 
@@ -143,6 +143,15 @@ export default function PortfolioPage() {
       const data = await fetchUserEscrows(connection, publicKey);
       data.sort((a: any, b: any) => Number(b.account.nonce) - Number(a.account.nonce));
       setEscrows(data);
+
+      // Mark already-settled escrows so autoSettle skips them
+      const settled = new Set<string>();
+      for (const e of data) {
+        const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
+        if (k !== 'Active') settled.add(e.pubkey.toBase58());
+      }
+      setSettledKeys(prev => new Set([...prev, ...settled]));
+
       // Check fixture status for active escrows that might be finished
       const activeWithFid = data.filter((e: any) => {
         const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
