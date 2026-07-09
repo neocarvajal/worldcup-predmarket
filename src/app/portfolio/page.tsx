@@ -120,14 +120,17 @@ export default function PortfolioPage() {
 
   function isMatchOver(acc: any, matchStartMs?: number, fixtureId?: number): boolean {
     if (!acc) return false;
+    if (fixtureId && fixtureStatusRef.current[fixtureId]?.finished) return true;
     if (acc.expiry && acc.expiry > 0) {
       const expiryMs = Number(acc.expiry) * 1000;
       if (Date.now() > expiryMs) return true;
     }
-    if (matchStartMs && matchStartMs > 0) {
-      const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
-      if (Date.now() > matchStartMs + FOUR_HOURS_MS) return true;
-    }
+    return false;
+  }
+
+  function canAutoSettle(acc: any, fixtureId?: number): boolean {
+    if (!acc) return false;
+    if (settledKeys.has(acc.pubkey?.toBase58?.() ?? '')) return false;
     if (fixtureId && fixtureStatusRef.current[fixtureId]?.finished) return true;
     return false;
   }
@@ -163,6 +166,25 @@ export default function PortfolioPage() {
 
   useEffect(() => { load(); }, [publicKey, connection]);
 
+  // Poll fixture-status every 30s for active escrows
+  useEffect(() => {
+    if (!publicKey || escrows.length === 0) return;
+    const active = escrows.filter((e: any) => {
+      const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
+      return k === 'Active';
+    });
+    if (active.length === 0) return;
+    const timer = setInterval(() => {
+      for (const e of active) {
+        const fid = Number(e.account.fixture_id);
+        if (fid && !fixtureStatusRef.current[fid]?.finished) {
+          checkFixture(fid);
+        }
+      }
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [publicKey, escrows]);
+
   useEffect(() => {
     if (!publicKey) {
       const t = setTimeout(() => setVisible(true), 400);
@@ -170,18 +192,14 @@ export default function PortfolioPage() {
     }
   }, [publicKey, setVisible]);
 
-  // Auto-settle: transparent background settlement
+  // Auto-settle: only when fixture-status API confirms finished
   useEffect(() => {
     if (loading || escrows.length === 0 || autoSettlingRef.current) return;
     const toSettle = escrows.filter((e: any) => {
       const k = e.account?.state ? Object.keys(e.account.state)[0] : null;
       if (k !== 'Active') return false;
-      if (settledKeys.has(e.pubkey.toBase58())) return false;
-      const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
-      const raw = bet?.matchStartTime;
-      const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
       const fid = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
-      return isMatchOver(e.account, matchStart, fid);
+      return canAutoSettle(e.account, fid);
     });
     if (toSettle.length === 0) return;
     autoSettlingRef.current = true;
@@ -200,11 +218,8 @@ export default function PortfolioPage() {
   }, [loading, escrows, publicKey, fixtureStatus]);
 
   const escrowMatchOver = escrows.reduce((map: Record<string, boolean>, e: any) => {
-    const bet = publicKey ? loadBet(publicKey.toBase58(), e.pubkey.toBase58()) : null;
-    const raw = bet?.matchStartTime;
-    const matchStart = raw ? (raw > 1e12 ? raw : raw * 1000) : undefined;
     const fid = e.account.fixture_id ? Number(e.account.fixture_id) : undefined;
-    map[e.pubkey.toBase58()] = isMatchOver(e.account, matchStart, fid);
+    map[e.pubkey.toBase58()] = isMatchOver(e.account, undefined, fid);
     return map;
   }, {});
 

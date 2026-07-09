@@ -47,7 +47,7 @@ async function handle(req: NextRequest) {
     if (escrowParam) {
       const result = await settleSingleEscrow(
         connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken,
-        new PublicKey(escrowParam), undefined, true,
+        new PublicKey(escrowParam), undefined, force,
       );
       return NextResponse.json({
         ok: result.status === 'settled',
