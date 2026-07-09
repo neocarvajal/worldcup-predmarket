@@ -27,7 +27,7 @@ export default function ProfilePage() {
   const { client } = useTxLine();
   const t = useTranslations('Profile');
   const { state: subState, subscribe } = useAutoSubscribe();
-  const { notificationsEnabled, toggleNotifications } = useNotifications();
+  const { notificationsEnabled, toggleNotifications, loadFromProfile } = useNotifications();
   const [balance, setBalance] = useState<number | null>(null);
   const [totalBets, setTotalBets] = useState(0);
   const [wonBets, setWonBets] = useState(0);
@@ -53,8 +53,15 @@ export default function ProfilePage() {
     fetchUserProfile(connection, publicKey).then((p) => {
       if (p) {
         setProfileExists(true);
-        setImageUri(p.account.image_uri || '');
+        const uri = p.account.image_uri || '';
+        setImageUri(uri);
         setXHandle(p.account.x_handle || '');
+        if (uri && !profileImg) {
+          setProfileImg(uri);
+        }
+        if (p.account.notifications_enabled != null) {
+          loadFromProfile(connection, publicKey);
+        }
       }
     }).catch(() => {});
     fetchUserEscrows(connection, publicKey).then((data) => {
@@ -73,7 +80,7 @@ export default function ProfilePage() {
       setWonBets(won);
       setEarnings(total);
     }).catch(() => {});
-  }, [publicKey, connection]);
+  }, [publicKey, connection, loadFromProfile]);
 
   const handleImagePick = () => fileRef.current?.click();
 
@@ -95,8 +102,8 @@ export default function ProfilePage() {
     setSaveMsg(null);
     try {
       const sig = profileExists
-        ? await updateProfile(connection, { publicKey, signTransaction }, imageUri, xHandle)
-        : await initProfile(connection, { publicKey, signTransaction }, imageUri, xHandle);
+        ? await updateProfile(connection, { publicKey, signTransaction }, imageUri, xHandle, notificationsEnabled)
+        : await initProfile(connection, { publicKey, signTransaction }, imageUri, xHandle, notificationsEnabled);
       setProfileExists(true);
       setSaveMsg(t('savedOnSolana'));
     } catch (e: any) {

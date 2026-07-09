@@ -201,12 +201,13 @@ export async function initProfile(
   connection: Connection,
   wallet: any,
   imageUri: string,
-  xHandle: string
+  xHandle: string,
+  notificationsEnabled: boolean
 ): Promise<string> {
   const program = await getSettlementProgram(connection, wallet);
   const [profilePda] = getProfilePda(wallet.publicKey);
   const instruction = await program.methods
-    .initProfile(imageUri, xHandle)
+    .initProfile(imageUri, xHandle, notificationsEnabled)
     .accountsStrict({
       authority: wallet.publicKey,
       profile: profilePda,
@@ -220,12 +221,13 @@ export async function updateProfile(
   connection: Connection,
   wallet: any,
   imageUri: string,
-  xHandle: string
+  xHandle: string,
+  notificationsEnabled: boolean
 ): Promise<string> {
   const program = await getSettlementProgram(connection, wallet);
   const [profilePda] = getProfilePda(wallet.publicKey);
   const instruction = await program.methods
-    .updateProfile(imageUri, xHandle)
+    .updateProfile(imageUri, xHandle, notificationsEnabled)
     .accountsStrict({
       authority: wallet.publicKey,
       profile: profilePda,

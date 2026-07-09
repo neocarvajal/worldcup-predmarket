@@ -19,10 +19,11 @@ pub struct InitProfile<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<InitProfile>, image_uri: String, x_handle: String) -> Result<()> {
+pub fn handler(ctx: Context<InitProfile>, image_uri: String, x_handle: String, notifications_enabled: bool) -> Result<()> {
     let profile = &mut ctx.accounts.profile;
     profile.authority = ctx.accounts.authority.key();
     profile.image_uri = image_uri;
     profile.x_handle = x_handle;
+    profile.notifications_enabled = notifications_enabled;
     Ok(())
 }

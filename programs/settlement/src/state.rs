@@ -40,4 +40,5 @@ pub struct UserProfile {
     pub image_uri: String,
     #[max_len(50)]
     pub x_handle: String,
+    pub notifications_enabled: bool,
 }

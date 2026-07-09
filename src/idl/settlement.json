@@ -420,6 +420,10 @@
         {
           "name": "x_handle",
           "type": "string"
+        },
+        {
+          "name": "notifications_enabled",
+          "type": "bool"
         }
       ]
     },
@@ -777,6 +781,10 @@
         {
           "name": "x_handle",
           "type": "string"
+        },
+        {
+          "name": "notifications_enabled",
+          "type": "bool"
         }
       ]
     }
@@ -806,7 +814,32 @@
         180,
         13,
         194
-      ]
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "txline_api_token",
+            "type": "string"
+          },
+          {
+            "name": "image_uri",
+            "type": "string"
+          },
+          {
+            "name": "x_handle",
+            "type": "string"
+          },
+          {
+            "name": "notifications_enabled",
+            "type": "bool"
+          }
+        ]
+      }
     }
   ],
   "errors": [

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { PublicKey, Connection } from '@solana/web3.js';
+import { fetchUserProfile } from '../lib/settlement';
 
 export interface Notification {
   id: string;
@@ -22,6 +24,7 @@ interface NotificationState {
   markAllAsRead: () => void;
   clearAll: () => void;
   toggleNotifications: () => void;
+  loadFromProfile: (connection: Connection, publicKey: PublicKey) => Promise<void>;
 }
 
 const STORAGE_KEY = 'txline:notifications';
@@ -40,15 +43,11 @@ function loadNotifications(): Notification[] {
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [initialized, setInitialized] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     setNotifications(loadNotifications());
     setInitialized(true);
-    try {
-      const stored = localStorage.getItem(ENABLED_KEY);
-      if (stored !== null) setNotificationsEnabled(stored === 'true');
-    } catch {}
   }, []);
 
   useEffect(() => {
@@ -56,10 +55,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications)); } catch {}
     }
   }, [notifications, initialized]);
-
-  useEffect(() => {
-    try { localStorage.setItem(ENABLED_KEY, String(notificationsEnabled)); } catch {}
-  }, [notificationsEnabled]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -84,8 +79,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotificationsEnabled(prev => !prev);
   }, []);
 
+  const loadFromProfile = useCallback(async (connection: Connection, publicKey: PublicKey) => {
+    try {
+      const profile = await fetchUserProfile(connection, publicKey);
+      if (profile) {
+        setNotificationsEnabled(!!profile.account.notifications_enabled);
+      }
+    } catch {}
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, notificationsEnabled, addNotification, markAsRead, markAllAsRead, clearAll, toggleNotifications }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, notificationsEnabled, addNotification, markAsRead, markAllAsRead, clearAll, toggleNotifications, loadFromProfile }}>
       {children}
     </NotificationContext.Provider>
   );

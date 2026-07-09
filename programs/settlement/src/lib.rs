@@ -72,12 +72,12 @@ pub mod settlement {
         instructions::cancel::handler(ctx)
     }
 
-    pub fn init_profile(ctx: Context<InitProfile>, image_uri: String, x_handle: String) -> Result<()> {
-        instructions::init_profile::handler(ctx, image_uri, x_handle)
+    pub fn init_profile(ctx: Context<InitProfile>, image_uri: String, x_handle: String, notifications_enabled: bool) -> Result<()> {
+        instructions::init_profile::handler(ctx, image_uri, x_handle, notifications_enabled)
     }
 
-    pub fn update_profile(ctx: Context<UpdateProfile>, image_uri: String, x_handle: String) -> Result<()> {
-        instructions::update_profile::handler(ctx, image_uri, x_handle)
+    pub fn update_profile(ctx: Context<UpdateProfile>, image_uri: String, x_handle: String, notifications_enabled: bool) -> Result<()> {
+        instructions::update_profile::handler(ctx, image_uri, x_handle, notifications_enabled)
     }
 
     pub fn set_txline_token(ctx: Context<SetTxlineToken>, token: String) -> Result<()> {
