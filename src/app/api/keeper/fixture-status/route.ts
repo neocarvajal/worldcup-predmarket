@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Connection, Keypair } from '@solana/web3.js';
+import { ensureApiToken } from '../../../../lib/keeper-auth';
 
 const TXLINE_API_URL = process.env.NEXT_PUBLIC_TXLINE_API_URL || 'https://txline-dev.txodds.com';
 
@@ -8,11 +10,33 @@ function isFinishedStatus(statusId: number): boolean {
   return FINISHED_STATUS_IDS.includes(statusId);
 }
 
-async function getGuestJwt(): Promise<string> {
-  const res = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
-  if (!res.ok) throw new Error(`Guest JWT: ${res.status}`);
-  const data: any = await res.json();
-  return data.token;
+/** Get TxLINE auth headers, preferring env var and caching across calls */
+let cachedAuth: { jwt: string; apiToken: string } | null = null;
+
+async function getTxlineHeaders(): Promise<Record<string, string>> {
+  if (cachedAuth) {
+    return { Authorization: `Bearer ${cachedAuth.jwt}`, 'X-Api-Token': cachedAuth.apiToken };
+  }
+  const envToken = process.env.TXLINE_API_TOKEN;
+  if (envToken) {
+    const res = await fetch(`${TXLINE_API_URL}/auth/guest/start`, { method: 'POST' });
+    if (res.ok) {
+      const data: any = await res.json();
+      cachedAuth = { jwt: data.token, apiToken: envToken };
+      setTimeout(() => { cachedAuth = null; }, 10 * 60 * 1000); // expire cache after 10min
+      return { Authorization: `Bearer ${data.token}`, 'X-Api-Token': envToken };
+    }
+  }
+  // Fall back to on-chain auth
+  const payerSecretKey = process.env.PAYER_SECRET_KEY;
+  if (!payerSecretKey) return {};
+  const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+  const connection = new Connection(rpcUrl, 'confirmed');
+  const keeper = Keypair.fromSecretKey(new Uint8Array(JSON.parse(payerSecretKey)));
+  const auth = await ensureApiToken(keeper, connection, TXLINE_API_URL);
+  cachedAuth = auth;
+  setTimeout(() => { cachedAuth = null; }, 10 * 60 * 1000);
+  return { Authorization: `Bearer ${auth.jwt}`, 'X-Api-Token': auth.apiToken };
 }
 
 export async function GET(req: NextRequest) {
@@ -26,8 +50,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const jwt = await getGuestJwt();
-    const h: Record<string, string> = { Authorization: `Bearer ${jwt}` };
+    const h = await getTxlineHeaders();
 
     // Always fetch fixtures snapshot in parallel to get startTime as fallback
     const fixturesPromise = fetch(`${TXLINE_API_URL}/api/fixtures/snapshot/${fixtureId}`, { headers: h })
