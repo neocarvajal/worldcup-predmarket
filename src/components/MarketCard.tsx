@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
@@ -106,7 +106,16 @@ export const MarketCard: React.FC<MarketCardProps> = ({
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
-  const finished = now > startDate.getTime() + 2.5 * 60 * 60 * 1000;
+  const [apiFinished, setApiFinished] = useState(false);
+  const checkedRef = useRef(false);
+  useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+    fetch(`/api/keeper/fixture-status?fixtureId=${fixtureId}`).then(r => r.json()).then((data: any) => {
+      if (data && typeof data.finished === 'boolean') setApiFinished(data.finished);
+    }).catch(() => {});
+  }, [fixtureId]);
+  const finished = apiFinished || now > startDate.getTime() + 2 * 60 * 60 * 1000;
 
   if (finished) {
     return (
