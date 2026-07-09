@@ -4,15 +4,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { useTranslations } from 'next-intl';
 import { BellIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { ClientWalletButton } from './ClientWalletButton';
 import { LanguageToggle } from './LanguageToggle';
 import { useNotifications } from '../context/NotificationContext';
+import { getUsdtBalance } from '../lib/txlineProgram';
 
 export const NavBar: React.FC = () => {
   const pathname = usePathname();
   const { publicKey } = useWallet();
+  const { connection } = useConnection();
   const t = useTranslations('NavBar');
   const isLive = pathname === '/live';
   const isLanding = pathname === '/';
@@ -20,6 +23,21 @@ export const NavBar: React.FC = () => {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const [usdtBalance, setUsdtBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!publicKey) { setUsdtBalance(null); return; }
+    let cancelled = false;
+    const fetchBalance = async () => {
+      try {
+        const bal = await getUsdtBalance(connection, publicKey);
+        if (!cancelled) setUsdtBalance(bal);
+      } catch { if (!cancelled) setUsdtBalance(0); }
+    };
+    fetchBalance();
+    const interval = setInterval(fetchBalance, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [publicKey, connection]);
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -56,6 +74,17 @@ export const NavBar: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
+          {usdtBalance != null && (
+            <Link
+              href="/faucet"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-200 hover:opacity-70 active:scale-95"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            >
+              <span style={{ color: 'var(--success)' }}>●</span>
+              {usdtBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>USDT</span>
+            </Link>
+          )}
           <div ref={bellRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
