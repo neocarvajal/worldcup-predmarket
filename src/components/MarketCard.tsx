@@ -15,7 +15,6 @@ interface MarketCardProps {
   startTime: string | number;
   competition?: string;
   odds?: { home: number; draw: number; away: number };
-  finished?: boolean;
 }
 
 function parseDate(v: string | number): Date {
@@ -90,7 +89,7 @@ function formatDate(date: Date, months: string[]): string {
 }
 
 export const MarketCard: React.FC<MarketCardProps> = ({
-  fixtureId, participant1, participant2, startTime, competition, odds, finished,
+  fixtureId, participant1, participant2, startTime, competition, odds,
 }) => {
   const startDate = parseDate(startTime);
   const flag1 = getFlag(participant1);
@@ -104,6 +103,10 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     t('monthShort.5'), t('monthShort.6'), t('monthShort.7'), t('monthShort.8'),
     t('monthShort.9'), t('monthShort.10'), t('monthShort.11'), t('monthShort.12'),
   ];
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
+  const finished = now > startDate.getTime() + 2.5 * 60 * 60 * 1000;
 
   if (finished) {
     return (
