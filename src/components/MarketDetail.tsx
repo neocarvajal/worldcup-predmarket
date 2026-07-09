@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import { useTxLine } from '../context/TxLineContext';
@@ -55,6 +55,7 @@ function CountdownLarge({ target }: { target: Date }) {
 
 export const MarketDetail: React.FC = () => {
   const { fixtureId } = useParams<{ fixtureId: string }>();
+  const router = useRouter();
   const { client } = useTxLine();
   const { addSelection, selections } = useBetSlip();
   const t = useTranslations('MarketDetail');
@@ -113,6 +114,13 @@ export const MarketDetail: React.FC = () => {
     }
   }, [startTime]);
 
+  // Redirect to /markets when match is finished and data has loaded
+  useEffect(() => {
+    if (!loading && finished) {
+      router.replace('/markets');
+    }
+  }, [loading, finished, router]);
+
   const homeOdds = odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
   const drawOdds = odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
   const awayOdds = odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
@@ -140,6 +148,11 @@ export const MarketDetail: React.FC = () => {
         <div className="skeleton h-32 w-full" />
       </div>
     );
+  }
+
+  // While redirecting to /markets for finished matches, show minimal UI
+  if (finished) {
+    return null;
   }
 
   const flag1 = getFlag(p1);
