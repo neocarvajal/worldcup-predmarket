@@ -18,6 +18,149 @@ const STATUS_NAMES: Record<number, string> = {
 
 const DISPLAY_STATUS_IDS = new Set([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
+const EVENT_ACTIONS = new Set(['goal', 'goal_own', 'goal_penalty', 'yellow_card', 'red_card']);
+const VAR_ACTIONS = new Set(['var', 'var_end']);
+
+interface MatchEvent {
+  type: 'goal' | 'goal_own' | 'goal_penalty' | 'yellow_card' | 'red_card' | 'var' | 'var_end';
+  team: 1 | 2;
+  minute: number;
+  player?: string;
+  playerId?: number;
+  annulled?: boolean;
+  varType?: string;
+  varOutcome?: string;
+  homeScore: number;
+  awayScore: number;
+  seq: number;
+}
+
+function getPeriodSeconds(statusId: number): number {
+  if (statusId >= 7 && statusId <= 9) return 900;
+  return 2700;
+}
+
+function computeElapsedMinute(statusId: number, clockSeconds: number): number {
+  return Math.max(0, Math.floor((getPeriodSeconds(statusId) - clockSeconds) / 60));
+}
+
+function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): MatchEvent[] {
+  const sorted = [...msgs].sort((a, b) => {
+    const seqA = a.Seq ?? a.Update?.Seq ?? 0;
+    const seqB = b.Seq ?? b.Update?.Seq ?? 0;
+    return seqA - seqB;
+  });
+
+  const events: MatchEvent[] = [];
+  let prevGoals1 = 0, prevGoals2 = 0;
+  let prevYC1 = 0, prevYC2 = 0;
+  let prevRC1 = 0, prevRC2 = 0;
+
+  for (const m of sorted) {
+    const action = m.Action ?? m.Update?.Action ?? '';
+    const data = m.Data ?? m.Update?.Data ?? {};
+    const seq = m.Seq ?? m.Update?.Seq ?? 0;
+    const secs = getSeconds(m);
+    const statusId = m.StatusId ?? m.Update?.StatusId ?? 0;
+    const minute = secs != null ? computeElapsedMinute(statusId, secs) : 0;
+    const team = (data.Participant ?? 0) as 1 | 2;
+    const score = m.Score ?? m.Update?.Score;
+
+    const g1 = score?.Participant1?.Total?.Goals ?? prevGoals1;
+    const g2 = score?.Participant2?.Total?.Goals ?? prevGoals2;
+
+    if (EVENT_ACTIONS.has(action)) {
+      const player = data.Player ?? data.PlayerName ?? '';
+      events.push({
+        type: action as MatchEvent['type'],
+        team,
+        minute,
+        player,
+        playerId: data.PlayerId,
+        homeScore: g1,
+        awayScore: g2,
+        seq,
+      });
+    }
+
+    if (action === 'var') {
+      const varType = data.Type ?? '';
+      events.push({ type: 'var', team, minute, varType, homeScore: g1, awayScore: g2, seq });
+    }
+
+    if (action === 'var_end') {
+      const outcome = data.Outcome ?? '';
+      if (outcome === 'Overturned' && events.length > 0) {
+        for (let i = events.length - 1; i >= 0; i--) {
+          const ev = events[i];
+          if ((ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own') && !ev.annulled) {
+            ev.annulled = true;
+            break;
+          }
+        }
+      }
+      events.push({ type: 'var_end', team, minute, varOutcome: outcome, homeScore: g1, awayScore: g2, seq });
+    }
+
+    // Detect goal from score change (catches goals without Action field)
+    if (g1 > prevGoals1 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
+      events.push({ type: 'goal', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+    }
+    if (g2 > prevGoals2 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
+      events.push({ type: 'goal', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+    }
+
+    // Detect annulled goals from score decreasing
+    if (g1 < prevGoals1) {
+      for (let i = events.length - 1; i >= 0; i--) {
+        const ev = events[i];
+        if (ev.team === 1 && (ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own') && !ev.annulled) {
+          ev.annulled = true;
+          break;
+        }
+      }
+    }
+    if (g2 < prevGoals2) {
+      for (let i = events.length - 1; i >= 0; i--) {
+        const ev = events[i];
+        if (ev.team === 2 && (ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own') && !ev.annulled) {
+          ev.annulled = true;
+          break;
+        }
+      }
+    }
+
+    // Detect cards from score participant card counts
+    const yc1 = score?.Participant1?.Total?.YellowCards ?? prevYC1;
+    const yc2 = score?.Participant2?.Total?.YellowCards ?? prevYC2;
+    const rc1 = score?.Participant1?.Total?.RedCards ?? prevRC1;
+    const rc2 = score?.Participant2?.Total?.RedCards ?? prevRC2;
+
+    if (yc1 > prevYC1 && action !== 'yellow_card') {
+      events.push({ type: 'yellow_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+    }
+    if (yc2 > prevYC2 && action !== 'yellow_card') {
+      events.push({ type: 'yellow_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+    }
+    if (rc1 > prevRC1 && action !== 'red_card') {
+      events.push({ type: 'red_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+    }
+    if (rc2 > prevRC2 && action !== 'red_card') {
+      events.push({ type: 'red_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+    }
+
+    prevGoals1 = g1;
+    prevGoals2 = g2;
+    prevYC1 = yc1;
+    prevYC2 = yc2;
+    prevRC1 = rc1;
+    prevRC2 = rc2;
+  }
+
+  // Remove var/var_end events that have no corresponding result
+  return events;
+}
+
 export default function LivePage() {
   const { client } = useTxLine();
   const t = useTranslations('Live');
@@ -62,6 +205,7 @@ export default function LivePage() {
     const minute = Math.floor(maxSeconds / 60);
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
+    const matchEvents = parseMatchEvents(msgs, getSeconds);
     return {
       FixtureId: fid,
       Participant1: cached.Participant1 ?? '',
@@ -71,6 +215,7 @@ export default function LivePage() {
       Minute: minute,
       Status: STATUS_NAMES[statusId] ?? 'LIVE',
       StatusId: statusId,
+      Events: matchEvents,
     };
   }, []);
 
@@ -414,6 +559,7 @@ export default function LivePage() {
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
                 status={e.Status || 'live'}
+                events={e.Events}
               />
             </div>
           ))}
