@@ -96,6 +96,11 @@
     "matchFinishedDesc": "This match has ended. No more bets accepted.",
     "selections": "selection(s) in your bet",
     "selectOutcome": "Select an outcome to bet",
+    "ouDesc": "Will total goals be <strong>Over</strong> or <strong>Under</strong> the line?",
+    "ouUnavailable": "Over/Under not available for this match",
+    "bttsDesc": "Will <strong>both teams</strong> score at least one goal?",
+    "bttsUnavailable": "BTTS not available for this match",
+    "back": "← Back",
     "month": {
       "1": "January",
       "2": "February",

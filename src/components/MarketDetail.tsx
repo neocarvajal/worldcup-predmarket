@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import { useTxLine } from '../context/TxLineContext';
@@ -11,6 +12,7 @@ import { getFlag } from '../lib/flags';
 import { tTeam } from '../lib/teams';
 import { OddsButton } from './OddsButton';
 import { BetSlipDrawer } from './BetSlipDrawer';
+import { BalancePill } from './BalancePill';
 
 function parseDate(v: string | number): Date {
   const n = Number(v);
@@ -234,6 +236,17 @@ export const MarketDetail: React.FC = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
+      {/* Subnav: back + balance */}
+      <div className="flex items-center justify-between mb-4 -mx-1">
+        <Link href="/markets" className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 hover:opacity-70 active:scale-95"
+          style={{ color: 'var(--text-secondary)' }}>
+          <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: 'var(--text-muted)' }}>
+            <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
+          </svg>
+          {t('back')}
+        </Link>
+        <BalancePill />
+      </div>
       {competition && (
         <span className="badge badge-accent mb-3">{competition}</span>
       )}
@@ -366,7 +379,7 @@ export const MarketDetail: React.FC = () => {
               {activeOU ? (
                 <>
                   <p className="text-center text-[10px] mb-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Predecí si el total de goles será <strong>mayor (Over)</strong> o <strong>menor (Under)</strong> que la línea mostrada.
+                    {t.rich('ouDesc', { strong: (chunks: React.ReactNode) => <strong>{chunks}</strong> })}
                   </p>
                   <div className="flex gap-3">
                     <OddsButton name={`Over ${ouLine}`} odds={ouPriceOver} selected={selected === 'Over'}
@@ -379,7 +392,7 @@ export const MarketDetail: React.FC = () => {
                 </>
               ) : (
                 <p className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>
-                  No hay mercados Over/Under disponibles para este partido
+                  {t('ouUnavailable')}
                 </p>
               )}
             </>
@@ -391,7 +404,7 @@ export const MarketDetail: React.FC = () => {
               {marketBTTS ? (
                 <>
                   <p className="text-center text-[10px] mb-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    Predecí si <strong>ambos equipos</strong> anotarán al menos un gol (Yes) o no (No).
+                    {t.rich('bttsDesc', { strong: (chunks: React.ReactNode) => <strong>{chunks}</strong> })}
                   </p>
                   <div className="flex gap-3">
                     <OddsButton name="BTTS Yes" odds={bttsPriceYes} selected={selected === 'BTTS Yes'}
@@ -404,7 +417,7 @@ export const MarketDetail: React.FC = () => {
                 </>
               ) : (
                 <p className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>
-                  No hay mercados BTTS disponibles para este partido
+                  {t('bttsUnavailable')}
                 </p>
               )}
             </>

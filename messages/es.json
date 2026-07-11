@@ -96,6 +96,11 @@
     "matchFinishedDesc": "Este partido ya finalizó. No se aceptan más apuestas.",
     "selections": "selección(es) en tu apuesta",
     "selectOutcome": "Selecciona un resultado para apostar",
+    "ouDesc": "¿El total de goles será <strong>mayor (Over)</strong> o <strong>menor (Under)</strong> que la línea?",
+    "ouUnavailable": "Over/Under no disponible para este partido",
+    "bttsDesc": "¿<strong>Ambos equipos</strong> anotarán al menos un gol?",
+    "bttsUnavailable": "BTTS no disponible para este partido",
+    "back": "← Volver",
     "month": {
       "1": "Enero",
       "2": "Febrero",
@@ -123,7 +128,7 @@
   "BetSlipDrawer": {
     "yourBet": "Tu Apuesta",
     "insufficientBalance": "Saldo insuficiente",
-    "youHave": "Tenés",
+    "youHave": "Tienes",
     "get100Free": "Obtén 100 USDT gratis →",
     "goToFaucet": "Ir al Faucet",
     "redirectingIn": "Redirigiendo en",
@@ -135,7 +140,7 @@
     "placingBet": "Colocando apuesta...",
     "placeBet": "Colocar Apuesta",
     "betError": "Error al colocar la apuesta",
-    "andNeed": "y necesitás"
+    "andNeed": "y necesitas"
   },
   "SubscriptionBanner": {
     "errorChecking": "Error al verificar suscripción",
@@ -166,11 +171,11 @@
     "activatingApiToken": "Activando el API token...",
     "activationError": "Error de Activación",
     "retry": "Reintentar",
-    "tierDescription": "Tier 1 — World Cup & Int Friendlies. Solo pagás el fee de transacción Solana.",
+    "tierDescription": "Tier 1 — World Cup & Int Friendlies. Solo pagas el fee de transacción Solana.",
     "willSendTx": "Se va a enviar una transacción a Solana Devnet para registrar tu suscripción gratuita (Tier 1 — Mundial).",
     "createTokenAccountDesc": "Solo si no tienes una — sin costo, 0 TxL transferidos",
     "registerOnChainDesc": "Vincula tu wallet al oráculo TxLINE — 0 TxL cobrados (tier gratis)",
-    "walletInstructions": "Tu wallet te va a pedir que firmes 1 o 2 instrucciones. No se transfieren tokens — solo pagás el fee de SOL (~0.00001 SOL).",
+    "walletInstructions": "Tu wallet te va a pedir que firmes 1 o 2 instrucciones. No se transfieren tokens — solo pagas el fee de SOL (~0.00001 SOL).",
     "couldNotComplete": "No se pudo completar la suscripción",
     "ensureSol": "Asegúrate de tener SOL en Devnet para el fee de red. Revisa también que tu wallet tenga aprobadas las 2 instrucciones (crear cuenta TxL + suscribir).",
     "noSolFaucet": "Todavía no hay SOL en Devnet? Usa el faucet de SOL o pide en el faucet oficial."
@@ -282,7 +287,7 @@
     "connectWallet": "Conecta tu wallet",
     "needConnect": "Necesitas conectar una wallet para reclamar USDT.",
     "alreadyClaimed": "Ya reclamaste tus 100 USDT",
-    "claimAgainIn": "Podés reclamar de nuevo en",
+    "claimAgainIn": "Puedes reclamar de nuevo en",
     "tipUseOtherWallet": "Consejo: usa otra wallet o espera.",
     "fixedAmount": "Monto fijo por reclamo: 100 USDT",
     "youHave": "Ya tienes",
