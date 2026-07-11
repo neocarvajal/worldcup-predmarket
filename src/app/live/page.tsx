@@ -46,7 +46,27 @@ function computeElapsedMinute(statusId: number, clockSeconds: number): number {
   return Math.max(0, Math.floor((getPeriodSeconds(statusId) - clockSeconds) / 60));
 }
 
-function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): MatchEvent[] {
+function buildPlayerMap(msgs: any[]): Map<number, string> {
+  const map = new Map<number, string>();
+  for (const m of msgs) {
+    const action = m.Action ?? m.Update?.Action ?? '';
+    if (action !== 'lineups') continue;
+    const lineupsArr = m.Lineups ?? m.Update?.Lineups ?? [];
+    if (!Array.isArray(lineupsArr)) continue;
+    for (const teamLineup of lineupsArr) {
+      const players = teamLineup.lineups ?? [];
+      if (!Array.isArray(players)) continue;
+      for (const p of players) {
+        const fid = p.fixturePlayerId;
+        const name = p.player?.preferredName ?? p.playerName ?? '';
+        if (fid != null && name) map.set(fid, name);
+      }
+    }
+  }
+  return map;
+}
+
+function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, playerMap: Map<number, string>): MatchEvent[] {
   const sorted = [...msgs].sort((a, b) => {
     const seqA = a.Seq ?? a.Update?.Seq ?? 0;
     const seqB = b.Seq ?? b.Update?.Seq ?? 0;
@@ -72,7 +92,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
     const g2 = score?.Participant2?.Total?.Goals ?? prevGoals2;
 
     if (EVENT_ACTIONS.has(action)) {
-      const player = data.Player ?? data.PlayerName ?? '';
+      const player = data.Player ?? data.PlayerName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
       events.push({
         type: action as MatchEvent['type'],
         team,
@@ -105,7 +125,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
     }
 
     // Detect goal from score change (catches goals without Action field)
-    const goalPlayer = data.Player ?? data.PlayerName ?? data.ParticipantName ?? '';
+    const goalPlayer = data.Player ?? data.PlayerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
     if (g1 > prevGoals1 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
       events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
@@ -219,7 +239,8 @@ export default function LivePage() {
     const minute = Math.floor(maxSeconds / 60);
     const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
     const cached = cacheRef.current.get(fid) || {};
-    const matchEvents = parseMatchEvents(msgs, getSeconds);
+    const playerMap = buildPlayerMap(msgs);
+    const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
     return {
       FixtureId: fid,
       Participant1: cached.Participant1 ?? '',
