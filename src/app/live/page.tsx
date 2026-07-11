@@ -91,6 +91,24 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
 
     const isGoalAction = action === 'goal' || action === 'goal_penalty' || action === 'goal_own';
     if (EVENT_ACTIONS.has(action)) {
+      // Compute score from tracked goals instead of message Score, which can be stale
+      let eventHome = prevGoals1, eventAway = prevGoals2;
+      if (isGoalAction) {
+        if (action === 'goal_own') {
+          if (team === 1) eventAway++;
+          else eventHome++;
+        } else if (action === 'goal_penalty') {
+          if (team === 1) eventHome++;
+          else eventAway++;
+        } else {
+          // regular goal
+          if (team === 1) eventHome++;
+          else eventAway++;
+        }
+        // Update prevGoals immediately so subsequent messages see correct baseline
+        prevGoals1 = eventHome;
+        prevGoals2 = eventAway;
+      }
       const player = data.Player ?? data.PlayerName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
       events.push({
         type: action as MatchEvent['type'],
@@ -98,8 +116,8 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
         minute,
         player,
         playerId: data.PlayerId,
-        homeScore: g1,
-        awayScore: g2,
+        homeScore: eventHome,
+        awayScore: eventAway,
         seq,
       });
     }
@@ -171,8 +189,10 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       events.push({ type: 'red_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
-    prevGoals1 = g1;
-    prevGoals2 = g2;
+    if (!isGoalAction) {
+      prevGoals1 = g1;
+      prevGoals2 = g2;
+    }
     prevYC1 = yc1;
     prevYC2 = yc2;
     prevRC1 = rc1;
@@ -605,13 +625,8 @@ export default function LivePage() {
 
       {/* Event detail view */}
       {selectedFixture && (
-        <div className="fixed inset-0 z-[60] animate-slideUp"
-          style={{
-            background: 'var(--bg-primary)',
-            overflowY: 'auto',
-          }}
-        >
-          <div className="max-w-lg mx-auto px-4 pt-16 pb-6">
+        <div className="animate-slideUp">
+          <div className="max-w-lg mx-auto px-4 pb-6">
             {/* Back button */}
             <button
               onClick={() => setSelectedFixture(null)}
