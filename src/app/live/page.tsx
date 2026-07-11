@@ -105,11 +105,12 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
     }
 
     // Detect goal from score change (catches goals without Action field)
+    const goalPlayer = data.Player ?? data.PlayerName ?? data.ParticipantName ?? '';
     if (g1 > prevGoals1 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
-      events.push({ type: 'goal', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
     if (g2 > prevGoals2 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
-      events.push({ type: 'goal', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
     // Detect annulled goals from score decreasing
@@ -139,16 +140,16 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
     const rc2 = score?.Participant2?.Total?.RedCards ?? prevRC2;
 
     if (yc1 > prevYC1 && action !== 'yellow_card') {
-      events.push({ type: 'yellow_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
     if (yc2 > prevYC2 && action !== 'yellow_card') {
-      events.push({ type: 'yellow_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
     if (rc1 > prevRC1 && action !== 'red_card') {
-      events.push({ type: 'red_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
     if (rc2 > prevRC2 && action !== 'red_card') {
-      events.push({ type: 'red_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
     prevGoals1 = g1;
@@ -161,6 +162,16 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
 
   // Remove var/var_end events that have no corresponding result
   return events;
+}
+
+function getTeamName(fixture: any, teamNum: number): string {
+  if (!fixture) return '';
+  const isHome = fixture.Participant1IsHome !== false;
+  const p1 = fixture.Participant1 || '';
+  const p2 = fixture.Participant2 || '';
+  if (teamNum === 1) return isHome ? p1 : p2;
+  if (teamNum === 2) return isHome ? p2 : p1;
+  return p1;
 }
 
 export default function LivePage() {
@@ -213,6 +224,7 @@ export default function LivePage() {
       FixtureId: fid,
       Participant1: cached.Participant1 ?? '',
       Participant2: cached.Participant2 ?? '',
+      Participant1IsHome: cached.Participant1IsHome ?? true,
       Score1: maxScore1,
       Score2: maxScore2,
       Minute: minute,
@@ -237,6 +249,7 @@ export default function LivePage() {
           cacheRef.current.set(id, {
             Participant1: f.Participant1 ?? f.participant1 ?? '',
             Participant2: f.Participant2 ?? f.participant2 ?? '',
+            Participant1IsHome: f.Participant1IsHome ?? f.participant1IsHome ?? true,
           });
         }
       }
@@ -278,6 +291,7 @@ export default function LivePage() {
         d.FixtureId = fid;
         d.Participant1 = candidate.Participant1 ?? candidate.participant1 ?? '';
         d.Participant2 = candidate.Participant2 ?? candidate.participant2 ?? '';
+        d.Participant1IsHome = candidate.Participant1IsHome ?? candidate.participant1IsHome ?? true;
         live.push(d);
       }
       setEvents(live);
@@ -321,6 +335,7 @@ export default function LivePage() {
             cacheRef.current.set(fid, {
               Participant1: f.Participant1 ?? f.participant1 ?? '',
               Participant2: f.Participant2 ?? f.participant2 ?? '',
+              Participant1IsHome: f.Participant1IsHome ?? f.participant1IsHome ?? true,
             });
             trackedRef.current.add(fid);
           }
@@ -573,13 +588,13 @@ export default function LivePage() {
 
       {/* Event detail view */}
       {selectedFixture && (
-        <div className="fixed inset-0 z-40 animate-slideUp"
+        <div className="fixed inset-0 z-[60] animate-slideUp"
           style={{
             background: 'var(--bg-primary)',
             overflowY: 'auto',
           }}
         >
-          <div className="max-w-lg mx-auto px-4 py-6">
+          <div className="max-w-lg mx-auto px-4 pt-16 pb-6">
             {/* Back button */}
             <button
               onClick={() => setSelectedFixture(null)}
@@ -648,7 +663,7 @@ export default function LivePage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-semibold truncate">
-                        {ev.team === 1 ? tTeam(selectedFixture.Participant1, locale) : tTeam(selectedFixture.Participant2, locale)}
+                        {tTeam(getTeamName(selectedFixture, ev.team), locale)}
                       </span>
                       {ev.player && (
                         <span className="text-[11px] ml-1" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
