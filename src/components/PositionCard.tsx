@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon, Link2Icon } from '@radix-ui/react-icons';
 
 interface PositionCardProps {
   fixtureName: string;
@@ -13,6 +13,7 @@ interface PositionCardProps {
   payout: number;
   status: 'active' | 'won' | 'lost' | 'cancelled' | 'pending';
   expiry?: number;
+  txSig?: string;
 }
 
 function ShareOnX({ fixtureName, amount, odds, t }: { fixtureName: string; amount: number; odds: number; t: (key: string) => string }) {
@@ -86,7 +87,7 @@ function CountdownSmall({ target }: { target: Date }) {
 }
 
 export const PositionCard: React.FC<PositionCardProps> = ({
-  fixtureName, fixtureId, selection, amount, odds, payout, status, expiry,
+  fixtureName, fixtureId, selection, amount, odds, payout, status, expiry, txSig,
 }) => {
   const t = useTranslations('PositionCard');
   const cfg = statusConfig[status];
@@ -110,6 +111,18 @@ export const PositionCard: React.FC<PositionCardProps> = ({
               <span className="shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
                 #{fixtureId}
               </span>
+            )}
+            {txSig && (
+              <a
+                href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono transition-all duration-200 hover:opacity-70 active:scale-95"
+                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                title="View on Solana Explorer"
+              >
+                <Link2Icon width={10} height={10} />
+              </a>
             )}
           </div>
         </div>

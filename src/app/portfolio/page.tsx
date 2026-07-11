@@ -504,6 +504,7 @@ export default function PortfolioPage() {
                     payout={payout}
                     status={isSettled ? (acc.depositor_won ? 'won' : 'lost') : hasMatchEnded ? 'pending' : isActive ? 'active' : 'lost'}
                     expiry={matchStart}
+                    txSig={bet?.txSig}
                   />
                 </div>
               );
