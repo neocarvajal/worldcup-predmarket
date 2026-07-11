@@ -604,7 +604,7 @@ export default function LivePage() {
               <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: 'var(--text-muted)' }}>
                 <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
               </svg>
-              Volver
+              {t('back')}
             </button>
 
             {/* Score card */}
@@ -668,10 +668,10 @@ export default function LivePage() {
                       {ev.player && (
                         <span className="text-[11px] ml-1" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
                       )}
-                      {ev.type === 'goal_own' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>autogol</span>}
-                      {ev.type === 'goal_penalty' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>penal</span>}
-                      {ev.annulled && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>anulado</span>}
-                      {ev.type === 'red_card' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>expulsado</span>}
+                      {ev.type === 'goal_own' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>{t('ownGoal')}</span>}
+                      {ev.type === 'goal_penalty' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>{t('penalty')}</span>}
+                      {ev.annulled && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>{t('annulled')}</span>}
+                      {ev.type === 'red_card' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>{t('sentOff')}</span>}
                     </div>
                     <span className="text-[11px] font-mono font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
                       {ev.homeScore}-{ev.awayScore}
@@ -680,7 +680,7 @@ export default function LivePage() {
                 ))
               ) : (
                 <div className="text-center py-10">
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('noEvents')}</span>
                 </div>
               )}
             </div>

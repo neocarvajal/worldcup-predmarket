@@ -84,7 +84,8 @@
     "txcs": "Cobertura Suspendida",
     "p": "Postergado",
     "worldCup": "World Cup",
-    "minute": "Minuto {m}"
+    "minute": "Minuto {m}",
+    "summary": "Resumen"
   },
   "MarketDetail": {
     "home": "Local",
@@ -234,7 +235,14 @@
     "noLiveMatches": "No hay partidos en vivo en este momento.",
     "live": "En vivo",
     "match": "partido",
-    "matches": "partidos"
+    "matches": "partidos",
+    "summary": "Resumen",
+    "back": "← Volver",
+    "noEvents": "No hay eventos aún",
+    "ownGoal": "autogol",
+    "penalty": "penal",
+    "annulled": "anulado",
+    "sentOff": "expulsado"
   },
   "Portfolio": {
     "title": "Apuestas",

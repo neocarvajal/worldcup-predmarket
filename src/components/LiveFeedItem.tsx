@@ -162,7 +162,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
             color: '#000',
           }}
         >
-          Resumen
+          {t('summary')}
         </button>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
           #{fixtureId}
