@@ -55,7 +55,7 @@ export const NavBar: React.FC = () => {
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <div ref={bellRef} className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
