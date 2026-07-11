@@ -37,14 +37,6 @@ interface MatchEvent {
   seq: number;
 }
 
-function getPeriodSeconds(statusId: number): number {
-  if (statusId >= 7 && statusId <= 9) return 900;
-  return 2700;
-}
-
-function computeElapsedMinute(statusId: number, clockSeconds: number): number {
-  return Math.max(0, Math.floor((getPeriodSeconds(statusId) - clockSeconds) / 60));
-}
 
 function buildPlayerMap(msgs: any[]): Map<number, string> {
   const map = new Map<number, string>();
@@ -57,9 +49,9 @@ function buildPlayerMap(msgs: any[]): Map<number, string> {
       const players = teamLineup.lineups ?? [];
       if (!Array.isArray(players)) continue;
       for (const p of players) {
-        const fid = p.fixturePlayerId;
+        const normativeId = p.player?.normativeId;
         const name = p.player?.preferredName ?? p.playerName ?? '';
-        if (fid != null && name) map.set(fid, name);
+        if (normativeId != null && name) map.set(normativeId, name);
       }
     }
   }
@@ -84,13 +76,14 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     const seq = m.Seq ?? m.Update?.Seq ?? 0;
     const secs = getSeconds(m);
     const statusId = m.StatusId ?? m.Update?.StatusId ?? 0;
-    const minute = secs != null ? computeElapsedMinute(statusId, secs) : 0;
+    const minute = secs != null ? Math.floor(secs / 60) : 0;
     const team = (data.Participant ?? 0) as 1 | 2;
     const score = m.Score ?? m.Update?.Score;
 
     const g1 = score?.Participant1?.Total?.Goals ?? prevGoals1;
     const g2 = score?.Participant2?.Total?.Goals ?? prevGoals2;
 
+    const isGoalAction = action === 'goal' || action === 'goal_penalty' || action === 'goal_own';
     if (EVENT_ACTIONS.has(action)) {
       const player = data.Player ?? data.PlayerName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
       events.push({
@@ -126,10 +119,10 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
 
     // Detect goal from score change (catches goals without Action field)
     const goalPlayer = data.Player ?? data.PlayerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
-    if (g1 > prevGoals1 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
+    if (g1 > prevGoals1 && !isGoalAction) {
       events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
-    if (g2 > prevGoals2 && action !== 'goal' && action !== 'goal_penalty' && action !== 'goal_own') {
+    if (g2 > prevGoals2 && !isGoalAction) {
       events.push({ type: 'goal', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
@@ -220,19 +213,16 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score & Clock: scan ALL messages for max values.
-    // Goals only increase; amends may carry stale lower scores. Taking the max
-    // across every message gives the correct final score regardless of amend order.
+    // Score & Clock: scan ALL messages for latest values.
+    // Goals may be overturned by VAR (amend reduces score). Using the last
+    // message with Score data gives the correct final score.
     // Clock.Seconds is cumulative elapsed time — max = most recent.
-    let maxScore1 = 0, maxScore2 = 0, maxSeconds = 0;
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const s = lastScore?.Score ?? {};
+    let maxScore1 = s.Participant1?.Total?.Goals ?? 0;
+    let maxScore2 = s.Participant2?.Total?.Goals ?? 0;
+    let maxSeconds = 0;
     for (const m of msgs) {
-      const s = getScoreVal(m);
-      if (s) {
-        const g1 = s.Participant1?.Total?.Goals;
-        const g2 = s.Participant2?.Total?.Goals;
-        if (g1 != null && g1 > maxScore1) maxScore1 = g1;
-        if (g2 != null && g2 > maxScore2) maxScore2 = g2;
-      }
       const secs = getSeconds(m);
       if (secs != null && secs > maxSeconds) maxSeconds = secs;
     }
@@ -684,7 +674,7 @@ export default function LivePage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-semibold truncate">
-                        {tTeam(getTeamName(selectedFixture, ev.team), locale)}
+                        {tTeam(ev.team === 1 ? selectedFixture.Participant1 : selectedFixture.Participant2, locale)}
                       </span>
                       {ev.player && (
                         <span className="text-[11px] ml-1" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
