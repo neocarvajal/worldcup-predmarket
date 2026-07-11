@@ -378,9 +378,14 @@ export const MarketDetail: React.FC = () => {
               )}
               {activeOU ? (
                 <>
-                  <p className="text-center text-[10px] mb-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-center text-[10px] mb-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                     {t.rich('ouDesc', { strong: (chunks: React.ReactNode) => <strong>{chunks}</strong> })}
                   </p>
+                  {ouLine && !isNaN(Number(ouLine)) && (
+                    <p className="text-center text-[9px] mb-3 font-mono" style={{ color: 'var(--text-muted)' }}>
+                      {t('ouHelp', { line: ouLine, over: Number(ouLine) + 1, under: Number(ouLine) })}
+                    </p>
+                  )}
                   <div className="flex gap-3">
                     <OddsButton name={`Over ${ouLine}`} odds={ouPriceOver} selected={selected === 'Over'}
                       onClick={() => handleSelect('Over', ouPriceOver, `Over ${ouLine}`)} flag="⬆️"
