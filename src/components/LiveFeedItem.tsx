@@ -70,14 +70,6 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
   const isPostponed = s === 'P';
   const isNotStarted = s === 'NS' || (!s || s === '');
 
-  const [tab, setTab] = React.useState<'summary' | 'events'>('summary');
-
-  const flag1 = getFlag(participant1);
-  const flag2 = getFlag(participant2);
-  const show1 = tTeam(participant1, locale);
-  const show2 = tTeam(participant2, locale);
-  const statusLabel = t(s.toLowerCase());
-
   const displayEvents = React.useMemo(() => {
     if (!events || events.length === 0) return [];
     return events.filter(e => e.type !== 'var' && e.type !== 'var_end').slice(0, 30);
@@ -85,6 +77,14 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
 
   const anyEvent = displayEvents.length > 0;
   const eventCount = events?.length ?? 0;
+
+  const [tab, setTab] = React.useState<'summary' | 'events'>(anyEvent ? 'events' : 'summary');
+
+  const flag1 = getFlag(participant1);
+  const flag2 = getFlag(participant2);
+  const show1 = tTeam(participant1, locale);
+  const show2 = tTeam(participant2, locale);
+  const statusLabel = t(s.toLowerCase());
 
   function Badge() {
     if (isPlaying) {
