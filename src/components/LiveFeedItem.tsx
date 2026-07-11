@@ -326,29 +326,35 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
       {/* Tab pills + bottom row */}
       <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setTab('summary')}
-            className={`px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 ${tab === 'summary' ? '' : 'opacity-60 hover:opacity-100'}`}
-            style={{
-              background: tab === 'summary' ? 'var(--accent)' : 'var(--bg-surface)',
-              color: tab === 'summary' ? '#000' : 'var(--text-muted)',
-              border: `1px solid ${tab === 'summary' ? 'var(--accent)' : 'var(--border)'}`,
-            }}
-          >
-            Resumen
-          </button>
-          {anyEvent && (
-            <button
-              onClick={() => setTab('events')}
-              className={`px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 ${tab === 'events' ? '' : 'opacity-60 hover:opacity-100'}`}
-              style={{
-                background: tab === 'events' ? 'var(--accent)' : 'var(--bg-surface)',
-                color: tab === 'events' ? '#000' : 'var(--text-muted)',
-                border: `1px solid ${tab === 'events' ? 'var(--accent)' : 'var(--border)'}`,
-              }}
-            >
-              Eventos ({eventCount})
-            </button>
+          {anyEvent ? (
+            <>
+              <button
+                onClick={() => setTab('summary')}
+                className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
+                style={{
+                  background: tab === 'summary' ? 'var(--accent)' : 'var(--bg-surface)',
+                  color: tab === 'summary' ? '#000' : 'var(--text-muted)',
+                  border: `1px solid ${tab === 'summary' ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                Resumen
+              </button>
+              <button
+                onClick={() => setTab('events')}
+                className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
+                style={{
+                  background: tab === 'events' ? 'var(--accent)' : 'var(--bg-surface)',
+                  color: tab === 'events' ? '#000' : 'var(--text-muted)',
+                  border: `1px solid ${tab === 'events' ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                Eventos ({eventCount})
+              </button>
+            </>
+          ) : (
+            <span className="text-[10px] font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--accent)', color: '#000' }}>
+              Resumen
+            </span>
           )}
         </div>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
