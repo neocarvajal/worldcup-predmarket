@@ -48,21 +48,27 @@ export function LiveOddsProvider({ children }: { children: React.ReactNode }) {
 
       const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
       const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
-      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-      const statusId = lastMsg ? getStatusId(lastMsg) : 1;
+
+      // Use highest statusId (amends carry original action's statusId, lowest)
+      const displayable = msgs.filter((m: any) => {
+        const s = getStatusId(m);
+        return s >= 2 && s <= 19;
+      });
+      const maxStatus = displayable.length > 0
+        ? displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best)
+        : null;
+      const statusId = maxStatus ? getStatusId(maxStatus) : 1;
+
+      // Use last message's score (amends may carry stale values)
+      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+      const s = lastScore?.Score ?? {};
+      let homeScore = s.Participant1?.Total?.Goals ?? 0;
+      let awayScore = s.Participant2?.Total?.Goals ?? 0;
+
       let clockSeconds: number | null = null;
-      let homeScore = 0;
-      let awayScore = 0;
       for (const m of msgs) {
         const secs = m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
         if (secs != null) clockSeconds = secs;
-        const s = m.Score ?? m.Update?.Score;
-        if (s) {
-          const g1 = s.Participant1?.Total?.Goals;
-          const g2 = s.Participant2?.Total?.Goals;
-          if (g1 != null) homeScore = Math.max(homeScore, g1);
-          if (g2 != null) awayScore = Math.max(awayScore, g2);
-        }
       }
 
       const prev = dataRef.current.get(id);
@@ -70,8 +76,14 @@ export function LiveOddsProvider({ children }: { children: React.ReactNode }) {
       const prevAwayScore = prev?.awayScore ?? 0;
 
       let lastGoalTimestamp = prev?.lastGoalTimestamp ?? null;
-      if (homeScore > prevHomeScore || awayScore > prevAwayScore) {
+      // Only detect "new" goal if we have a previous poll to compare against,
+      // avoiding a false trigger on first load when goals already exist.
+      if (prev != null && (homeScore > prevHomeScore || awayScore > prevAwayScore)) {
         lastGoalTimestamp = Date.now();
+      }
+      // Clear goal suspension on half-time / extra-time transitions
+      if (statusId === 3 || (statusId >= 6 && statusId <= 13)) {
+        lastGoalTimestamp = null;
       }
 
       const newEntry: LiveOddsEntry = {
