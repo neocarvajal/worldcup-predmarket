@@ -75,10 +75,7 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
     return events.filter(e => e.type !== 'var' && e.type !== 'var_end').slice(0, 30);
   }, [events]);
 
-  const anyEvent = displayEvents.length > 0;
-  const eventCount = events?.length ?? 0;
 
-  const [tab, setTab] = React.useState<'summary' | 'events'>(anyEvent ? 'events' : 'summary');
 
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
@@ -200,163 +197,64 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
         <Badge />
       </div>
 
-      {tab === 'summary' ? (
-        <>
-          {/* Teams + score row */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <div
-                className="flex items-center justify-center shrink-0"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: 'var(--bg-surface)',
-                  border: '2px solid var(--border)',
-                }}
-              >
-                <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
-              </div>
-              <span className="text-sm font-semibold truncate">{show1}</span>
-            </div>
-
-            <div className="flex flex-col items-center shrink-0">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="text-2xl font-extrabold tracking-tight"
-                  style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}
-                >
-                  {score1}
-                </span>
-                <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>:</span>
-                <span
-                  className="text-2xl font-extrabold tracking-tight"
-                  style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}
-                >
-                  {score2}
-                </span>
-              </div>
-              {minute != null && minute > 0 && !isFinished && (
-                <span className="flex items-center gap-1 mt-0.5">
-                  {isPlaying && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
-                  )}
-                  <span
-                    className="text-[10px] font-medium"
-                    style={{ color: isPlaying ? 'var(--danger)' : 'var(--text-muted)' }}
-                  >
-                    {t('minute', { m: minute })}
-                  </span>
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
-              <span className="text-sm font-semibold truncate">{show2}</span>
-              <div
-                className="flex items-center justify-center shrink-0"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: 'var(--bg-surface)',
-                  border: '2px solid var(--border)',
-                }}
-              >
-                <span className="text-lg leading-none">{flag2 || '🏳️'}</span>
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Events tab */
-        <div className="mb-2">
-          {anyEvent ? (
-            <div className="space-y-1.5">
-              {displayEvents.map((ev, i) => (
-                <div key={`${ev.seq}-${i}`} className="flex items-center gap-2 py-1.5 px-2 rounded-xl" style={{ background: 'var(--bg-surface)' }}>
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22 }}>
-                    <EventIcon type={ev.type} annulled={ev.annulled} />
-                  </div>
-                  <span className="text-[11px] font-mono font-medium tabular-nums" style={{ color: 'var(--text-muted)', minWidth: 32 }}>
-                    {ev.minute}&apos;
-                  </span>
-                  <span className="text-xs font-semibold truncate" style={{ minWidth: 0 }}>
-                    {ev.team === 1 ? show1 : show2}
-                  </span>
-                  {ev.annulled && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>
-                      Anulado
-                    </span>
-                  )}
-                  {ev.type === 'goal_own' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                      (own goal)
-                    </span>
-                  )}
-                  {ev.type === 'goal_penalty' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                      (pen.)
-                    </span>
-                  )}
-                  {ev.type === 'red_card' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>
-                      Red
-                    </span>
-                  )}
-                  {ev.player && (
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
-                      — {ev.player}
-                    </span>
-                  )}
-                  <span className="ml-auto text-[10px] font-mono tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                    {ev.homeScore}-{ev.awayScore}
-                  </span>
+      {/* Events list */}
+      <div className="mb-2">
+        {displayEvents.length > 0 ? (
+          <div className="space-y-1.5">
+            {displayEvents.map((ev, i) => (
+              <div key={`${ev.seq}-${i}`} className="flex items-center gap-2 py-1.5 px-2 rounded-xl" style={{ background: 'var(--bg-surface)' }}>
+                <div className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22 }}>
+                  <EventIcon type={ev.type} annulled={ev.annulled} />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
-            </div>
-          )}
-        </div>
-      )}
+                <span className="text-[11px] font-mono font-medium tabular-nums" style={{ color: 'var(--text-muted)', minWidth: 32 }}>
+                  {ev.minute}&apos;
+                </span>
+                <span className="text-xs font-semibold truncate" style={{ minWidth: 0 }}>
+                  {ev.team === 1 ? show1 : show2}
+                </span>
+                {ev.annulled && (
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>
+                    Anulado
+                  </span>
+                )}
+                {ev.type === 'goal_own' && (
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                    (own goal)
+                  </span>
+                )}
+                {ev.type === 'goal_penalty' && (
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                    (pen.)
+                  </span>
+                )}
+                {ev.type === 'red_card' && (
+                  <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>
+                    Red
+                  </span>
+                )}
+                {ev.player && (
+                  <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>
+                    — {ev.player}
+                  </span>
+                )}
+                <span className="ml-auto text-[10px] font-mono tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                  {ev.homeScore}-{ev.awayScore}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
+          </div>
+        )}
+      </div>
 
-      {/* Tab pills + bottom row */}
+      {/* Bottom row */}
       <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-1.5">
-          {anyEvent ? (
-            <>
-              <button
-                onClick={() => setTab('summary')}
-                className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
-                style={{
-                  background: tab === 'summary' ? 'var(--accent)' : 'var(--bg-surface)',
-                  color: tab === 'summary' ? '#000' : 'var(--text-muted)',
-                  border: `1px solid ${tab === 'summary' ? 'var(--accent)' : 'var(--border)'}`,
-                }}
-              >
-                Resumen
-              </button>
-              <button
-                onClick={() => setTab('events')}
-                className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
-                style={{
-                  background: tab === 'events' ? 'var(--accent)' : 'var(--bg-surface)',
-                  color: tab === 'events' ? '#000' : 'var(--text-muted)',
-                  border: `1px solid ${tab === 'events' ? 'var(--accent)' : 'var(--border)'}`,
-                }}
-              >
-                Eventos ({eventCount})
-              </button>
-            </>
-          ) : (
-            <span className="text-[10px] font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--accent)', color: '#000' }}>
-              Resumen
-            </span>
-          )}
-        </div>
+        <span className="text-[10px] font-semibold px-3 py-1 rounded-full" style={{ background: 'var(--accent)', color: '#000' }}>
+          Resumen
+        </span>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
           #{fixtureId}
         </span>
