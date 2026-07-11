@@ -59,7 +59,13 @@ function buildPlayerMap(msgs: any[]): Map<number, string> {
 }
 
 function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, playerMap: Map<number, string>): MatchEvent[] {
-  const sorted = [...msgs].sort((a, b) => {
+  const sorted = [...msgs]
+    .filter((m: any) => {
+      const a = m.Action ?? m.Update?.Action ?? '';
+      // action_amend carries stale Score that can trigger false inferred events
+      return a !== 'action_amend';
+    })
+    .sort((a, b) => {
     const seqA = a.Seq ?? a.Update?.Seq ?? 0;
     const seqB = b.Seq ?? b.Update?.Seq ?? 0;
     return seqA - seqB;
