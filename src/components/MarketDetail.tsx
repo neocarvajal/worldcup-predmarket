@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import { useTxLine } from '../context/TxLineContext';
 import { useBetSlip } from '../context/BetSlipContext';
+import { useLiveOdds } from '../context/LiveOddsContext';
 import { getFlag } from '../lib/flags';
 import { tTeam } from '../lib/teams';
 import { OddsButton } from './OddsButton';
@@ -58,6 +59,7 @@ export const MarketDetail: React.FC = () => {
   const router = useRouter();
   const { client } = useTxLine();
   const { addSelection, selections } = useBetSlip();
+  const { entries, trackFixture, stopTracking, isTracking, getSuspension, getDirection } = useLiveOdds();
   const t = useTranslations('MarketDetail');
 
   const [fixture, setFixture] = useState<any>(null);
@@ -66,10 +68,22 @@ export const MarketDetail: React.FC = () => {
   const [selected, setSelected] = useState<'1' | 'X' | '2' | null>(null);
   const [finished, setFinished] = useState(false);
 
+  const fid = fixtureId ? parseInt(fixtureId) : 0;
+  const liveEntry = entries.get(fid);
+  const suspension = getSuspension(fid);
+  const direction = getDirection(fid);
+
+  // Track fixture in LiveOddsContext for live odds + suspension
+  useEffect(() => {
+    if (!fid) return;
+    if (!isTracking(fid)) trackFixture(fid);
+    return () => { if (isTracking(fid)) stopTracking(fid); };
+  }, [fid]);
+
   useEffect(() => {
     if (!fixtureId) return;
     const fid = parseInt(fixtureId);
-    let pending = 3;
+    let pending = 2;
     const dec = () => { pending--; if (pending === 0) setLoading(false); };
 
     // Check fixture-status via our authoritative API (handles StatusId=100, game_finalised)
@@ -86,15 +100,6 @@ export const MarketDetail: React.FC = () => {
         (f: any) => f.FixtureId === fid || f.fixtureId === fid || Number(f.id) === fid
       );
       setFixture(found || items[0] || r);
-      dec();
-    }).catch(() => dec());
-
-    client.getOdds(fid).then((r: any) => {
-      const items: any[] = Array.isArray(r) ? r : (r?.data ?? r?.markets ?? []);
-      const found = items.find(
-        (m: any) => m.FixtureId === fid || m.fixtureId === fid || Number(m.fixture_id) === fid
-      );
-      setOdds(found || items[0] || r);
       dec();
     }).catch(() => dec());
   }, [fixtureId, client]);
@@ -122,12 +127,20 @@ export const MarketDetail: React.FC = () => {
     }
   }, [loading, finished, router]);
 
-  const homeOdds = odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
-  const drawOdds = odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
-  const awayOdds = odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
+  // Use live odds if available, else fall back to fetched static odds
+  const homeOdds = liveEntry?.homePrice ?? odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
+  const drawOdds = liveEntry?.drawPrice ?? odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
+  const awayOdds = liveEntry?.awayPrice ?? odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
+
+  const directionHome = direction?.home ?? null;
+  const directionDraw = direction?.draw ?? null;
+  const directionAway = direction?.away ?? null;
+  const pctHome = direction?.homePct ?? 0;
+  const pctDraw = direction?.drawPct ?? 0;
+  const pctAway = direction?.awayPct ?? 0;
 
   const handleSelect = (selection: '1' | 'X' | '2') => {
-    if (finished) return;
+    if (finished || suspension.suspended) return;
     setSelected(selection);
     const label = selection === '1' ? p1 : selection === '2' ? p2 : t('draw');
     const oddVal = selection === '1' ? homeOdds : selection === '2' ? awayOdds : drawOdds;
@@ -225,29 +238,52 @@ export const MarketDetail: React.FC = () => {
             </p>
           </div>
         ) : (
-        <div className="flex gap-3">
-          <OddsButton
-            name={p1}
-            odds={homeOdds}
-            selected={selected === '1'}
-            onClick={() => handleSelect('1')}
-            flag={flag1}
-          />
-          <OddsButton
-            name={t('draw')}
-            odds={drawOdds}
-            selected={selected === 'X'}
-            onClick={() => handleSelect('X')}
-            flag="⚖️"
-          />
-          <OddsButton
-            name={p2}
-            odds={awayOdds}
-            selected={selected === '2'}
-            onClick={() => handleSelect('2')}
-            flag={flag2}
-          />
-        </div>
+          <>
+          {suspension.suspended && (
+            <div
+              className="mb-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-center animate-slideUp"
+              style={{
+                background: 'rgba(255,68,68,0.1)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(255,68,68,0.2)',
+              }}
+            >
+              ⏸️ {suspension.reason}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <OddsButton
+              name={p1}
+              odds={homeOdds}
+              selected={selected === '1'}
+              onClick={() => handleSelect('1')}
+              flag={flag1}
+              direction={directionHome}
+              pctChange={pctHome}
+              live={!!liveEntry}
+            />
+            <OddsButton
+              name={t('draw')}
+              odds={drawOdds}
+              selected={selected === 'X'}
+              onClick={() => handleSelect('X')}
+              flag="⚖️"
+              direction={directionDraw}
+              pctChange={pctDraw}
+              live={!!liveEntry}
+            />
+            <OddsButton
+              name={p2}
+              odds={awayOdds}
+              selected={selected === '2'}
+              onClick={() => handleSelect('2')}
+              flag={flag2}
+              direction={directionAway}
+              pctChange={pctAway}
+              live={!!liveEntry}
+            />
+          </div>
+          </>
         )}
       </div>
 

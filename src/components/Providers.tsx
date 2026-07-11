@@ -14,6 +14,7 @@ import {
   createDefaultWalletNotFoundHandler,
 } from '@solana-mobile/wallet-adapter-mobile';
 import { TxLineProvider } from '../context/TxLineContext';
+import { LiveOddsProvider } from '../context/LiveOddsContext';
 import { BetSlipProvider } from '../context/BetSlipContext';
 import { NotificationProvider } from '../context/NotificationContext';
 import { MatchWatcherProvider } from '../context/MatchWatcherContext';
@@ -50,6 +51,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
       <WalletProvider autoConnect wallets={wallets}>
         <WalletModalProvider>
           <TxLineProvider>
+            <LiveOddsProvider>
             <BetSlipProvider>
               <NotificationProvider>
                 <MatchWatcherProvider>
@@ -62,6 +64,7 @@ export const Providers: React.FC<{children: ReactNode}> = ({ children }) => {
                 </MatchWatcherProvider>
               </NotificationProvider>
             </BetSlipProvider>
+            </LiveOddsProvider>
           </TxLineProvider>
         </WalletModalProvider>
       </WalletProvider>

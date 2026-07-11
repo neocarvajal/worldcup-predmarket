@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { getFlag } from '../lib/flags';
 import { tTeam } from '../lib/teams';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
+import { useLiveOdds } from '../context/LiveOddsContext';
 
 interface MarketCardProps {
   fixtureId: number;
@@ -107,15 +108,31 @@ export const MarketCard: React.FC<MarketCardProps> = ({
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
   const [apiFinished, setApiFinished] = useState(false);
+  const [statusId, setStatusId] = useState<number | null>(null);
   const checkedRef = useRef(false);
   useEffect(() => {
     if (checkedRef.current) return;
     checkedRef.current = true;
     fetch(`/api/keeper/fixture-status?fixtureId=${fixtureId}`).then(r => r.json()).then((data: any) => {
-      if (data && typeof data.finished === 'boolean') setApiFinished(data.finished);
+      if (data) {
+        if (typeof data.finished === 'boolean') setApiFinished(data.finished);
+        if (typeof data.statusId === 'number') setStatusId(data.statusId);
+      }
     }).catch(() => {});
   }, [fixtureId]);
   const finished = apiFinished || now > startDate.getTime() + 2 * 60 * 60 * 1000;
+
+  const isLiveStatus = statusId != null && [2, 3, 4].includes(statusId);
+  const { trackFixture, stopTracking, isTracking, entries, getSuspension, getDirection } = useLiveOdds();
+  const liveEntry = entries.get(fixtureId);
+  const suspension = getSuspension(fixtureId);
+  const direction = getDirection(fixtureId);
+
+  useEffect(() => {
+    if (!isLiveStatus) return;
+    if (!isTracking(fixtureId)) trackFixture(fixtureId);
+    return () => { if (isTracking(fixtureId)) stopTracking(fixtureId); };
+  }, [isLiveStatus, fixtureId]);
 
   if (finished) {
     return (
@@ -270,7 +287,32 @@ export const MarketCard: React.FC<MarketCardProps> = ({
             {formatDate(startDate, months)}
           </span>
           <div className="flex items-center gap-2">
-            {odds && (
+            {liveEntry && (
+              <div className="flex items-center gap-1">
+                {[
+                  { key: 'home', price: liveEntry.homePrice, dir: direction?.home, pct: direction?.homePct },
+                  { key: 'draw', price: liveEntry.drawPrice, dir: direction?.draw, pct: direction?.drawPct },
+                  { key: 'away', price: liveEntry.awayPrice, dir: direction?.away, pct: direction?.awayPct },
+                ].map((item) => (
+                  <div
+                    key={item.key}
+                    className="px-2 py-1 rounded-lg text-center transition-all duration-200"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: `1px solid ${suspension.suspended ? 'rgba(255,68,68,0.2)' : 'var(--border)'}`,
+                      opacity: suspension.suspended ? 0.5 : 1,
+                    }}
+                  >
+                    <span className="text-[10px] font-bold tabular-nums inline-flex items-center gap-0.5" style={{ color: 'var(--text-primary)' }}>
+                      {item.price.toFixed(2)}
+                      {item.dir === 'up' && <span style={{ color: 'var(--success)', fontSize: 10 }}>↑</span>}
+                      {item.dir === 'down' && <span style={{ color: 'var(--danger)', fontSize: 10 }}>↓</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!liveEntry && odds && (
               <div className="flex items-center gap-1.5">
                 {(['home', 'draw', 'away'] as const).map((key, i) => (
                   <div

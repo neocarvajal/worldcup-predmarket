@@ -10,6 +10,7 @@ import { getUsdtBalance } from '../lib/txlineProgram';
 import { saveBet } from '../lib/persistence';
 import { PublicKey } from '@solana/web3.js';
 import { useTxLine } from '../context/TxLineContext';
+import { useLiveOdds } from '../context/LiveOddsContext';
 
 const USDC_MINT = new PublicKey('ELWTKspHKCnCfCiCiqYw1EDH77k8VCP74dK9qytG2Ujh');
 const QUICK_AMOUNTS = [10, 20, 50, 100];
@@ -25,6 +26,7 @@ export const BetSlipDrawer: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { client } = useTxLine();
+  const { entries: liveOddsEntries, getSuspension } = useLiveOdds();
 
   const [placing, setPlacing] = React.useState(false);
   const [txSig, setTxSig] = React.useState<string | null>(null);
@@ -48,24 +50,33 @@ export const BetSlipDrawer: React.FC = () => {
     }
   }, [insufficient, router]);
 
-  const BLOCKED_GAME_STATES = ['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'];
+  // Get suspension from LiveOddsContext if available, else fall back to gameState check
+  const suspension = selections.length > 0 ? getSuspension(selections[0].fixtureId) : null;
+  const susFromContext = suspension?.suspended && !!liveOddsEntries.get(selections[0]?.fixtureId);
 
-  function isGameStateBlocked(gs: string): boolean {
-    return BLOCKED_GAME_STATES.includes(gs.toUpperCase());
-  }
+  const isGameStateBlocked = (gs: string): boolean => {
+    return ['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'].includes(gs.toUpperCase());
+  };
 
   // Fetch live odds when selections change
   useEffect(() => {
     if (selections.length === 0) { setLiveOdds(null); setLiveOddsError(false); return; }
     const s = selections[0];
-    client.getLiveOddsForFixture(s.fixtureId).then((data) => {
-      const selPrice = s.selection === '1' ? data.homePrice : s.selection === '2' ? data.awayPrice : data.drawPrice;
-      setLiveOdds({ price: selPrice, inRunning: data.inRunning, gameState: data.gameState });
+    const ctxEntry = liveOddsEntries.get(s.fixtureId);
+    if (ctxEntry) {
+      const selPrice = s.selection === '1' ? ctxEntry.homePrice : s.selection === '2' ? ctxEntry.awayPrice : ctxEntry.drawPrice;
+      setLiveOdds({ price: selPrice, inRunning: ctxEntry.inRunning, gameState: ctxEntry.gameState });
       setLiveOddsError(false);
-    }).catch(() => setLiveOddsError(true));
-  }, [selections, client]);
+    } else {
+      client.getLiveOddsForFixture(s.fixtureId).then((data) => {
+        const selPrice = s.selection === '1' ? data.homePrice : s.selection === '2' ? data.awayPrice : data.drawPrice;
+        setLiveOdds({ price: selPrice, inRunning: data.inRunning, gameState: data.gameState });
+        setLiveOddsError(false);
+      }).catch(() => setLiveOddsError(true));
+    }
+  }, [selections, client, liveOddsEntries]);
 
-  const betBlocked = liveOdds ? isGameStateBlocked(liveOdds.gameState) : false;
+  const betBlocked = susFromContext || (liveOdds ? isGameStateBlocked(liveOdds.gameState) : false);
   const actualOdds = liveOdds?.price ?? selections[0]?.odds ?? 1;
   const parsedAmount = parseFloat(amount) || 0;
   const potentialPayout = parsedAmount * actualOdds;
@@ -91,8 +102,10 @@ export const BetSlipDrawer: React.FC = () => {
       try {
         const data = await client.getLiveOddsForFixture(s.fixtureId);
         const fetchedPrice = s.selection === '1' ? data.homePrice : s.selection === '2' ? data.awayPrice : data.drawPrice;
-        if (['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'].includes(data.gameState.toUpperCase())) {
-          setError('Betting closed — match in extra time or finished');
+        const gsBlocked = ['ET', 'ET1', 'ET2', 'HTET', 'PEN', 'PE', 'WET', 'WPE', 'FET', 'FPE', 'F', 'FT'].includes(data.gameState.toUpperCase());
+        const ctxSuspension = getSuspension(s.fixtureId);
+        if (gsBlocked || ctxSuspension.suspended) {
+          setError(ctxSuspension.reason || 'Betting closed — match in extra time or finished');
           setPlacing(false);
           return;
         }
@@ -138,7 +151,7 @@ export const BetSlipDrawer: React.FC = () => {
       setError(e?.message || t('betError'));
       setPlacing(false);
     }
-  }, [wallet, connection, selections, parsedAmount, clear, client, betBlocked]);
+  }, [wallet, connection, selections, parsedAmount, clear, client, betBlocked, getSuspension]);
 
   const handleGoToFaucet = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -261,7 +274,7 @@ export const BetSlipDrawer: React.FC = () => {
                 className="text-center px-3 py-3 rounded-xl mb-3 text-xs font-semibold"
                 style={{ background: 'rgba(255,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(255,68,68,0.2)' }}
               >
-                ⛔ Betting is closed for this match. Match is in extra time or finished.
+                ⛔ {suspension?.reason || 'Apuestas temporalmente suspendidas'}
               </div>
             )}
 
