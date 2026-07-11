@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';
 import { getFlag } from '../lib/flags';
@@ -10,20 +10,6 @@ const TXLINE_PLAYING = new Set(['H1', 'H2', 'ET1', 'ET2', 'PE']);
 const TXLINE_PAUSED = new Set(['HT', 'HTET', 'WET', 'WPE']);
 const TXLINE_FINISHED = new Set(['F', 'FET', 'FPE']);
 
-interface MatchEvent {
-  type: 'goal' | 'goal_own' | 'goal_penalty' | 'yellow_card' | 'red_card' | 'var' | 'var_end';
-  team: 1 | 2;
-  minute: number;
-  player?: string;
-  playerId?: number;
-  annulled?: boolean;
-  varType?: string;
-  varOutcome?: string;
-  homeScore: number;
-  awayScore: number;
-  seq: number;
-}
-
 interface LiveFeedItemProps {
   fixtureId: number;
   participant1: string;
@@ -32,33 +18,11 @@ interface LiveFeedItemProps {
   score2: number;
   minute?: number;
   status: string;
-  events?: MatchEvent[];
-}
-
-function getPeriodSeconds(statusId: number): number {
-  if (statusId >= 7 && statusId <= 9) return 900;
-  return 2700;
-}
-
-function computeMinute(statusId: number, clockSeconds: number): number {
-  return Math.max(0, Math.floor((getPeriodSeconds(statusId) - clockSeconds) / 60));
-}
-
-function EventIcon({ type, annulled }: { type: string; annulled?: boolean }) {
-  if (type === 'goal_own') return <span className="text-sm">⚽</span>;
-  if (type === 'goal_penalty' || type === 'goal') {
-    if (annulled) return <span className="text-sm line-through opacity-60">⚽</span>;
-    return <span className="text-sm">⚽</span>;
-  }
-  if (type === 'yellow_card') return <span className="text-sm">🟨</span>;
-  if (type === 'red_card') return <span className="text-sm">🟥</span>;
-  if (type === 'var') return <span className="text-xs font-bold" style={{ color: 'var(--warning)' }}>VAR</span>;
-  if (type === 'var_end') return <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>VAR</span>;
-  return null;
+  onViewEvents: () => void;
 }
 
 export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
-  fixtureId, participant1, participant2, score1, score2, minute, status, events,
+  fixtureId, participant1, participant2, score1, score2, minute, status, onViewEvents,
 }) => {
   const t = useTranslations('LiveFeedItem');
   const locale = useLocale();
@@ -66,115 +30,12 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
   const isPlaying = TXLINE_PLAYING.has(s);
   const isPaused = TXLINE_PAUSED.has(s);
   const isFinished = TXLINE_FINISHED.has(s);
-  const isAbnormal = ['I', 'A', 'C', 'TXCC', 'TXCS'].includes(s);
-  const isPostponed = s === 'P';
-  const isNotStarted = s === 'NS' || (!s || s === '');
-
-  const summaryEvents = React.useMemo(() => {
-    if (!events || events.length === 0) return [];
-    return events.filter(e => e.type !== 'var' && e.type !== 'var_end').slice(0, 30);
-  }, [events]);
-
-  const allEvents = React.useMemo(() => {
-    if (!events || events.length === 0) return [];
-    return events.slice(0, 50);
-  }, [events]);
-
-  const [tab, setTab] = useState<'summary' | 'events'>('summary');
 
   const flag1 = getFlag(participant1);
   const flag2 = getFlag(participant2);
   const show1 = tTeam(participant1, locale);
   const show2 = tTeam(participant2, locale);
   const statusLabel = t(s.toLowerCase());
-
-  function Badge() {
-    if (isPlaying) {
-      return (
-        <span
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'rgba(34,197,94,0.1)',
-            color: 'var(--success)',
-            border: '1px solid rgba(34,197,94,0.2)',
-          }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--success)' }} />
-          {statusLabel}
-        </span>
-      );
-    }
-    if (isPaused) {
-      return (
-        <span
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'rgba(245,158,11,0.1)',
-            color: 'var(--warning)',
-            border: '1px solid rgba(245,158,11,0.2)',
-          }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warning)' }} />
-          {statusLabel}
-        </span>
-      );
-    }
-    if (isFinished) {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'var(--bg-surface)',
-            color: 'var(--text-muted)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          {statusLabel}
-        </span>
-      );
-    }
-    if (s === 'I') {
-      return (
-        <span
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'rgba(245,158,11,0.1)',
-            color: 'var(--warning)',
-            border: '1px solid rgba(245,158,11,0.2)',
-          }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--warning)' }} />
-          {statusLabel}
-        </span>
-      );
-    }
-    if (s === 'A') {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'rgba(255,68,68,0.1)',
-            color: 'var(--danger)',
-            border: '1px solid rgba(255,68,68,0.2)',
-          }}
-        >
-          {statusLabel}
-        </span>
-      );
-    }
-    return (
-      <span
-        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-        style={{
-          background: 'var(--bg-surface)',
-          color: 'var(--text-muted)',
-          border: '1px solid var(--border)',
-        }}
-      >
-        {statusLabel}
-      </span>
-    );
-  }
 
   return (
     <div
@@ -199,41 +60,75 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
             {t('worldCup')}
           </span>
         </div>
-        <Badge />
+        {isPlaying ? (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{
+              background: 'rgba(34,197,94,0.1)',
+              color: 'var(--success)',
+              border: '1px solid rgba(34,197,94,0.2)',
+            }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse-dot" style={{ background: 'var(--success)' }} />
+            {statusLabel}
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{
+              background: 'var(--bg-surface)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {statusLabel}
+          </span>
+        )}
       </div>
 
-      {/* Teams + score (always visible) */}
-      <div className="flex items-center gap-3 mb-4">
+      {/* Teams + score */}
+      <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div
             className="flex items-center justify-center shrink-0"
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
               background: 'var(--bg-surface)',
               border: '2px solid var(--border)',
             }}
           >
-            <span className="text-base leading-none">{flag1 || '🏳️'}</span>
+            <span className="text-lg leading-none">{flag1 || '🏳️'}</span>
           </div>
           <span className="text-sm font-semibold truncate">{show1}</span>
         </div>
 
         <div className="flex flex-col items-center shrink-0">
-          <div className="flex items-center gap-1">
-            <span className="text-xl font-extrabold tracking-tight" style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-2xl font-extrabold tracking-tight"
+              style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}
+            >
               {score1}
             </span>
-            <span className="text-base font-bold" style={{ color: 'var(--text-muted)' }}>:</span>
-            <span className="text-xl font-extrabold tracking-tight" style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}>
+            <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>:</span>
+            <span
+              className="text-2xl font-extrabold tracking-tight"
+              style={{ color: isPlaying ? 'var(--accent)' : 'var(--text-primary)' }}
+            >
               {score2}
             </span>
           </div>
           {minute != null && minute > 0 && !isFinished && (
             <span className="flex items-center gap-1 mt-0.5">
-              {isPlaying && <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />}
-              <span className="text-[10px] font-medium" style={{ color: isPlaying ? 'var(--danger)' : 'var(--text-muted)' }}>
+              {isPlaying && (
+                <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse-dot" />
+              )}
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: isPlaying ? 'var(--danger)' : 'var(--text-muted)' }}
+              >
                 {t('minute', { m: minute })}
               </span>
             </span>
@@ -245,144 +140,30 @@ export const LiveFeedItem: React.FC<LiveFeedItemProps> = ({
           <div
             className="flex items-center justify-center shrink-0"
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: '50%',
               background: 'var(--bg-surface)',
               border: '2px solid var(--border)',
             }}
           >
-            <span className="text-base leading-none">{flag2 || '🏳️'}</span>
+            <span className="text-lg leading-none">{flag2 || '🏳️'}</span>
           </div>
         </div>
       </div>
 
-      {/* Tab content */}
-      {tab === 'summary' ? (
-        <div className="mb-2 space-y-2">
-          {summaryEvents.length > 0 ? (
-            summaryEvents.map((ev, i) => (
-              <div key={`${ev.seq}-${i}`} className="flex items-center gap-2.5 py-2 px-3 rounded-xl transition-all active:scale-[0.98]"
-                style={{
-                  background: ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own' ? 'rgba(34,197,94,0.06)' : 'var(--bg-surface)',
-                  border: `1px solid ${ev.type === 'red_card' ? 'rgba(255,68,68,0.15)' : 'var(--border)'}`,
-                }}
-              >
-                <div className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28 }}>
-                  {ev.type === 'goal' && <span className="text-lg">⚽</span>}
-                  {ev.type === 'goal_penalty' && <span className="text-lg">⚽</span>}
-                  {ev.type === 'goal_own' && <span className="text-lg">😬</span>}
-                  {ev.type === 'yellow_card' && <span className="text-lg">🟨</span>}
-                  {ev.type === 'red_card' && <span className="text-lg">🟥</span>}
-                </div>
-                <span className="text-xs font-mono font-bold tabular-nums"
-                  style={{
-                    color: ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own' ? 'var(--success)' : 'var(--text-muted)',
-                    minWidth: 36,
-                  }}
-                >
-                  {ev.minute}&apos;
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-semibold truncate">{ev.team === 1 ? show1 : show2}</span>
-                  {ev.player && (
-                    <span className="text-[11px] ml-1" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
-                  )}
-                  {ev.type === 'goal_own' && (
-                    <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>autogol</span>
-                  )}
-                  {ev.type === 'goal_penalty' && (
-                    <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>penal</span>
-                  )}
-                  {ev.annulled && (
-                    <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>anulado</span>
-                  )}
-                  {ev.type === 'red_card' && (
-                    <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>expulsado</span>
-                  )}
-                </div>
-                <span className="text-[11px] font-mono font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                  {ev.homeScore}-{ev.awayScore}
-                </span>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-6">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* All events tab */
-        <div className="mb-2">
-          {allEvents.length > 0 ? (
-            <div className="space-y-1.5">
-              {allEvents.map((ev, i) => (
-                <div key={`${ev.seq}-${i}`} className="flex items-center gap-2 py-1.5 px-2 rounded-xl" style={{ background: 'var(--bg-surface)' }}>
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 22, height: 22 }}>
-                    <EventIcon type={ev.type} annulled={ev.annulled} />
-                  </div>
-                  <span className="text-[11px] font-mono font-medium tabular-nums" style={{ color: 'var(--text-muted)', minWidth: 32 }}>
-                    {ev.minute}&apos;
-                  </span>
-                  <span className="text-xs font-semibold truncate" style={{ minWidth: 0 }}>
-                    {ev.team === 1 ? show1 : show2}
-                  </span>
-                  {ev.annulled && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>Anulado</span>
-                  )}
-                  {ev.type === 'goal_own' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>(own goal)</span>
-                  )}
-                  {ev.type === 'goal_penalty' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>(pen.)</span>
-                  )}
-                  {ev.type === 'red_card' && (
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--danger)' }}>Red</span>
-                  )}
-                  {ev.player && (
-                    <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
-                  )}
-                  <span className="ml-auto text-[10px] font-mono tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                    {ev.homeScore}-{ev.awayScore}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab pills + bottom row */}
+      {/* Resumen button + fixture ID */}
       <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setTab('summary')}
-            className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
-            style={{
-              background: tab === 'summary' ? 'var(--accent)' : 'var(--bg-surface)',
-              color: tab === 'summary' ? '#000' : 'var(--text-muted)',
-              border: `1px solid ${tab === 'summary' ? 'var(--accent)' : 'var(--border)'}`,
-            }}
-          >
-            Resumen
-          </button>
-          <button
-            onClick={() => setTab('events')}
-            className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200"
-            style={{
-              background: tab === 'events' ? 'var(--accent)' : 'var(--bg-surface)',
-              color: tab === 'events' ? '#000' : 'var(--text-muted)',
-              border: `1px solid ${tab === 'events' ? 'var(--accent)' : 'var(--border)'}`,
-            }}
-          >
-            Eventos
-          </button>
-        </div>
+        <button
+          onClick={onViewEvents}
+          className="px-3 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 active:scale-95"
+          style={{
+            background: 'var(--accent)',
+            color: '#000',
+          }}
+        >
+          Resumen
+        </button>
         <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
           #{fixtureId}
         </span>

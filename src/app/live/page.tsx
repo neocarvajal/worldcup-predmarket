@@ -4,8 +4,10 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTxLine } from '../../context/TxLineContext';
 import { TxLineAuthError } from '../../txlineSkill';
 import { LiveFeedItem } from '../../components/LiveFeedItem';
+import { getFlag } from '../../lib/flags';
+import { tTeam } from '../../lib/teams';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 const FINISHED_IDS = [5, 10, 13];
 
@@ -164,6 +166,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null): M
 export default function LivePage() {
   const { client } = useTxLine();
   const t = useTranslations('Live');
+  const locale = useLocale();
   const [events, setEvents] = useState<any[]>([]);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'error' | 'no-auth'>('connecting');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -377,6 +380,8 @@ export default function LivePage() {
     return () => clearInterval(interval);
   }, [connectionState, client, parseSnapshot, refreshCandidates]);
 
+  const [selectedFixture, setSelectedFixture] = useState<any | null>(null);
+
   const handleRetry = () => { load(); };
 
   const indicatorColor = connectionState === 'connected' ? 'var(--success)' :
@@ -559,10 +564,112 @@ export default function LivePage() {
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
                 status={e.Status || 'live'}
-                events={e.Events}
+                onViewEvents={() => setSelectedFixture(e)}
               />
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Event detail view */}
+      {selectedFixture && (
+        <div className="fixed inset-0 z-40 animate-slideUp"
+          style={{
+            background: 'var(--bg-primary)',
+            overflowY: 'auto',
+          }}
+        >
+          <div className="max-w-lg mx-auto px-4 py-6">
+            {/* Back button */}
+            <button
+              onClick={() => setSelectedFixture(null)}
+              className="flex items-center gap-1.5 mb-4 px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 hover:opacity-70 active:scale-95"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: 'var(--text-muted)' }}>
+                <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
+              </svg>
+              Volver
+            </button>
+
+            {/* Score card */}
+            <div className="rounded-2xl p-5 mb-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                  <div className="flex items-center justify-center shrink-0"
+                    style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--border)' }}
+                  >
+                    <span className="text-lg leading-none">{getFlag(selectedFixture.Participant1) || '🏳️'}</span>
+                  </div>
+                  <span className="text-sm font-semibold truncate">{tTeam(selectedFixture.Participant1, locale)}</span>
+                </div>
+                <div className="flex flex-col items-center shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-2xl font-extrabold tracking-tight">{selectedFixture.Score1}</span>
+                    <span className="text-lg font-bold" style={{ color: 'var(--text-muted)' }}>:</span>
+                    <span className="text-2xl font-extrabold tracking-tight">{selectedFixture.Score2}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
+                  <span className="text-sm font-semibold truncate">{tTeam(selectedFixture.Participant2, locale)}</span>
+                  <div className="flex items-center justify-center shrink-0"
+                    style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--border)' }}
+                  >
+                    <span className="text-lg leading-none">{getFlag(selectedFixture.Participant2) || '🏳️'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Events list */}
+            <div className="space-y-2">
+              {(selectedFixture.Events ?? []).length > 0 ? (
+                (selectedFixture.Events as any[]).filter((ev: any) => ev.type !== 'var' && ev.type !== 'var_end').slice(0, 30).map((ev: any, i: number) => (
+                  <div key={`ev-${i}`} className="flex items-center gap-2.5 py-2 px-3 rounded-xl"
+                    style={{
+                      background: ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own' ? 'rgba(34,197,94,0.06)' : 'var(--bg-surface)',
+                      border: `1px solid ${ev.type === 'red_card' ? 'rgba(255,68,68,0.15)' : 'var(--border)'}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-center shrink-0" style={{ width: 28, height: 28 }}>
+                      {ev.type === 'goal' && <span className="text-lg">⚽</span>}
+                      {ev.type === 'goal_penalty' && <span className="text-lg">⚽</span>}
+                      {ev.type === 'goal_own' && <span className="text-lg">😬</span>}
+                      {ev.type === 'yellow_card' && <span className="text-lg">🟨</span>}
+                      {ev.type === 'red_card' && <span className="text-lg">🟥</span>}
+                    </div>
+                    <span className="text-xs font-mono font-bold tabular-nums"
+                      style={{
+                        color: ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own' ? 'var(--success)' : 'var(--text-muted)',
+                        minWidth: 36,
+                      }}
+                    >
+                      {ev.minute}&apos;
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-semibold truncate">
+                        {ev.team === 1 ? tTeam(selectedFixture.Participant1, locale) : tTeam(selectedFixture.Participant2, locale)}
+                      </span>
+                      {ev.player && (
+                        <span className="text-[11px] ml-1" style={{ color: 'var(--text-secondary)' }}>— {ev.player}</span>
+                      )}
+                      {ev.type === 'goal_own' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>autogol</span>}
+                      {ev.type === 'goal_penalty' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--text-muted)' }}>penal</span>}
+                      {ev.annulled && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>anulado</span>}
+                      {ev.type === 'red_card' && <span className="text-[10px] ml-1.5 font-medium" style={{ color: 'var(--danger)' }}>expulsado</span>}
+                    </div>
+                    <span className="text-[11px] font-mono font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                      {ev.homeScore}-{ev.awayScore}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-10">
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No events yet</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
