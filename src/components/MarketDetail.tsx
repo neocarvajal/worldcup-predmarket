@@ -67,6 +67,7 @@ export const MarketDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [marketTab, setMarketTab] = useState<string>('1x2');
+  const [ouLineIdx, setOuLineIdx] = useState(0);
   const [finished, setFinished] = useState(false);
 
   const fid = fixtureId ? parseInt(fixtureId) : 0;
@@ -137,33 +138,55 @@ export const MarketDetail: React.FC = () => {
     }
   }, [loading, finished, router]);
 
-  // Find markets by type
-  const market1x2 = markets.find((m: any) =>
-    m.SuperOddsType === 'MatchResult' || (m.PriceNames?.length === 3 && !m.MarketParameters)
-  );
-  const marketOU = markets.find((m: any) =>
-    m.SuperOddsType === 'OverUnder' || m.SuperOddsType?.includes?.('Over') || m.MarketParameters
-  );
-  const marketBTTS = markets.find((m: any) =>
-    m.SuperOddsType === 'BothTeamsToScore' || m.SuperOddsType?.includes?.('BTTS')
-  );
+  // Flexible price extractor: try named object first, then Prices array, then raw field
+  function extractPrice(market: any, fieldName: string, arrayIdx: number, fallback: number): number {
+    if (!market) return fallback;
+    const byName = market[fieldName];
+    if (byName?.Price != null) return Number(byName.Price);
+    if (byName?.price != null) return Number(byName.price);
+    if (typeof byName === 'number') return byName;
+    if (typeof byName === 'string' && !isNaN(Number(byName))) return Number(byName);
+    if (market.Prices?.[arrayIdx] != null) return Number(market.Prices[arrayIdx]);
+    return fallback;
+  }
+
+  function parseLineFromName(name: string): string | null {
+    const m = name.match(/([\d.]+)/);
+    return m ? m[1] : null;
+  }
+
+  // Detect market types by PriceNames content (more reliable than SuperOddsType)
+  const market1x2 = markets.find((m: any) => {
+    const names = m.PriceNames ?? [];
+    return m.SuperOddsType === 'MatchResult' || names.includes('1') && names.includes('X') && names.includes('2');
+  });
+
+  const ouMarkets = markets.filter((m: any) => {
+    const names = m.PriceNames ?? [];
+    return names.some((n: string) => /^over\b/i.test(n)) && names.some((n: string) => /^under\b/i.test(n));
+  });
+
+  const marketBTTS = markets.find((m: any) => {
+    const names = m.PriceNames ?? [];
+    return names.includes('Yes') && names.includes('No');
+  });
 
   // Use live entry for 1X2 if available, else fall back to fetched static odds
-  const getPrice = (market: any, idx: number, fallback: number): number => {
-    if (!market) return fallback;
-    if (market.Prices?.[idx] != null) return market.Prices[idx];
-    return fallback;
-  };
-  const homeOdds = liveEntry?.homePrice ?? getPrice(market1x2, 0, 2.0);
-  const drawOdds = liveEntry?.drawPrice ?? getPrice(market1x2, 1, 3.5);
-  const awayOdds = liveEntry?.awayPrice ?? getPrice(market1x2, 2, 2.5);
+  const homeOdds = liveEntry?.homePrice ?? extractPrice(market1x2, 'H', 0, 2.0);
+  const drawOdds = liveEntry?.drawPrice ?? extractPrice(market1x2, 'D', 1, 3.5);
+  const awayOdds = liveEntry?.awayPrice ?? extractPrice(market1x2, 'A', 2, 2.5);
 
-  const ouPriceOver = getPrice(marketOU, 0, 2.0);
-  const ouPriceUnder = getPrice(marketOU, 1, 2.0);
-  const ouLine = marketOU?.MarketParameters || '2.5';
+  // Over/Under — support multiple lines
+  const activeOU = ouMarkets[ouLineIdx] ?? ouMarkets[0] ?? null;
+  const ouLine = activeOU
+    ? (activeOU.MarketParameters || parseLineFromName(activeOU.PriceNames?.[0] ?? '') || '2.5')
+    : null;
+  const ouPriceOver = activeOU ? extractPrice(activeOU, 'Over', 0, 2.0) : 0;
+  const ouPriceUnder = activeOU ? extractPrice(activeOU, 'Under', 1, 2.0) : 0;
 
-  const bttsPriceYes = getPrice(marketBTTS, 0, 2.0);
-  const bttsPriceNo = getPrice(marketBTTS, 1, 2.0);
+  // BTTS
+  const bttsPriceYes = marketBTTS ? extractPrice(marketBTTS, 'Yes', 0, 2.0) : 0;
+  const bttsPriceNo = marketBTTS ? extractPrice(marketBTTS, 'No', 1, 2.0) : 0;
 
   const directionHome = direction?.home ?? null;
   const directionDraw = direction?.draw ?? null;
@@ -174,7 +197,7 @@ export const MarketDetail: React.FC = () => {
 
   const marketTabs: { key: string; label: string; enabled: boolean }[] = [
     { key: '1x2', label: '1×2', enabled: !!market1x2 || !!liveEntry },
-    { key: 'ou', label: `Over/Under ${ouLine}`, enabled: !!marketOU },
+    { key: 'ou', label: 'Over/Under', enabled: ouMarkets.length > 0 },
     { key: 'btts', label: 'BTTS', enabled: !!marketBTTS },
   ];
 
@@ -321,26 +344,70 @@ export const MarketDetail: React.FC = () => {
 
           {/* Over/Under odds */}
           {marketTab === 'ou' && (
-            <div className="flex gap-3">
-              <OddsButton name={`Over ${ouLine}`} odds={ouPriceOver} selected={selected === 'Over'}
-                onClick={() => handleSelect('Over', ouPriceOver, `Over ${ouLine}`)} flag="⬆️"
-                live={!!liveEntry} />
-              <OddsButton name={`Under ${ouLine}`} odds={ouPriceUnder} selected={selected === 'Under'}
-                onClick={() => handleSelect('Under', ouPriceUnder, `Under ${ouLine}`)} flag="⬇️"
-                live={!!liveEntry} />
-            </div>
+            <>
+              {ouMarkets.length > 1 && (
+                <div className="flex flex-wrap gap-1 mb-3 justify-center max-w-full overflow-hidden">
+                  {ouMarkets.map((_, i) => {
+                    const line = _.MarketParameters || parseLineFromName(_.PriceNames?.[0] ?? '') || '?';
+                    return (
+                      <button key={i} onClick={() => { setOuLineIdx(i); setSelected(null); }}
+                        className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all duration-200"
+                        style={{
+                          background: ouLineIdx === i ? 'var(--accent)' : 'var(--bg-surface)',
+                          color: ouLineIdx === i ? '#000' : 'var(--text-secondary)',
+                          border: `1px solid ${ouLineIdx === i ? 'var(--accent)' : 'var(--border)'}`,
+                        }}>
+                        {line}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {activeOU ? (
+                <>
+                  <p className="text-center text-[10px] mb-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Predecí si el total de goles será <strong>mayor (Over)</strong> o <strong>menor (Under)</strong> que la línea mostrada.
+                  </p>
+                  <div className="flex gap-3">
+                    <OddsButton name={`Over ${ouLine}`} odds={ouPriceOver} selected={selected === 'Over'}
+                      onClick={() => handleSelect('Over', ouPriceOver, `Over ${ouLine}`)} flag="⬆️"
+                      live={!!liveEntry} />
+                    <OddsButton name={`Under ${ouLine}`} odds={ouPriceUnder} selected={selected === 'Under'}
+                      onClick={() => handleSelect('Under', ouPriceUnder, `Under ${ouLine}`)} flag="⬇️"
+                      live={!!liveEntry} />
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>
+                  No hay mercados Over/Under disponibles para este partido
+                </p>
+              )}
+            </>
           )}
 
           {/* BTTS odds */}
           {marketTab === 'btts' && (
-            <div className="flex gap-3">
-              <OddsButton name="BTTS Yes" odds={bttsPriceYes} selected={selected === 'BTTS Yes'}
-                onClick={() => handleSelect('BTTS Yes', bttsPriceYes, 'BTTS Yes')} flag="✅"
-                live={!!liveEntry} />
-              <OddsButton name="BTTS No" odds={bttsPriceNo} selected={selected === 'BTTS No'}
-                onClick={() => handleSelect('BTTS No', bttsPriceNo, 'BTTS No')} flag="❌"
-                live={!!liveEntry} />
-            </div>
+            <>
+              {marketBTTS ? (
+                <>
+                  <p className="text-center text-[10px] mb-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    Predecí si <strong>ambos equipos</strong> anotarán al menos un gol (Yes) o no (No).
+                  </p>
+                  <div className="flex gap-3">
+                    <OddsButton name="BTTS Yes" odds={bttsPriceYes} selected={selected === 'BTTS Yes'}
+                      onClick={() => handleSelect('BTTS Yes', bttsPriceYes, 'BTTS Yes')} flag="✅"
+                      live={!!liveEntry} />
+                    <OddsButton name="BTTS No" odds={bttsPriceNo} selected={selected === 'BTTS No'}
+                      onClick={() => handleSelect('BTTS No', bttsPriceNo, 'BTTS No')} flag="❌"
+                      live={!!liveEntry} />
+                  </div>
+                </>
+              ) : (
+                <p className="text-center text-xs py-6" style={{ color: 'var(--text-muted)' }}>
+                  No hay mercados BTTS disponibles para este partido
+                </p>
+              )}
+            </>
           )}
           </>
         )}
