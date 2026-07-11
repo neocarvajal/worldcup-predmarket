@@ -29,6 +29,7 @@ pub mod settlement {
         ctx: Context<SettleWithCpi>,
         score1: u64,
         score2: u64,
+        market_line: u64,
         fixture_ts: i64,
         fixture_start_time: i64,
         competition: String,
@@ -52,7 +53,7 @@ pub mod settlement {
         main_tree_proof: Vec<cpi_txline::ProofNode>,
     ) -> Result<()> {
         instructions::settle_with_cpi::handler(
-            ctx, score1, score2,
+            ctx, score1, score2, market_line,
             fixture_ts, fixture_start_time,
             competition, competition_id, fixture_group_id,
             participant1_id, participant1, participant2_id, participant2,

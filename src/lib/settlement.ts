@@ -285,6 +285,7 @@ export async function settleWithCpi(
     recipientTokenAccount: PublicKey;
     score1: number;
     score2: number;
+    marketLine?: number;
     fixture: any;
     fixtureSummary: any;
     subTreeProof: any[];
@@ -311,6 +312,7 @@ export async function settleWithCpi(
     .settleWithCpi(
       new BN(params.score1),
       new BN(params.score2),
+      new BN(params.marketLine ?? 0),
       new BN(f.ts ?? f.Ts ?? 0),
       new BN(f.start_time ?? f.StartTime ?? 0),
       f.competition ?? f.Competition ?? '',

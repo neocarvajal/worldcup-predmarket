@@ -428,6 +428,42 @@
       ]
     },
     {
+      "name": "set_txline_token",
+      "discriminator": [
+        198,
+        189,
+        36,
+        215,
+        204,
+        9,
+        197,
+        103
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "token",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "settle",
       "discriminator": [
         175,
@@ -618,6 +654,10 @@
         },
         {
           "name": "score2",
+          "type": "u64"
+        },
+        {
+          "name": "market_line",
           "type": "u64"
         },
         {
@@ -814,32 +854,7 @@
         180,
         13,
         194
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "txline_api_token",
-            "type": "string"
-          },
-          {
-            "name": "image_uri",
-            "type": "string"
-          },
-          {
-            "name": "x_handle",
-            "type": "string"
-          },
-          {
-            "name": "notifications_enabled",
-            "type": "bool"
-          }
-        ]
-      }
+      ]
     }
   ],
   "errors": [
@@ -1024,12 +1039,20 @@
             "type": "pubkey"
           },
           {
+            "name": "txline_api_token",
+            "type": "string"
+          },
+          {
             "name": "image_uri",
             "type": "string"
           },
           {
             "name": "x_handle",
             "type": "string"
+          },
+          {
+            "name": "notifications_enabled",
+            "type": "bool"
           }
         ]
       }

@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 export interface BetSelection {
   fixtureId: number;
   fixtureName: string;
-  selection: '1' | 'X' | '2';
+  selection: string;
   odds: number;
   label: string;
   startTime?: number;
@@ -15,7 +15,7 @@ interface BetSlipState {
   selections: BetSelection[];
   amount: string;
   addSelection: (s: BetSelection) => void;
-  removeSelection: (fixtureId: number, selection: '1' | 'X' | '2') => void;
+  removeSelection: (fixtureId: number, selection: string) => void;
   clear: () => void;
   setAmount: (a: string) => void;
   isOpen: boolean;
@@ -40,7 +40,7 @@ export function BetSlipProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(true);
   }, []);
 
-  const removeSelection = useCallback((fixtureId: number, selection: '1' | 'X' | '2') => {
+  const removeSelection = useCallback((fixtureId: number, selection: string) => {
     setSelections(prev => prev.filter(
       x => !(x.fixtureId === fixtureId && x.selection === selection)
     ));

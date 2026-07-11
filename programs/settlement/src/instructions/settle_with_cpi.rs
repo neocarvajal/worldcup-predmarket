@@ -48,6 +48,7 @@ pub fn handler(
     ctx: Context<SettleWithCpi>,
     score1: u64,
     score2: u64,
+    market_line: u64,
     fixture_ts: i64,
     fixture_start_time: i64,
     competition: String,
@@ -116,12 +117,23 @@ pub fn handler(
         &main_tree_proof,
     )?;
 
-    let depositor_won = if score1 > score2 {
-        ctx.accounts.escrow.selection == 0
-    } else if score1 < score2 {
-        ctx.accounts.escrow.selection == 2
-    } else {
-        ctx.accounts.escrow.selection == 1
+    let selection = ctx.accounts.escrow.selection;
+    let total_goals = score1 + score2;
+
+    let depositor_won = match selection {
+        3 => total_goals * 10 > market_line,     // Over
+        4 => total_goals * 10 < market_line,     // Under
+        5 => score1 > 0 && score2 > 0,           // BTTS Yes
+        6 => score1 == 0 || score2 == 0,          // BTTS No
+        _ => {
+            if score1 > score2 {
+                selection == 0                      // Home win
+            } else if score1 < score2 {
+                selection == 2                      // Away win
+            } else {
+                selection == 1                      // Draw
+            }
+        }
     };
 
     let escrow_amount = ctx.accounts.escrow.amount;

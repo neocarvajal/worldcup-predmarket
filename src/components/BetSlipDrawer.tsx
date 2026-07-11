@@ -14,7 +14,7 @@ import { useLiveOdds } from '../context/LiveOddsContext';
 
 const USDC_MINT = new PublicKey('ELWTKspHKCnCfCiCiqYw1EDH77k8VCP74dK9qytG2Ujh');
 const QUICK_AMOUNTS = [10, 20, 50, 100];
-const SEL_MAP: Record<string, number> = { '1': 0, X: 1, '2': 2 };
+const SEL_MAP: Record<string, number> = { '1': 0, X: 1, '2': 2, Over: 3, Under: 4, 'BTTS Yes': 5, 'BTTS No': 6 };
 
 export const BetSlipDrawer: React.FC = () => {
   const { selections, amount, isOpen, setIsOpen, removeSelection, setAmount, clear } = useBetSlip();

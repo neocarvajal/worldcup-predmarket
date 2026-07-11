@@ -62,6 +62,13 @@ function epochDayFromTs(tsSec: number): number {
   return Math.floor(tsSec / 86400);
 }
 
+function parseMarketLine(label: string, selection: number): number {
+  if (selection !== 3 && selection !== 4) return 0;
+  const match = label.match(/([\d.]+)/);
+  if (!match) return 0;
+  return Math.round(parseFloat(match[1]) * 10);
+}
+
 function keypairToWallet(kp: Keypair): Wallet {
   return {
     publicKey: kp.publicKey,
@@ -85,6 +92,7 @@ interface ActiveEscrow {
   fixtureId: number;
   fixtureName: string;
   selection: number;
+  label: string;
   mint: PublicKey;
   amount: bigint;
   odds: number;
@@ -129,7 +137,7 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
   off += 1;
 
   // 7. label (string)
-  const [, strAdv2] = readString(buf, off);
+  const [label, strAdv2] = readString(buf, off);
   off += strAdv2;
 
   // 8. odds (u64, scaled by 1000)
@@ -165,7 +173,7 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
 
   if (state !== ESCOW_STATE_ACTIVE) return null;
 
-  return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, mint, amount, odds };
+  return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, label, mint, amount, odds };
 }
 
 export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
@@ -247,7 +255,7 @@ export async function settleActiveEscrows(
 
   // 4. For each escrow, try to settle
   for (const escrow of filtered) {
-    const { pubkey, fixtureId, fixtureName, depositor, recipient, mint, selection } = escrow;
+    const { pubkey, fixtureId, fixtureName, depositor, recipient, mint, selection, label } = escrow;
     const escrowB58 = pubkey.toBase58();
 
     // Check if fixture is finished via scores endpoint
@@ -367,10 +375,12 @@ export async function settleActiveEscrows(
         console.warn(`[keeper] Low balance for ${fixtureName}: have ${callerAmountUi}, profit needs ${profitUi}`);
       }
 
+      const marketLine = parseMarketLine(escrow.label ?? '', escrow.selection);
       const instruction = await program.methods
         .settleWithCpi(
           new BN(score1),
           new BN(score2),
+          new BN(marketLine),
           new BN(f.ts ?? f.Ts ?? 0),
           new BN(f.start_time ?? f.StartTime ?? 0),
           f.competition ?? f.Competition ?? '',
@@ -461,7 +471,7 @@ export async function settleSingleEscrow(
   }
   decoded.pubkey = escrowPubkey;
 
-  const { fixtureId, fixtureName, depositor, recipient, mint, amount, odds } = decoded;
+  const { fixtureId, fixtureName, depositor, recipient, mint, amount, odds, selection, label: decodedLabel } = decoded;
 
   let score1 = 0, score2 = 0, statusId = 0, earliestTs = 0;
   let hasGameFinalised = false;
@@ -568,10 +578,12 @@ export async function settleSingleEscrow(
       console.warn(`[keeper] Could not check caller balance for ${fixtureName}: ${e.message}`);
     }
 
+    const marketLine = parseMarketLine(decodedLabel ?? '', selection);
     const instruction = await program.methods
       .settleWithCpi(
         new BN(score1),
         new BN(score2),
+        new BN(marketLine),
         new BN(f.ts ?? f.Ts ?? 0),
         new BN(f.start_time ?? f.StartTime ?? 0),
         f.competition ?? f.Competition ?? '',

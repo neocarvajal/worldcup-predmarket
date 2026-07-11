@@ -63,9 +63,10 @@ export const MarketDetail: React.FC = () => {
   const t = useTranslations('MarketDetail');
 
   const [fixture, setFixture] = useState<any>(null);
-  const [odds, setOdds] = useState<any>(null);
+  const [markets, setMarkets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<'1' | 'X' | '2' | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [marketTab, setMarketTab] = useState<string>('1x2');
   const [finished, setFinished] = useState(false);
 
   const fid = fixtureId ? parseInt(fixtureId) : 0;
@@ -83,7 +84,7 @@ export const MarketDetail: React.FC = () => {
   useEffect(() => {
     if (!fixtureId) return;
     const fid = parseInt(fixtureId);
-    let pending = 2;
+    let pending = 3;
     const dec = () => { pending--; if (pending === 0) setLoading(false); };
 
     // Check fixture-status via our authoritative API (handles StatusId=100, game_finalised)
@@ -100,6 +101,15 @@ export const MarketDetail: React.FC = () => {
         (f: any) => f.FixtureId === fid || f.fixtureId === fid || Number(f.id) === fid
       );
       setFixture(found || items[0] || r);
+      dec();
+    }).catch(() => dec());
+
+    client.getOdds(fid).then((r: any) => {
+      const items: any[] = Array.isArray(r) ? r : (r?.data ?? r?.markets ?? []);
+      const filtered = items.filter(
+        (m: any) => (m.FixtureId === fid || m.fixtureId === fid || Number(m.fixture_id) === fid)
+      );
+      setMarkets(filtered.length > 0 ? filtered : [items[0] || r].filter(Boolean));
       dec();
     }).catch(() => dec());
   }, [fixtureId, client]);
@@ -127,10 +137,33 @@ export const MarketDetail: React.FC = () => {
     }
   }, [loading, finished, router]);
 
-  // Use live odds if available, else fall back to fetched static odds
-  const homeOdds = liveEntry?.homePrice ?? odds?.H?.Price ?? odds?.home?.price ?? odds?.home ?? 2.0;
-  const drawOdds = liveEntry?.drawPrice ?? odds?.D?.Price ?? odds?.draw?.price ?? odds?.draw ?? 3.5;
-  const awayOdds = liveEntry?.awayPrice ?? odds?.A?.Price ?? odds?.away?.price ?? odds?.away ?? 2.5;
+  // Find markets by type
+  const market1x2 = markets.find((m: any) =>
+    m.SuperOddsType === 'MatchResult' || (m.PriceNames?.length === 3 && !m.MarketParameters)
+  );
+  const marketOU = markets.find((m: any) =>
+    m.SuperOddsType === 'OverUnder' || m.SuperOddsType?.includes?.('Over') || m.MarketParameters
+  );
+  const marketBTTS = markets.find((m: any) =>
+    m.SuperOddsType === 'BothTeamsToScore' || m.SuperOddsType?.includes?.('BTTS')
+  );
+
+  // Use live entry for 1X2 if available, else fall back to fetched static odds
+  const getPrice = (market: any, idx: number, fallback: number): number => {
+    if (!market) return fallback;
+    if (market.Prices?.[idx] != null) return market.Prices[idx];
+    return fallback;
+  };
+  const homeOdds = liveEntry?.homePrice ?? getPrice(market1x2, 0, 2.0);
+  const drawOdds = liveEntry?.drawPrice ?? getPrice(market1x2, 1, 3.5);
+  const awayOdds = liveEntry?.awayPrice ?? getPrice(market1x2, 2, 2.5);
+
+  const ouPriceOver = getPrice(marketOU, 0, 2.0);
+  const ouPriceUnder = getPrice(marketOU, 1, 2.0);
+  const ouLine = marketOU?.MarketParameters || '2.5';
+
+  const bttsPriceYes = getPrice(marketBTTS, 0, 2.0);
+  const bttsPriceNo = getPrice(marketBTTS, 1, 2.0);
 
   const directionHome = direction?.home ?? null;
   const directionDraw = direction?.draw ?? null;
@@ -139,16 +172,20 @@ export const MarketDetail: React.FC = () => {
   const pctDraw = direction?.drawPct ?? 0;
   const pctAway = direction?.awayPct ?? 0;
 
-  const handleSelect = (selection: '1' | 'X' | '2') => {
+  const marketTabs: { key: string; label: string; enabled: boolean }[] = [
+    { key: '1x2', label: '1×2', enabled: !!market1x2 || !!liveEntry },
+    { key: 'ou', label: `Over/Under ${ouLine}`, enabled: !!marketOU },
+    { key: 'btts', label: 'BTTS', enabled: !!marketBTTS },
+  ];
+
+  const handleSelect = (selKey: string, odds: number, label: string) => {
     if (finished || suspension.suspended) return;
-    setSelected(selection);
-    const label = selection === '1' ? p1 : selection === '2' ? p2 : t('draw');
-    const oddVal = selection === '1' ? homeOdds : selection === '2' ? awayOdds : drawOdds;
+    setSelected(selKey);
     addSelection({
       fixtureId: parseInt(fixtureId),
       fixtureName: `${p1} vs ${p2}`,
-      selection,
-      odds: oddVal,
+      selection: selKey,
+      odds,
       label,
       startTime: startTime ? Number(startTime) : undefined,
     });
@@ -251,38 +288,60 @@ export const MarketDetail: React.FC = () => {
               ⏸️ {suspension.reason}
             </div>
           )}
-          <div className="flex gap-3">
-            <OddsButton
-              name={p1}
-              odds={homeOdds}
-              selected={selected === '1'}
-              onClick={() => handleSelect('1')}
-              flag={flag1}
-              direction={directionHome}
-              pctChange={pctHome}
-              live={!!liveEntry}
-            />
-            <OddsButton
-              name={t('draw')}
-              odds={drawOdds}
-              selected={selected === 'X'}
-              onClick={() => handleSelect('X')}
-              flag="⚖️"
-              direction={directionDraw}
-              pctChange={pctDraw}
-              live={!!liveEntry}
-            />
-            <OddsButton
-              name={p2}
-              odds={awayOdds}
-              selected={selected === '2'}
-              onClick={() => handleSelect('2')}
-              flag={flag2}
-              direction={directionAway}
-              pctChange={pctAway}
-              live={!!liveEntry}
-            />
+
+          {/* Market type tabs */}
+          <div className="flex gap-1.5 mb-4 justify-center">
+            {marketTabs.filter(t => t.enabled).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setMarketTab(tab.key); setSelected(null); }}
+                className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-200"
+                style={{
+                  background: marketTab === tab.key ? 'var(--accent)' : 'var(--bg-surface)',
+                  color: marketTab === tab.key ? '#000' : 'var(--text-secondary)',
+                  border: `1px solid ${marketTab === tab.key ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          {/* 1X2 odds */}
+          {marketTab === '1x2' && (
+            <div className="flex gap-3">
+              <OddsButton name={p1} odds={homeOdds} selected={selected === '1'} onClick={() => handleSelect('1', homeOdds, p1)} flag={flag1}
+                direction={directionHome} pctChange={pctHome} live={!!liveEntry} />
+              <OddsButton name={t('draw')} odds={drawOdds} selected={selected === 'X'} onClick={() => handleSelect('X', drawOdds, t('draw'))} flag="⚖️"
+                direction={directionDraw} pctChange={pctDraw} live={!!liveEntry} />
+              <OddsButton name={p2} odds={awayOdds} selected={selected === '2'} onClick={() => handleSelect('2', awayOdds, p2)} flag={flag2}
+                direction={directionAway} pctChange={pctAway} live={!!liveEntry} />
+            </div>
+          )}
+
+          {/* Over/Under odds */}
+          {marketTab === 'ou' && (
+            <div className="flex gap-3">
+              <OddsButton name={`Over ${ouLine}`} odds={ouPriceOver} selected={selected === 'Over'}
+                onClick={() => handleSelect('Over', ouPriceOver, `Over ${ouLine}`)} flag="⬆️"
+                live={!!liveEntry} />
+              <OddsButton name={`Under ${ouLine}`} odds={ouPriceUnder} selected={selected === 'Under'}
+                onClick={() => handleSelect('Under', ouPriceUnder, `Under ${ouLine}`)} flag="⬇️"
+                live={!!liveEntry} />
+            </div>
+          )}
+
+          {/* BTTS odds */}
+          {marketTab === 'btts' && (
+            <div className="flex gap-3">
+              <OddsButton name="BTTS Yes" odds={bttsPriceYes} selected={selected === 'BTTS Yes'}
+                onClick={() => handleSelect('BTTS Yes', bttsPriceYes, 'BTTS Yes')} flag="✅"
+                live={!!liveEntry} />
+              <OddsButton name="BTTS No" odds={bttsPriceNo} selected={selected === 'BTTS No'}
+                onClick={() => handleSelect('BTTS No', bttsPriceNo, 'BTTS No')} flag="❌"
+                live={!!liveEntry} />
+            </div>
+          )}
           </>
         )}
       </div>
