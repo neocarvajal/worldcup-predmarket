@@ -49,9 +49,12 @@ function buildPlayerMap(msgs: any[]): Map<number, string> {
       const players = teamLineup.lineups ?? [];
       if (!Array.isArray(players)) continue;
       for (const p of players) {
-        const normativeId = p.player?.normativeId;
         const name = p.player?.preferredName ?? p.playerName ?? '';
-        if (normativeId != null && name) map.set(normativeId, name);
+        if (!name) continue;
+        const nId = p.player?.normativeId;
+        const fId = p.fixturePlayerId;
+        if (nId != null) map.set(nId, name);
+        if (fId != null && fId !== nId) map.set(fId, name);
       }
     }
   }
@@ -66,10 +69,10 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       return a !== 'action_amend';
     })
     .sort((a, b) => {
-    const seqA = a.Seq ?? a.Update?.Seq ?? 0;
-    const seqB = b.Seq ?? b.Update?.Seq ?? 0;
-    return seqA - seqB;
-  });
+      const seqA = a.Seq ?? a.Update?.Seq ?? 0;
+      const seqB = b.Seq ?? b.Update?.Seq ?? 0;
+      return seqA - seqB;
+    });
 
   const events: MatchEvent[] = [];
   let prevGoals1 = 0, prevGoals2 = 0;
@@ -109,7 +112,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
         prevGoals1 = eventHome;
         prevGoals2 = eventAway;
       }
-      const player = data.Player ?? data.PlayerName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
+      const player = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
       events.push({
         type: action as MatchEvent['type'],
         team,
@@ -142,7 +145,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     }
 
     // Detect goal from score change (catches goals without Action field)
-    const goalPlayer = data.Player ?? data.PlayerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
+    const goalPlayer = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
     if (g1 > prevGoals1 && !isGoalAction) {
       events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
@@ -321,7 +324,7 @@ export default function LivePage() {
           if (!settledRef.current.has(fid)) {
             settledRef.current.add(fid);
             fetch(`/api/keeper/trigger-settle?fixtureId=${fid}`, { method: 'POST' })
-              .catch(() => {});
+              .catch(() => { });
           }
           continue;
         }
@@ -359,7 +362,7 @@ export default function LivePage() {
       const fixtures: any[] = data?.Fixtures ?? data?.fixtures ?? data ?? [];
       if (!Array.isArray(fixtures)) return;
       const now = Date.now();
-          const win = 4.5 * 60 * 60 * 1000;
+      const win = 4.5 * 60 * 60 * 1000;
       for (const f of fixtures) {
         const cid = f.CompetitionId ?? f.competitionId ?? 0;
         if (cid !== 72) continue;
@@ -378,7 +381,7 @@ export default function LivePage() {
           }
         }
       }
-    } catch {}
+    } catch { }
   }, [client]);
 
   useEffect(() => {
@@ -402,7 +405,7 @@ export default function LivePage() {
             if (!settledRef.current.has(d.FixtureId)) {
               settledRef.current.add(d.FixtureId);
               fetch(`/api/keeper/trigger-settle?fixtureId=${d.FixtureId}`, { method: 'POST' })
-                .catch(() => {});
+                .catch(() => { });
             }
             continue;
           }
@@ -423,7 +426,7 @@ export default function LivePage() {
           }
           return next.slice(0, 50);
         });
-      } catch {}
+      } catch { }
       pollCount++;
       if (pollCount % 20 === 0) refreshCandidates();
     };
@@ -438,19 +441,19 @@ export default function LivePage() {
 
   const indicatorColor = connectionState === 'connected' ? 'var(--success)' :
     connectionState === 'connecting' ? 'var(--warning)' :
-    connectionState === 'no-auth' ? 'var(--text-muted)' : 'var(--danger)';
+      connectionState === 'no-auth' ? 'var(--text-muted)' : 'var(--danger)';
 
   const indicatorBg = connectionState === 'connected' ? 'rgba(34,197,94,0.08)' :
     connectionState === 'connecting' ? 'rgba(245,158,11,0.08)' :
-    connectionState === 'no-auth' ? 'var(--bg-surface)' : 'rgba(255,68,68,0.08)';
+      connectionState === 'no-auth' ? 'var(--bg-surface)' : 'rgba(255,68,68,0.08)';
 
   const indicatorBorder = connectionState === 'connected' ? 'rgba(34,197,94,0.2)' :
     connectionState === 'connecting' ? 'rgba(245,158,11,0.2)' :
-    connectionState === 'no-auth' ? 'var(--border)' : 'rgba(255,68,68,0.2)';
+      connectionState === 'no-auth' ? 'var(--border)' : 'rgba(255,68,68,0.2)';
 
   const indicatorText = connectionState === 'connected' ? t('connected') :
     connectionState === 'connecting' ? t('connecting') :
-    connectionState === 'no-auth' ? t('noAuth') : t('error');
+      connectionState === 'no-auth' ? t('noAuth') : t('error');
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
@@ -625,8 +628,13 @@ export default function LivePage() {
 
       {/* Event detail view */}
       {selectedFixture && (
-        <div className="animate-slideUp">
-          <div className="max-w-lg mx-auto px-4 pb-6">
+        <div className="fixed inset-0 z-[35] animate-slideUp"
+          style={{
+            background: 'var(--bg-primary)',
+            overflowY: 'auto',
+          }}
+        >
+          <div className="max-w-lg mx-auto px-4 pt-16 pb-6">
             {/* Back button */}
             <button
               onClick={() => setSelectedFixture(null)}
