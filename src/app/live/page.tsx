@@ -437,23 +437,29 @@ export default function LivePage() {
   }, [connectionState, client, parseSnapshot, refreshCandidates]);
 
   const [selectedFixture, setSelectedFixture] = useState<any | null>(null);
+  const fullHistoryCache = useRef<Map<number, MatchEvent[]>>(new Map());
 
-  // When user opens event summary, fetch full message history for complete
-  // player names in goals (snapshot may omit early goal actions).
-  useEffect(() => {
-    if (!selectedFixture) return;
-    const fid = selectedFixture.FixtureId;
+  const handleViewEvents = useCallback(async (fixture: any) => {
+    const fid = fixture.FixtureId;
     if (!fid) return;
-    client.getScoresHistory([fid]).then(msgs => {
+    const cached = fullHistoryCache.current.get(fid);
+    if (cached) {
+      setSelectedFixture({ ...fixture, Events: cached });
+      return;
+    }
+    setSelectedFixture(fixture);
+    try {
+      const msgs = await client.getScoresHistory([fid]);
       if (!msgs || msgs.length === 0) return;
       const getSecs = (m: any) => m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
       const playerMap = buildPlayerMap(msgs);
       const events = parseMatchEvents(msgs, getSecs, playerMap);
+      fullHistoryCache.current.set(fid, events);
       setSelectedFixture((prev: any) =>
         prev && prev.FixtureId === fid ? { ...prev, Events: events } : prev,
       );
-    }).catch(() => {});
-  }, [selectedFixture, client]);
+    } catch {}
+  }, [client]);
 
   const handleRetry = () => { load(); };
 
@@ -637,7 +643,7 @@ export default function LivePage() {
                 score2={e.Score2 ?? 0}
                 minute={e.Minute ?? 0}
                 status={e.Status || 'live'}
-                onViewEvents={() => setSelectedFixture(e)}
+                onViewEvents={() => handleViewEvents(e)}
               />
             </div>
           ))}
