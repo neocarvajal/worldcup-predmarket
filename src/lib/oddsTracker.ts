@@ -76,11 +76,11 @@ export function checkSuspension(entry: LiveOddsEntry): SuspensionResult {
     // as stoppage time.
     const periodSeconds = 5400;
     if (clockSeconds > periodSeconds) {
-      return { suspended: true, reason: 'Tiempo de descuento — apuestas suspendidas' };
+      return { suspended: true, reason: 'Tiempo de descuento — no se puede apostar hasta el pitido final' };
     }
     const remaining = periodSeconds - clockSeconds;
     if (remaining <= 300) {
-      return { suspended: true, reason: 'Últimos 5 minutos del partido' };
+      return { suspended: true, reason: 'Últimos 5 minutos — apuestas bloqueadas hasta el resultado final' };
     }
   }
 
