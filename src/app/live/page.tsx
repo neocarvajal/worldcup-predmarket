@@ -86,7 +86,8 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     const secs = getSeconds(m);
     const statusId = m.StatusId ?? m.Update?.StatusId ?? 0;
     const minute = secs != null ? Math.floor(secs / 60) : 0;
-    const team = (data.Participant ?? 0) as 1 | 2;
+    const participant = m.Participant ?? m.Update?.Participant ?? data.Participant ?? 0;
+    const team = participant as 1 | 2;
     const score = m.Score ?? m.Update?.Score;
 
     const g1 = score?.Participant1?.Total?.Goals ?? prevGoals1;
