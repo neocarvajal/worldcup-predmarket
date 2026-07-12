@@ -35,6 +35,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const prevWalletRef = useRef(publicKey?.toBase58());
   const fixtureIdsRef = useRef<Set<number>>(new Set());
   const escrowPollRef = useRef(0);
+  const namesCacheRef = useRef<Map<number, { p1: string; p2: string }>>(new Map());
 
   useEffect(() => {
     const walletStr = publicKey?.toBase58();
@@ -72,6 +73,21 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
           return;
         }
         fixtureIdsRef.current = ids;
+
+        // Fetch participant names for unknown fixture IDs
+        const missing = Array.from(ids).filter(id => !namesCacheRef.current.has(id));
+        if (missing.length > 0) {
+          try {
+            const fixturesData = await client.getFixtures({ fixtureId: missing });
+            const fixtures = Array.isArray(fixturesData) ? fixturesData : (fixturesData?.Fixtures ?? fixturesData?.fixtures ?? []);
+            for (const f of fixtures) {
+              const fid = f.FixtureId ?? f.fixtureId;
+              const p1 = f.Participant1 ?? f.participant1 ?? '';
+              const p2 = f.Participant2 ?? f.participant2 ?? '';
+              if (fid && p1 && p2) namesCacheRef.current.set(fid, { p1, p2 });
+            }
+          } catch {}
+        }
       }
 
       const ids = Array.from(fixtureIdsRef.current);
@@ -103,7 +119,11 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
         }
 
         if (!fid) continue;
-        const label = p1 && p2 ? `${p1} vs ${p2}` : `Fixture #${fid}`;
+        // Prefer cached fixture names, then snapshot data, then fallback
+        const cached = namesCacheRef.current.get(fid);
+        const name1 = cached?.p1 || p1 || '';
+        const name2 = cached?.p2 || p2 || '';
+        const label = name1 && name2 ? `${name1} vs ${name2}` : `Fixture #${fid}`;
 
         if (FINISHED_IDS.includes(statusId)) {
           if (!finishedRef.current.has(fid)) {
