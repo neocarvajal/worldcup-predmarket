@@ -176,6 +176,28 @@ function decodeEscrow(buf: Buffer): ActiveEscrow | null {
   return { pubkey: null!, depositor, recipient, nonce, fixtureId, fixtureName, selection, label, mint, amount, odds };
 }
 
+/** Read depositor_won from escrow account data regardless of state (settled, etc.) */
+function readDepositorWon(buf: Buffer): boolean | null {
+  if (buf.length < MIN_ESCROW_SIZE) return null;
+  if (!buf.subarray(0, 8).equals(ESCOW_DISCRIMINATOR_BYTES)) return null;
+  let off = 8;
+  off += 32; // depositor
+  off += 32; // recipient
+  off += 8;  // nonce
+  off += 8;  // fixture_id
+  const [_, strAdv] = readString(buf, off);
+  off += strAdv; // fixture_name
+  off += 1;  // selection
+  const [__, strAdv2] = readString(buf, off);
+  off += strAdv2; // label
+  off += 8;  // odds
+  off += 32; // mint
+  off += 32; // vault
+  off += 8;  // amount
+  off += 8;  // expiry
+  return buf[off] !== 0; // depositor_won
+}
+
 export async function fetchActiveEscrows(connection: Connection): Promise<ActiveEscrow[]> {
   const pgas = await connection.getProgramAccounts(SETTLEMENT_PROGRAM_ID, {
     filters: [
@@ -218,6 +240,8 @@ interface SettlementResult {
   status: 'settled' | 'skipped' | 'not_finished' | 'error';
   error?: string;
   txSig?: string;
+  depositor?: string;
+  depositorWon?: boolean;
 }
 
 const SETTLEMENT_IDL = require('../idl/settlement.json');
@@ -441,7 +465,16 @@ export async function settleActiveEscrows(
       const sig = await connection.sendRawTransaction(tx.serialize());
       await connection.confirmTransaction(sig, 'confirmed');
 
-      results.push({ escrowPubkey: escrowB58, fixtureId, fixtureName, status: 'settled', txSig: sig });
+      // Re-fetch on-chain data to determine depositorWon
+      let depositorWon: boolean | undefined;
+      try {
+        const freshInfo = await connection.getAccountInfo(pubkey);
+        if (freshInfo) depositorWon = readDepositorWon(freshInfo.data) ?? undefined;
+      } catch {}
+      results.push({
+        escrowPubkey: escrowB58, fixtureId, fixtureName, status: 'settled', txSig: sig,
+        depositor: escrow.depositor.toBase58(), depositorWon,
+      });
     } catch (e: any) {
       console.error(`[keeper] settleActiveEscrows error for ${fixtureName}:`, e.message);
       if (e.logs) console.error('[keeper] Simulation logs:', JSON.stringify(e.logs, null, 2));
@@ -649,7 +682,15 @@ export async function settleSingleEscrow(
     const sig = await connection.sendRawTransaction(tx.serialize());
     await connection.confirmTransaction(sig, 'confirmed');
 
-    return { escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'settled', txSig: sig };
+    let depositorWon: boolean | undefined;
+    try {
+      const freshInfo = await connection.getAccountInfo(escrowPubkey);
+      if (freshInfo) depositorWon = readDepositorWon(freshInfo.data) ?? undefined;
+    } catch {}
+    return {
+      escrowPubkey: escrowPubkey.toBase58(), fixtureId, fixtureName, status: 'settled', txSig: sig,
+      depositor: decoded.depositor.toBase58(), depositorWon,
+    };
   } catch (e: any) {
     console.error(`[keeper] settleSingleEscrow error for ${fixtureName}:`, e.message);
     if (e.logs) console.error('[keeper] Simulation logs:', JSON.stringify(e.logs, null, 2));
