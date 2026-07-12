@@ -438,6 +438,23 @@ export default function LivePage() {
 
   const [selectedFixture, setSelectedFixture] = useState<any | null>(null);
 
+  // When user opens event summary, fetch full message history for complete
+  // player names in goals (snapshot may omit early goal actions).
+  useEffect(() => {
+    if (!selectedFixture) return;
+    const fid = selectedFixture.FixtureId;
+    if (!fid) return;
+    client.getScoresHistory([fid]).then(msgs => {
+      if (!msgs || msgs.length === 0) return;
+      const getSecs = (m: any) => m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
+      const playerMap = buildPlayerMap(msgs);
+      const events = parseMatchEvents(msgs, getSecs, playerMap);
+      setSelectedFixture((prev: any) =>
+        prev && prev.FixtureId === fid ? { ...prev, Events: events } : prev,
+      );
+    }).catch(() => {});
+  }, [selectedFixture, client]);
+
   const handleRetry = () => { load(); };
 
   const indicatorColor = connectionState === 'connected' ? 'var(--success)' :
