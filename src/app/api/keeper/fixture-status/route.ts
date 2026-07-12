@@ -97,8 +97,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (finalisedMsg) {
-      statusId = finalisedMsg.StatusId ?? 0;
-      finished = true;
+      // A subsequent message (e.g. extra-time status 6) may override
+      // game_finalised if the game went beyond regulation.
+      const finalisedSeq = finalisedMsg.Seq ?? -1;
+      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : finalisedMsg;
+      statusId = lastMsg.StatusId ?? finalisedMsg.StatusId ?? 0;
+      const newerNonTerminal = lastMsg !== finalisedMsg
+        && (lastMsg.Seq ?? 0) > finalisedSeq
+        && !isFinishedStatus(statusId);
+      finished = !newerNonTerminal;
     } else {
       const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
       statusId = lastMsg?.StatusId ?? 0;
