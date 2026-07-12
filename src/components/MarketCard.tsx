@@ -36,21 +36,6 @@ function Countdown({ target }: { target: Date }) {
 
   const diff = target.getTime() - now;
   if (diff <= 0) {
-    const finished = diff < -2 * 60 * 60 * 1000;
-    if (finished) {
-      return (
-        <span
-          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
-          style={{
-            background: 'var(--bg-surface)',
-            color: 'var(--text-muted)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          {t('finished')}
-        </span>
-      );
-    }
     return (
       <span
         className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
