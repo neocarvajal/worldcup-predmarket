@@ -266,14 +266,19 @@ export async function settleActiveEscrows(
         txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
       );
       const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
-      hasGameFinalised = msgs.some((m: any) => m.Action === 'game_finalised');
-      const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
-      if (finalisedMsg) {
-        statusId = finalisedMsg.StatusId ?? 0;
-      } else {
-        const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-        statusId = lastMsg?.StatusId ?? 0;
+      // Use highest StatusId (amends carry original action's statusId — lower than current)
+      const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
+      const displayable = msgs.filter((m: any) => getStatusId(m) >= 2);
+      if (displayable.length > 0) {
+        const maxStatusMsg = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
+        statusId = getStatusId(maxStatusMsg);
+      } else if (msgs.length > 0) {
+        statusId = getStatusId(msgs[msgs.length - 1]);
       }
+      hasGameFinalised = msgs.some((m: any) => {
+        const a = m.Action ?? m.Update?.Action ?? '';
+        return a === 'game_finalised';
+      });
       // Latest score from the last message that has Score data
       const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
       const s = lastScore?.Score ?? {};
@@ -480,14 +485,18 @@ export async function settleSingleEscrow(
       txlineUrl, `/api/scores/snapshot/${fixtureId}`, txlineJwt, txlineApiToken,
     );
     const msgs = Array.isArray(scoresRaw) ? scoresRaw : (scoresRaw?.messages ?? [scoresRaw]);
-    hasGameFinalised = msgs.some((m: any) => m.Action === 'game_finalised');
-    const finalisedMsg = msgs.find((m: any) => m.Action === 'game_finalised');
-    if (finalisedMsg) {
-      statusId = finalisedMsg.StatusId ?? 0;
-    } else {
-      const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-      statusId = lastMsg?.StatusId ?? 0;
+    const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
+    const displayable = msgs.filter((m: any) => getStatusId(m) >= 2);
+    if (displayable.length > 0) {
+      const maxStatusMsg = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
+      statusId = getStatusId(maxStatusMsg);
+    } else if (msgs.length > 0) {
+      statusId = getStatusId(msgs[msgs.length - 1]);
     }
+    hasGameFinalised = msgs.some((m: any) => {
+      const a = m.Action ?? m.Update?.Action ?? '';
+      return a === 'game_finalised';
+    });
     const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
     const s = lastScore?.Score ?? {};
     score1 = s.Participant1?.Total?.Goals ?? 0;
