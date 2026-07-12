@@ -65,13 +65,11 @@ export function LiveOddsProvider({ children }: { children: React.ReactNode }) {
       let homeScore = s.Participant1?.Total?.Goals ?? 0;
       let awayScore = s.Participant2?.Total?.Goals ?? 0;
 
-      // Derive clockSeconds from messages matching the current period (same statusId)
-      // to avoid stale clock values from a different period.
+      // Clock.Seconds is cumulative elapsed time — max = most recent.
       let clockSeconds: number | null = null;
       for (const m of msgs) {
-        if (getStatusId(m) !== statusId) continue;
         const secs = m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
-        if (secs != null) clockSeconds = secs;
+        if (secs != null && (clockSeconds == null || secs > clockSeconds)) clockSeconds = secs;
       }
 
       const prev = dataRef.current.get(id);

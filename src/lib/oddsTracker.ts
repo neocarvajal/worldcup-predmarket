@@ -71,7 +71,10 @@ export function checkSuspension(entry: LiveOddsEntry): SuspensionResult {
   }
 
   if (statusId === 4 && clockSeconds != null) {
-    const periodSeconds = 2700;
+    // Clock is cumulative (0 at kickoff). H2 starts around ~3000s after H1 + HT.
+    // Use 5400s (90 min) as the period boundary so H2 mid-match is not flagged
+    // as stoppage time.
+    const periodSeconds = 5400;
     if (clockSeconds > periodSeconds) {
       return { suspended: true, reason: 'Tiempo de descuento — apuestas suspendidas' };
     }
