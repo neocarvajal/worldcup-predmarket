@@ -285,6 +285,7 @@ export async function settleActiveEscrows(
       score1 = s.Participant1?.Total?.Goals ?? 0;
       score2 = s.Participant2?.Total?.Goals ?? 0;
       for (const m of msgs) {
+        if (getStatusId(m) < 2) continue; // skip pre-match messages
         const ts = m.Ts ?? 0;
         if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
       }
@@ -299,7 +300,7 @@ export async function settleActiveEscrows(
 
     const FINISHED_STATUS_IDS = [5, 10, 13, 100];
     const isFinishedStatus = hasGameFinalised || FINISHED_STATUS_IDS.includes(statusId);
-    const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
+    const timeHeuristic = statusId >= 4 && earliestTs > 0 && (Date.now() - earliestTs) > 4 * 60 * 60 * 1000;
 
     if (!isFinishedStatus) {
       if (force || timeHeuristic) {
@@ -502,6 +503,7 @@ export async function settleSingleEscrow(
     score1 = s.Participant1?.Total?.Goals ?? 0;
     score2 = s.Participant2?.Total?.Goals ?? 0;
     for (const m of msgs) {
+      if (getStatusId(m) < 2) continue; // skip pre-match messages
       const ts = m.Ts ?? 0;
       if (ts > 0 && (earliestTs === 0 || ts < earliestTs)) earliestTs = ts;
     }
@@ -511,7 +513,7 @@ export async function settleSingleEscrow(
 
     const FINISHED_STATUS_IDS = [5, 10, 13, 100];
     const isFinishedStatus = hasGameFinalised || FINISHED_STATUS_IDS.includes(statusId);
-    const timeHeuristic = statusId >= 2 && earliestTs > 0 && (Date.now() - earliestTs) > 2.5 * 60 * 60 * 1000;
+    const timeHeuristic = statusId >= 4 && earliestTs > 0 && (Date.now() - earliestTs) > 4 * 60 * 60 * 1000;
 
     if (!isFinishedStatus) {
       if (force || timeHeuristic) {
