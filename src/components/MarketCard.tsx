@@ -105,8 +105,6 @@ export const MarketCard: React.FC<MarketCardProps> = ({
     t('monthShort.9'), t('monthShort.10'), t('monthShort.11'), t('monthShort.12'),
   ];
 
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
   const [apiFinished, setApiFinished] = useState(false);
   const [statusId, setStatusId] = useState<number | null>(null);
   const checkedRef = useRef(false);
@@ -120,7 +118,7 @@ export const MarketCard: React.FC<MarketCardProps> = ({
       }
     }).catch(() => {});
   }, [fixtureId]);
-  const finished = apiFinished || now > startDate.getTime() + 2 * 60 * 60 * 1000;
+  const finished = apiFinished;
 
   const isLiveStatus = statusId != null && [2, 3, 4].includes(statusId);
   const { trackFixture, stopTracking, isTracking, entries, getSuspension, getDirection } = useLiveOdds();

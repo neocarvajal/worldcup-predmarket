@@ -123,15 +123,8 @@ export const MarketDetail: React.FC = () => {
   const competition = fixture?.Competition || fixture?.competition || '';
   const startTime = fixture?.StartTime || fixture?.startTime;
 
-  // Time heuristic: if match started > 2.5h ago, treat as finished
-  useEffect(() => {
-    if (startTime) {
-      const st = Number(startTime) > 1e12 ? Number(startTime) : Number(startTime) * 1000;
-      if (Date.now() > st + 2.5 * 60 * 60 * 1000) {
-        setFinished(true);
-      }
-    }
-  }, [startTime]);
+  // We use the fixture-status API as the authoritative source of truth
+  // (checking [5, 10, 13, 100] + game_finalised action).
 
   // Redirect to /markets when match is finished and data has loaded
   useEffect(() => {
