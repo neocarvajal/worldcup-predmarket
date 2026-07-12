@@ -158,14 +158,6 @@ export const NavBar: React.FC = () => {
           </div>
 
           <LanguageToggle />
-          {isLanding && !publicKey && (
-            <Link
-              href="/markets"
-              className="btn-primary !py-2 !px-4 !text-sm"
-            >
-              {t('enter')}
-            </Link>
-          )}
           <ClientWalletButton />
         </div>
       </div>
