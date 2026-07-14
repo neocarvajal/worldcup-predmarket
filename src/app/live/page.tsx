@@ -133,24 +133,17 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
 
     if (action === 'var_end') {
       const outcome = data.Outcome ?? '';
-      if (outcome === 'Overturned' && events.length > 0) {
-        for (let i = events.length - 1; i >= 0; i--) {
-          const ev = events[i];
-          if ((ev.type === 'goal' || ev.type === 'goal_penalty' || ev.type === 'goal_own') && !ev.annulled) {
-            ev.annulled = true;
-            break;
-          }
-        }
-      }
       events.push({ type: 'var_end', team, minute, varOutcome: outcome, homeScore: g1, awayScore: g2, seq });
     }
 
     // Detect goal from score change (catches goals without Action field)
+    // Skip var_end and action_discarded — their Score may be stale/inconsistent
+    // (e.g. pre-VAR-overturn values not yet corrected by the API).
     const goalPlayer = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
-    if (g1 > prevGoals1 && !isGoalAction) {
+    if (g1 > prevGoals1 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
       events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
-    if (g2 > prevGoals2 && !isGoalAction) {
+    if (g2 > prevGoals2 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
       events.push({ type: 'goal', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
@@ -193,7 +186,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       events.push({ type: 'red_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
     }
 
-    if (!isGoalAction) {
+    if (!isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
       prevGoals1 = g1;
       prevGoals2 = g2;
     }
