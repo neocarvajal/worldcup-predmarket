@@ -149,9 +149,9 @@ export default function ProfilePage() {
                 onClick={handleImagePick}
               >
                 {profileImg ? (
-                  <img src={profileImg} alt="avatar" className="w-full h-full object-cover" />
+                  <img src={profileImg} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <CameraIcon width={28} height={28} style={{ color: 'var(--text-muted)' }} />
+                  <CameraIcon width={28} height={28} style={{ color: 'var(--warning)' }} />
                 )}
               </div>
             <button
