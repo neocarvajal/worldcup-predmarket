@@ -55,52 +55,15 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* ─── Animated Background Orbs ─── */}
+      {/* ─── Background Image ─── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div
-          className="absolute rounded-full animate-float"
+          className="absolute inset-0"
           style={{
-            width: 300,
-            height: 300,
-            top: '5%',
-            left: '-5%',
-            background: 'radial-gradient(circle, rgba(220,235,2,0.06) 0%, transparent 70%)',
-            animationDuration: '12s',
-          }}
-        />
-        <div
-          className="absolute rounded-full animate-float-slow"
-          style={{
-            width: 400,
-            height: 400,
-            top: '50%',
-            right: '-10%',
-            background: 'radial-gradient(circle, rgba(220,235,2,0.04) 0%, transparent 70%)',
-            animationDuration: '15s',
-          }}
-        />
-        <div
-          className="absolute rounded-full animate-float"
-          style={{
-            width: 200,
-            height: 200,
-            bottom: '10%',
-            left: '15%',
-            background: 'radial-gradient(circle, rgba(220,235,2,0.03) 0%, transparent 70%)',
-            animationDuration: '10s',
-            animationDelay: '-3s',
-          }}
-        />
-        <div
-          className="absolute rounded-full animate-float"
-          style={{
-            width: 250,
-            height: 250,
-            top: '30%',
-            left: '40%',
-            background: 'radial-gradient(circle, rgba(220,235,2,0.02) 0%, transparent 70%)',
-            animationDuration: '18s',
-            animationDelay: '-6s',
+            backgroundImage: 'url(/images/landing-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.3) saturate(0.8)',
           }}
         />
         {/* Grid overlay */}
@@ -108,8 +71,8 @@ export default function LandingPage() {
           className="absolute inset-0"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(220,235,2,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(220,235,2,0.02) 1px, transparent 1px)
+              linear-gradient(rgba(220,235,2,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(220,235,2,0.03) 1px, transparent 1px)
             `,
             backgroundSize: '60px 60px',
           }}
