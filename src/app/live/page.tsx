@@ -480,7 +480,21 @@ export default function LivePage() {
       connectionState === 'no-auth' ? t('noAuth') : t('error');
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
+    <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
+      {/* Background image */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'url(/images/live-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.25) saturate(0.7)',
+          }}
+        />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div
@@ -751,6 +765,7 @@ export default function LivePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
