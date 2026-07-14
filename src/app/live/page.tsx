@@ -251,44 +251,28 @@ export default function LivePage() {
     const cached = cacheRef.current.get(fid) || {};
     const playerMap = buildPlayerMap(msgs);
     const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
-    // Get display score: use the last goal event's score (goals are tracked
-    // incrementally by parseMatchEvents from explicit actions). If no goal
-    // events, fall back to max Score across all messages (excluding amends),
-    // then top-level snapshot Score.
+    // Display score from the latest message with Score data.
+    // Events are NOT used for score — inferred events from stale Score
+    // (e.g. var_end with pre-overturn goals) give wrong results.
     let maxScore1 = 0, maxScore2 = 0;
-    const goalEvents = matchEvents.filter((e: any) =>
-      e.type === 'goal' || e.type === 'goal_penalty' || e.type === 'goal_own'
-    );
-    if (goalEvents.length > 0) {
-      const lastGoal = goalEvents[goalEvents.length - 1];
-      maxScore1 = lastGoal.homeScore;
-      maxScore2 = lastGoal.awayScore;
-    }
-    if (maxScore1 === 0 && maxScore2 === 0) {
-      // Use the latest message (highest Seq) with Score data.
-      // "Latest" rather than "max" because scores can regress (e.g. VAR overturn).
-      let bestSeq = -1;
-      let bestScore: any = null;
-      for (const m of msgs) {
-        const seq = m.Seq ?? m.Update?.Seq ?? 0;
-        if (seq <= bestSeq) continue;
-        const sc = getScoreVal(m);
-        if (sc?.Participant1?.Total?.Goals != null || sc?.Participant2?.Total?.Goals != null) {
-          bestSeq = seq;
-          bestScore = sc;
-        }
-      }
-      if (bestScore) {
-        maxScore1 = bestScore.Participant1?.Total?.Goals ?? 0;
-        maxScore2 = bestScore.Participant2?.Total?.Goals ?? 0;
+    let bestSeq = -1;
+    let bestScore: any = null;
+    for (const m of msgs) {
+      const seq = m.Seq ?? m.Update?.Seq ?? 0;
+      if (seq <= bestSeq) continue;
+      const sc = getScoreVal(m);
+      if (sc?.Participant1?.Total?.Goals != null || sc?.Participant2?.Total?.Goals != null) {
+        bestSeq = seq;
+        bestScore = sc;
       }
     }
-    if (maxScore1 === 0 && maxScore2 === 0 && topScore != null) {
+    if (bestScore) {
+      maxScore1 = bestScore.Participant1?.Total?.Goals ?? 0;
+      maxScore2 = bestScore.Participant2?.Total?.Goals ?? 0;
+    } else if (topScore != null) {
       maxScore1 = topScore.Participant1?.Total?.Goals ?? 0;
       maxScore2 = topScore.Participant2?.Total?.Goals ?? 0;
-    }
-    // Last resort: use cached scores from the fixture list snapshot
-    if (maxScore1 === 0 && maxScore2 === 0) {
+    } else {
       maxScore1 = cached.Score1 ?? 0;
       maxScore2 = cached.Score2 ?? 0;
     }
