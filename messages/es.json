@@ -347,10 +347,51 @@
         "title": "Cómo funciona una apuesta",
         "content": [
           "Elige un partido en la página Markets.",
-          "Selecciona el resultado: 1 (local), X (empate) o 2 (visitante).",
-          "Ingresa el monto en USDT y confirma la transacción.",
+          "Selecciona el resultado, formato de odds e ingresa el monto en USDT.",
           "Tu apuesta queda en un escrow (contrato inteligente) hasta que el partido termine.",
           "Al finalizar, el keeper liquida automáticamente: si acertaste, recibes tu stake + ganancias."
+        ]
+      },
+      "bettingModes": {
+        "title": "Modos de apuesta",
+        "content": [
+          "1×2 — Predice si gana el local (1), hay empate (X) o gana el visitante (2).",
+          "Over / Under — Apuesta a si los goles totales superan (Over) o no (Under) una línea (ej. 2.5). Cambia de línea en el detalle del mercado.",
+          "Ambos equipos anotan (BTTS) — Predice si ambos equipos anotarán al menos un gol (Yes) o no (No)."
+        ]
+      },
+      "liveTracking": {
+        "title": "Seguimiento en vivo",
+        "content": [
+          "La página Live muestra resultados en tiempo real de los partidos del Mundial, actualizados cada 15 segundos.",
+          "Haz clic en cualquier partido para ver la línea de tiempo completa: goles, tarjetas, decisiones VAR y nombres de jugadores.",
+          "Cuando un partido finaliza, la página Live activa la liquidación automática de inmediato."
+        ]
+      },
+      "notifications": {
+        "title": "Notificaciones y alertas",
+        "content": [
+          "Notificaciones in-app: el ícono de campana en la barra superior muestra inicio/fin de partidos, resultados de apuestas (ganadas/perdidas) y errores de liquidación.",
+          "Push notifications (opcional): actívalas en tu Perfil para recibir alertas push del navegador sobre eventos de partidos y resultados.",
+          "Match Watcher: rastrea automáticamente tus apuestas activas y te notifica cuando un partido comienza o termina."
+        ]
+      },
+      "portfolio": {
+        "title": "Portfolio y mis apuestas",
+        "content": [
+          "La página Portfolio muestra todas tus apuestas: activas (pendientes) e historial (liquidadas).",
+          "Cada apuesta muestra el fixture, selección, monto, odds y estado (Activa / Ganada / Perdida / Cancelada).",
+          "Las apuestas ganadas se pueden compartir en X (Twitter) con una tarjeta resumen.",
+          "La auto-liquidación se ejecuta en segundo plano cada 30 segundos en la página Portfolio."
+        ]
+      },
+      "profile": {
+        "title": "Perfil",
+        "content": [
+          "Estadísticas de tu wallet: balance de SOL, predicciones totales, apuestas ganadas y ganancias.",
+          "Perfil on-chain opcional con URI de imagen y usuario de X (Twitter).",
+          "Estado de activación de TxLINE API y toggle de notificaciones push.",
+          "Los datos del perfil se almacenan en Solana a través del programa Settlement."
         ]
       },
       "payout": {

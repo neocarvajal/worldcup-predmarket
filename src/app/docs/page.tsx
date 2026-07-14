@@ -8,10 +8,15 @@ const sectionKeys = [
   'wallet',
   'txline',
   'betting',
+  'bettingModes',
   'payout',
   'settlement',
-  'tech',
+  'liveTracking',
+  'notifications',
+  'portfolio',
+  'profile',
   'faucet',
+  'tech',
   'security',
 ] as const;
 

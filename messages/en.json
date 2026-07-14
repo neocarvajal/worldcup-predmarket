@@ -348,10 +348,17 @@
         "title": "How betting works",
         "content": [
           "Pick a match on the Markets page.",
-          "Select the outcome: 1 (home), X (draw), or 2 (away).",
-          "Enter the amount in USDT and confirm the transaction.",
+          "Select the outcome, odds format, and enter the amount in USDT.",
           "Your bet stays in an escrow (smart contract) until the match ends.",
           "When finished, the keeper settles automatically: if you win, you get your stake + winnings."
+        ]
+      },
+      "bettingModes": {
+        "title": "Betting modes",
+        "content": [
+          "1×2 — Predict whether the home team (1), draw (X), or away team (2) wins.",
+          "Over / Under — Bet on whether total goals exceed (Over) or stay below (Under) a line (e.g. 2.5). Switch lines in the market detail.",
+          "Both Teams To Score (BTTS) — Predict if both teams will score at least one goal (Yes) or not (No)."
         ]
       },
       "payout": {
@@ -360,7 +367,41 @@
       },
       "settlement": {
         "title": "Automatic settlement",
-        "content": "You don't need to do anything to collect. The keeper bot checks every 5 minutes if matches have ended. If your bet is correct, the escrow settles and funds arrive automatically in your wallet. It also settles when loading your portfolio if a finished match is detected."
+        "content": "You don't need to do anything to collect. The keeper bot checks every 5 minutes if matches have ended. If your bet is correct, the escrow settles and funds arrive automatically in your wallet. It also settles when loading your portfolio if a finished match is detected, or in real-time from the Live page when a match finishes."
+      },
+      "liveTracking": {
+        "title": "Live match tracking",
+        "content": [
+          "The Live page shows real-time World Cup scores, updated every 15 seconds.",
+          "Click any match to see the full event timeline: goals, cards, VAR decisions, and player names.",
+          "When a match finishes, the Live page triggers automatic settlement immediately."
+        ]
+      },
+      "notifications": {
+        "title": "Notifications & alerts",
+        "content": [
+          "In-app notifications: bell icon in the top bar shows match start/finish, bet results (won/lost), and settlement errors.",
+          "Push notifications (optional): enable in your Profile to receive browser push alerts for match events and settlement results.",
+          "Match Watcher: automatically tracks your active bets and notifies you when a match starts or finishes."
+        ]
+      },
+      "portfolio": {
+        "title": "Portfolio & my bets",
+        "content": [
+          "The Portfolio page shows all your bets: active (pending) and history (settled).",
+          "Each bet shows the fixture, selection, amount, odds, and status (Active / Won / Lost / Cancelled).",
+          "Won bets can be shared on X (Twitter) with a summary card.",
+          "Auto-settlement runs in the background every 30 seconds on the Portfolio page."
+        ]
+      },
+      "profile": {
+        "title": "Profile",
+        "content": [
+          "Your wallet stats: SOL balance, total predictions, won count and earnings.",
+          "Optional on-chain profile with image URI and X (Twitter) handle.",
+          "TxLINE API activation status and push notification toggle.",
+          "Profile data is stored on Solana via the Settlement program."
+        ]
       },
       "tech": {
         "title": "Technology",
