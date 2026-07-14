@@ -18,7 +18,19 @@ const sectionKeys = [
 export default function DocsPage() {
   const t = useTranslations('Docs');
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn">
+    <>
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'url(/images/landing-bg.jpg)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'brightness(0.25) saturate(0.7)',
+          }}
+        />
+      </div>
+      <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
       <div className="flex items-center gap-3 mb-6">
         <Link
           href="/"
@@ -69,5 +81,6 @@ export default function DocsPage() {
         })}
       </div>
     </div>
+    </>
   );
 }
