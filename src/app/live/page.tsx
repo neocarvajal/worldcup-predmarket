@@ -243,11 +243,12 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score & Clock: scan ALL messages for latest values.
-    // Goals may be overturned by VAR (amend reduces score). Using the last
-    // message with Score data gives the correct final score.
-    // Clock.Seconds is cumulative elapsed time — max = most recent.
-    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    // Score & Clock: scan messages for latest values (excluding action_amend
+    // which carries stale score data from the time of the original action).
+    const lastScore = [...msgs]
+      .filter((m: any) => (m.Action ?? m.Update?.Action ?? '') !== 'action_amend')
+      .reverse()
+      .find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
     const s = lastScore?.Score ?? {};
     let maxScore1 = s.Participant1?.Total?.Goals ?? 0;
     let maxScore2 = s.Participant2?.Total?.Goals ?? 0;
