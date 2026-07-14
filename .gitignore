@@ -57,3 +57,8 @@ SKILL.md
 
 # TxLINE docs (downloaded reference)
 txodds-*.md
+
+# Prevent stray images at project root
+/*.jpeg
+/*.jpg
+/*.png
