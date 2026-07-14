@@ -140,21 +140,21 @@ export default function ProfilePage() {
             <div className="relative inline-block">
               <div
                 className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden cursor-pointer transition-all duration-300"
+                id="avatar-circle"
+                suppressHydrationWarning
                 style={{
-                  background: profileImg ? 'var(--bg-elevated)' : 'var(--bg-elevated)',
+                  background: 'var(--bg-elevated)',
                   border: `2px solid ${profileImg ? 'var(--border)' : 'var(--accent)'}`,
                   boxShadow: profileImg
                     ? '0 0 20px rgba(220,235,2,0.15)'
-                    : '0 0 24px rgba(220,235,2,0.3)',
-                  zIndex: 2,
-                  position: 'relative',
+                    : '0 0 24px rgba(220,235,2,0.25)',
                 }}
                 onClick={handleImagePick}
               >
                 {profileImg ? (
-                  <img src={profileImg} alt="" className="w-full h-full object-cover" />
+                  <img src={profileImg} alt="" className="w-full h-full object-cover" onError={() => setProfileImg(null)} />
                 ) : (
-                  <CameraIcon width={28} height={28} style={{ color: 'var(--warning)' }} />
+                  <CameraIcon width={28} height={28} style={{ color: 'var(--accent)', minWidth: 28, minHeight: 28 }} />
                 )}
               </div>
             <button
