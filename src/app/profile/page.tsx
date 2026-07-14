@@ -140,12 +140,11 @@ export default function ProfilePage() {
               <div
                 className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden cursor-pointer transition-all duration-300"
                 style={{
-                  background: profileImg ? 'var(--bg-elevated)' : 'var(--accent-dim)',
-                  outline: `3px solid ${profileImg ? 'var(--border)' : 'var(--accent)'}`,
-                  outlineOffset: 2,
+                  background: profileImg ? 'var(--bg-elevated)' : 'rgba(220,235,2,0.15)',
+                  border: `2px solid ${profileImg ? 'var(--border)' : 'var(--accent)'}`,
                   boxShadow: profileImg
                     ? '0 0 20px rgba(220,235,2,0.15)'
-                    : '0 0 30px rgba(220,235,2,0.25)',
+                    : '0 0 24px rgba(220,235,2,0.25), inset 0 0 0 1px rgba(220,235,2,0.1)',
                 }}
                 onClick={handleImagePick}
               >
