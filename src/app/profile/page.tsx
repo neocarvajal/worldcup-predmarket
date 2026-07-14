@@ -120,15 +120,28 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
-      {/* Background image */}
+      {/* Background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div
-          className="absolute inset-0"
+          className="absolute rounded-full animate-float-slow"
           style={{
-            backgroundImage: 'url(/images/profile-bg.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'brightness(0.25) saturate(0.7)',
+            width: 250,
+            height: 250,
+            top: '0%',
+            right: '-15%',
+            background: 'radial-gradient(circle, rgba(220,235,2,0.03) 0%, transparent 70%)',
+            animationDuration: '14s',
+          }}
+        />
+        <div
+          className="absolute rounded-full animate-float"
+          style={{
+            width: 180,
+            height: 180,
+            bottom: '10%',
+            left: '-10%',
+            background: 'radial-gradient(circle, rgba(220,235,2,0.02) 0%, transparent 70%)',
+            animationDuration: '11s',
           }}
         />
       </div>
