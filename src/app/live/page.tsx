@@ -229,7 +229,11 @@ export default function LivePage() {
   const settledRef = useRef<Set<number>>(new Set());
 
   const parseSnapshot = useCallback((snap: any): any => {
-    const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? [snap]);
+    const msgs = Array.isArray(snap)
+      ? snap
+      : (snap?.messages ?? snap?.Messages ?? [snap]);
+    // Top-level Score on snapshot (if present) overrides message-based lookup
+    const topScore = snap?.Score ?? snap?.score ?? null;
     // Handle both flat (snapshot) and nested (SSE) message formats
     const getStatusId = (m: any) => m.StatusId ?? m.Update?.StatusId ?? 0;
     const getScoreVal = (m: any) => m.Score ?? m.Update?.Score ?? null;
@@ -243,25 +247,39 @@ export default function LivePage() {
     if (displayable.length === 0) return null;
     const maxStatus = displayable.reduce((best: any, m: any) => getStatusId(m) > getStatusId(best) ? m : best);
     const statusId = getStatusId(maxStatus);
-    // Score & Clock: scan messages for latest values (excluding action_amend
-    // which carries stale score data from the time of the original action).
-    const lastScore = [...msgs]
-      .filter((m: any) => (m.Action ?? m.Update?.Action ?? '') !== 'action_amend')
-      .reverse()
-      .find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
-    const s = lastScore?.Score ?? {};
-    let maxScore1 = s.Participant1?.Total?.Goals ?? 0;
-    let maxScore2 = s.Participant2?.Total?.Goals ?? 0;
+    const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
+    const cached = cacheRef.current.get(fid) || {};
+    const playerMap = buildPlayerMap(msgs);
+    const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
+    // Derive display score from events as the primary source (events track
+    // goals incrementally and correctly exclude action_amend). Fall back to
+    // the last message with Score data only if events are empty.
+    let maxScore1 = 0, maxScore2 = 0;
+    if (topScore && topScore.Participant1?.Total?.Goals != null) {
+      maxScore1 = topScore.Participant1?.Total?.Goals ?? 0;
+      maxScore2 = topScore.Participant2?.Total?.Goals ?? 0;
+    } else if (matchEvents.length > 0) {
+      const last = matchEvents[matchEvents.length - 1];
+      maxScore1 = last.homeScore;
+      maxScore2 = last.awayScore;
+    } else {
+      const lastScore = [...msgs]
+        .filter((m: any) => (m.Action ?? m.Update?.Action ?? '') !== 'action_amend')
+        .reverse()
+        .find((m: any) => {
+          const sc = getScoreVal(m);
+          return sc?.Participant1?.Total?.Goals != null;
+        });
+      const s = lastScore ? getScoreVal(lastScore) ?? {} : {};
+      maxScore1 = s.Participant1?.Total?.Goals ?? 0;
+      maxScore2 = s.Participant2?.Total?.Goals ?? 0;
+    }
     let maxSeconds = 0;
     for (const m of msgs) {
       const secs = getSeconds(m);
       if (secs != null && secs > maxSeconds) maxSeconds = secs;
     }
     const minute = Math.floor(maxSeconds / 60);
-    const fid = maxStatus.FixtureId ?? maxStatus.Update?.FixtureId ?? 0;
-    const cached = cacheRef.current.get(fid) || {};
-    const playerMap = buildPlayerMap(msgs);
-    const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
     return {
       FixtureId: fid,
       Participant1: cached.Participant1 ?? '',
