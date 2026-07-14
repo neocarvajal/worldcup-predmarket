@@ -140,20 +140,18 @@ export default function ProfilePage() {
               <div
                 className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden cursor-pointer transition-all duration-300"
                 style={{
-                  background: profileImg ? 'var(--bg-elevated)' : 'rgba(245,158,11,0.12)',
-                  border: `2px solid ${profileImg ? 'var(--border)' : 'rgba(245,158,11,0.25)'}`,
+                  background: profileImg ? 'var(--bg-elevated)' : 'var(--accent-dim)',
+                  border: `2px solid ${profileImg ? 'var(--border)' : 'rgba(220,235,2,0.25)'}`,
                   boxShadow: profileImg
                     ? '0 0 30px rgba(220,235,2,0.1)'
-                    : '0 0 24px rgba(245,158,11,0.08)',
+                    : '0 0 24px rgba(220,235,2,0.08)',
                 }}
                 onClick={handleImagePick}
               >
                 {profileImg ? (
                   <img src={profileImg} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--warning)' }}>
-                    {initials}
-                  </span>
+                  <CameraIcon width={28} height={28} style={{ color: 'var(--text-muted)' }} />
                 )}
               </div>
             <button
