@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Latest score from the last message that has Score data
-    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null || m.Score?.Participant2?.Total?.Goals != null);
     const score = lastScore?.Score || {};
     const score1 = score.Participant1?.Total?.Goals ?? 0;
     const score2 = score.Participant2?.Total?.Goals ?? 0;

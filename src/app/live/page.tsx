@@ -265,14 +265,22 @@ export default function LivePage() {
       maxScore2 = lastGoal.awayScore;
     }
     if (maxScore1 === 0 && maxScore2 === 0) {
+      // Use the latest message (highest Seq) with Score data.
+      // "Latest" rather than "max" because scores can regress (e.g. VAR overturn).
+      let bestSeq = -1;
+      let bestScore: any = null;
       for (const m of msgs) {
-        const a = m.Action ?? m.Update?.Action ?? '';
-        if (a === 'action_amend') continue;
+        const seq = m.Seq ?? m.Update?.Seq ?? 0;
+        if (seq <= bestSeq) continue;
         const sc = getScoreVal(m);
-        if (sc?.Participant1?.Total?.Goals != null) {
-          if (sc.Participant1.Total.Goals > maxScore1) maxScore1 = sc.Participant1.Total.Goals;
-          if (sc.Participant2.Total.Goals > maxScore2) maxScore2 = sc.Participant2.Total.Goals;
+        if (sc?.Participant1?.Total?.Goals != null || sc?.Participant2?.Total?.Goals != null) {
+          bestSeq = seq;
+          bestScore = sc;
         }
+      }
+      if (bestScore) {
+        maxScore1 = bestScore.Participant1?.Total?.Goals ?? 0;
+        maxScore2 = bestScore.Participant2?.Total?.Goals ?? 0;
       }
     }
     if (maxScore1 === 0 && maxScore2 === 0 && topScore != null) {

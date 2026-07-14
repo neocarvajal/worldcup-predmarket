@@ -304,7 +304,7 @@ export async function settleActiveEscrows(
         return a === 'game_finalised';
       });
       // Latest score from the last message that has Score data
-      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null || m.Score?.Participant2?.Total?.Goals != null);
       const s = lastScore?.Score ?? {};
       score1 = s.Participant1?.Total?.Goals ?? 0;
       score2 = s.Participant2?.Total?.Goals ?? 0;
@@ -531,7 +531,7 @@ export async function settleSingleEscrow(
       const a = m.Action ?? m.Update?.Action ?? '';
       return a === 'game_finalised';
     });
-    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+    const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null || m.Score?.Participant2?.Total?.Goals != null);
     const s = lastScore?.Score ?? {};
     score1 = s.Participant1?.Total?.Goals ?? 0;
     score2 = s.Participant2?.Total?.Goals ?? 0;

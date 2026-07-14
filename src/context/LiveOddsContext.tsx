@@ -60,7 +60,7 @@ export function LiveOddsProvider({ children }: { children: React.ReactNode }) {
       const statusId = maxStatus ? getStatusId(maxStatus) : 1;
 
       // Use last message's score (amends may carry stale values)
-      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null);
+      const lastScore = [...msgs].reverse().find((m: any) => m.Score?.Participant1?.Total?.Goals != null || m.Score?.Participant2?.Total?.Goals != null);
       const s = lastScore?.Score ?? {};
       let homeScore = s.Participant1?.Total?.Goals ?? 0;
       let awayScore = s.Participant2?.Total?.Goals ?? 0;
