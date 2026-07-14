@@ -251,24 +251,38 @@ export default function LivePage() {
     const cached = cacheRef.current.get(fid) || {};
     const playerMap = buildPlayerMap(msgs);
     const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
-    // Get display score: find the maximum goals across all messages (skip
-    // action_amend which carries stale score from the original action).
-    // Using max instead of last avoids picking up stale amends, while still
-    // handling the case where the last message with Score is an early one.
+    // Get display score: use the last goal event's score (goals are tracked
+    // incrementally by parseMatchEvents from explicit actions). If no goal
+    // events, fall back to max Score across all messages (excluding amends),
+    // then top-level snapshot Score.
     let maxScore1 = 0, maxScore2 = 0;
-    for (const m of msgs) {
-      const a = m.Action ?? m.Update?.Action ?? '';
-      if (a === 'action_amend') continue;
-      const sc = getScoreVal(m);
-      if (sc?.Participant1?.Total?.Goals != null) {
-        if (sc.Participant1.Total.Goals > maxScore1) maxScore1 = sc.Participant1.Total.Goals;
-        if (sc.Participant2.Total.Goals > maxScore2) maxScore2 = sc.Participant2.Total.Goals;
+    const goalEvents = matchEvents.filter((e: any) =>
+      e.type === 'goal' || e.type === 'goal_penalty' || e.type === 'goal_own'
+    );
+    if (goalEvents.length > 0) {
+      const lastGoal = goalEvents[goalEvents.length - 1];
+      maxScore1 = lastGoal.homeScore;
+      maxScore2 = lastGoal.awayScore;
+    }
+    if (maxScore1 === 0 && maxScore2 === 0) {
+      for (const m of msgs) {
+        const a = m.Action ?? m.Update?.Action ?? '';
+        if (a === 'action_amend') continue;
+        const sc = getScoreVal(m);
+        if (sc?.Participant1?.Total?.Goals != null) {
+          if (sc.Participant1.Total.Goals > maxScore1) maxScore1 = sc.Participant1.Total.Goals;
+          if (sc.Participant2.Total.Goals > maxScore2) maxScore2 = sc.Participant2.Total.Goals;
+        }
       }
     }
-    // If zero goals found from messages, try top-level snapshot Score
     if (maxScore1 === 0 && maxScore2 === 0 && topScore != null) {
       maxScore1 = topScore.Participant1?.Total?.Goals ?? 0;
       maxScore2 = topScore.Participant2?.Total?.Goals ?? 0;
+    }
+    // Last resort: use cached scores from the fixture list snapshot
+    if (maxScore1 === 0 && maxScore2 === 0) {
+      maxScore1 = cached.Score1 ?? 0;
+      maxScore2 = cached.Score2 ?? 0;
     }
     let maxSeconds = 0;
     for (const m of msgs) {
@@ -306,6 +320,8 @@ export default function LivePage() {
             Participant1: f.Participant1 ?? f.participant1 ?? '',
             Participant2: f.Participant2 ?? f.participant2 ?? '',
             Participant1IsHome: f.Participant1IsHome ?? f.participant1IsHome ?? true,
+            Score1: f.Score1 ?? f.score1 ?? f.Score?.Participant1?.Total?.Goals ?? 0,
+            Score2: f.Score2 ?? f.score2 ?? f.Score?.Participant2?.Total?.Goals ?? 0,
           });
         }
       }
@@ -388,10 +404,13 @@ export default function LivePage() {
         if (Math.abs(now - startTimeMs) < win) {
           const fid = f.FixtureId ?? f.fixtureId;
           if (fid != null) {
+            const existing = cacheRef.current.get(fid);
             cacheRef.current.set(fid, {
               Participant1: f.Participant1 ?? f.participant1 ?? '',
               Participant2: f.Participant2 ?? f.participant2 ?? '',
               Participant1IsHome: f.Participant1IsHome ?? f.participant1IsHome ?? true,
+              Score1: f.Score1 ?? f.score1 ?? f.Score?.Participant1?.Total?.Goals ?? existing?.Score1 ?? 0,
+              Score2: f.Score2 ?? f.score2 ?? f.Score?.Participant2?.Total?.Goals ?? existing?.Score2 ?? 0,
             });
             trackedRef.current.add(fid);
           }
