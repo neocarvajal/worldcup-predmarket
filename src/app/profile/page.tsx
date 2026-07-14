@@ -119,9 +119,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
+    <>
       {/* Background image */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }}>
         <div
           className="absolute inset-0"
           style={{
@@ -133,6 +133,7 @@ export default function ProfilePage() {
         />
       </div>
 
+      <div className="max-w-lg mx-auto px-4 py-6 animate-fadeIn relative">
           <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Avatar section */}
           <div className="text-center mb-8">
@@ -503,5 +504,6 @@ export default function ProfilePage() {
         )}
       </div>
     </div>
+    </>
   );
 }
