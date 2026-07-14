@@ -356,8 +356,7 @@
         "title": "Modos de apuesta",
         "content": [
           "1×2 — Predice si gana el local (1), hay empate (X) o gana el visitante (2).",
-          "Over / Under — Apuesta a si los goles totales superan (Over) o no (Under) una línea (ej. 2.5). Cambia de línea en el detalle del mercado.",
-          "Ambos equipos anotan (BTTS) — Predice si ambos equipos anotarán al menos un gol (Yes) o no (No)."
+          "Over / Under — Apuesta a si los goles totales superan (Over) o no (Under) una línea (ej. 2.5). Cambia de línea en el detalle del mercado."
         ]
       },
       "liveTracking": {

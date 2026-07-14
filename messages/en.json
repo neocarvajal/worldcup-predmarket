@@ -357,8 +357,7 @@
         "title": "Betting modes",
         "content": [
           "1×2 — Predict whether the home team (1), draw (X), or away team (2) wins.",
-          "Over / Under — Bet on whether total goals exceed (Over) or stay below (Under) a line (e.g. 2.5). Switch lines in the market detail.",
-          "Both Teams To Score (BTTS) — Predict if both teams will score at least one goal (Yes) or not (No)."
+          "Over / Under — Bet on whether total goals exceed (Over) or stay below (Under) a line (e.g. 2.5). Switch lines in the market detail."
         ]
       },
       "payout": {

@@ -28,7 +28,7 @@ Live at: **[worldcup-hackathon.vercel.app](https://worldcup-hackathon.vercel.app
 ## Features
 
 ### Betting
-- **3 market types**: 1×2 (home/draw/away), Over/Under (multiple lines), Both Teams To Score (BTTS)
+- **2 market types**: 1×2 (home/draw/away) and Over/Under (multiple lines)
 - **USDT escrows**: funds locked in Anchor program escrows via `InitEscrow` + `Deposit`
 - **Live odds**: real-time odds updates every 15s with directional arrows (up/down + percentage)
 - **Odds suspension**: auto-suspended during stoppage time, extra time, recent goals, and halftime
@@ -84,7 +84,7 @@ Live at: **[worldcup-hackathon.vercel.app](https://worldcup-hackathon.vercel.app
 │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
 │  │ Markets  │  │ Portfolio│  │ Live Scores (SSE) │  │
 │  │ 1X2/OU/  │  │ Active/  │  │ Event timeline,   │  │
-│  │ BTTS     │  │ History  │  │ auto-settle       │  │
+│  │ OU       │  │ History  │  │ auto-settle       │  │
 │  └────┬─────┘  └────┬─────┘  └────────┬──────────┘  │
 │       │              │                 │              │
 │  ┌────┴──────────────┴─────────────────┴──────────┐  │
@@ -210,7 +210,7 @@ git push
 │   ├── app/
 │   │   ├── page.tsx                     # Landing page
 │   │   ├── markets/page.tsx             # Match listings with odds
-│   │   ├── market/[fixtureId]/page.tsx  # Match detail + 1X2/OU/BTTS tabs + bet slip
+│   │   ├── market/[fixtureId]/page.tsx  # Match detail + 1X2/OU tabs + bet slip
 │   │   ├── live/page.tsx                # Real-time scores + event timeline
 │   │   ├── portfolio/page.tsx           # User's bets, active/history, auto-settle
 │   │   ├── profile/page.tsx             # Wallet profile, avatar, stats, push toggle
@@ -231,7 +231,7 @@ git push
 │   │   └── txlineProgram.ts             # Faucet request, USDT balance, cooldown check
 │   ├── components/                      # UI components
 │   │   ├── MarketCard.tsx               # Match card with live countdown and odds
-│   │   ├── MarketDetail.tsx             # 1X2/OU/BTTS market tabs + odds display
+│   │   ├── MarketDetail.tsx             # 1X2/OU market tabs + odds display
 │   │   ├── MarketList.tsx               # Match list grouped by date
 │   │   ├── BetSlipDrawer.tsx            # Bet slip with amount, odds, payout
 │   │   ├── PositionCard.tsx             # Escrow display (active/settled)
@@ -265,8 +265,8 @@ git push
 
 ```
 1. Browse /markets → pick a match
-2. Select market type: 1×2, Over/Under, or BTTS
-3. Select outcome (1 / X / 2 / Over / Under / BTTS Yes / BTTS No)
+2. Select market type: 1×2 or Over/Under
+3. Select outcome (1 / X / 2 / Over / Under)
 4. Enter USDT amount (quick selectors: 10, 20, 50, 100)
 5. Wallet signs InitEscrow + Deposit in a single transaction
 6. Escrow created on-chain, funds locked
