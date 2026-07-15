@@ -84,8 +84,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const profile = await fetchUserProfile(connection, publicKey);
       if (profile) {
         setNotificationsEnabled(!!profile.account.notifications_enabled);
+      } else {
+        setNotificationsEnabled(true);
       }
-    } catch {}
+    } catch {
+      setNotificationsEnabled(true);
+    }
   }, []);
 
   return (
