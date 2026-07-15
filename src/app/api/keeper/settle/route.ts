@@ -1,7 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { settleActiveEscrows, settleSingleEscrow } from '../../../../lib/keeper';
+import { settleActiveEscrows, settleSingleEscrow, type SettlementResult } from '../../../../lib/keeper';
 import { ensureApiToken } from '../../../../lib/keeper-auth';
+import { supabaseFetch, isSupabaseConfigured } from '../../../../lib/supabase';
+import { sendPushToAll, isVapidConfigured } from '../../../../lib/webPush';
+
+async function dispatchSettlementNotifications(results: SettlementResult[]) {
+  if (!isVapidConfigured() || !isSupabaseConfigured()) return;
+  for (const r of results) {
+    if (r.status !== 'settled' || !r.depositor) continue;
+    const isWin = r.depositorWon === true;
+    const title = isWin ? '\uD83C\uDFC6 \u00a1Ganaste!' : '\uD83D\uDE14 Perdiste';
+    const body = isWin
+      ? `${r.fixtureName} — Pago enviado a tu wallet`
+      : `${r.fixtureName} — Mejor suerte la pr\u00f3xima vez`;
+    try {
+      const query = `/push_subscriptions?select=*&wallet=eq.${r.depositor}`;
+      const subRes = await supabaseFetch(query, { method: 'GET' });
+      if (subRes.ok) {
+        const rows = await subRes.json();
+        if (rows?.length > 0) {
+          const subs = rows.map((row: any) => ({
+            endpoint: row.endpoint,
+            keys: { p256dh: row.p256dh, auth: row.auth },
+          }));
+          await sendPushToAll(subs, { title, body, icon: '/favicon.svg', badge: '/favicon.svg' });
+        }
+      }
+    } catch {
+      // best-effort
+    }
+  }
+}
 
 async function handle(req: NextRequest) {
   if (req.method !== 'POST') {
@@ -49,6 +79,7 @@ async function handle(req: NextRequest) {
         connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken,
         new PublicKey(escrowParam), undefined, force,
       );
+      await dispatchSettlementNotifications([result]);
       return NextResponse.json({
         ok: result.status === 'settled',
         result,
@@ -62,6 +93,7 @@ async function handle(req: NextRequest) {
       const results = await settleActiveEscrows(
         connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, undefined, force, fixtureId,
       );
+      dispatchSettlementNotifications(results);
       return NextResponse.json({
         ok: true,
         processed: results.length,
@@ -73,6 +105,7 @@ async function handle(req: NextRequest) {
       const results = await settleActiveEscrows(
         connection, keeper, txlineUrl, txlineJwtFresh, txlineApiToken, undefined, force,
       );
+      dispatchSettlementNotifications(results);
       return NextResponse.json({
         ok: true,
         processed: results.length,

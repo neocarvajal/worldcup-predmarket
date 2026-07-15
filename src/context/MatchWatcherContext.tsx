@@ -149,7 +149,27 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
               }).catch(() => {});
             }
 
-            fetch(`/api/keeper/trigger-settle?fixtureId=${fid}`, { method: 'POST' }).catch(() => {});
+            const walletB58 = publicKey.toBase58();
+            fetch(`/api/keeper/trigger-settle?fixtureId=${fid}`, { method: 'POST' })
+              .then(async (res) => {
+                if (!res.ok) return;
+                const data = await res.json().catch(() => null);
+                if (!data?.results) return;
+                for (const r of data.results) {
+                  if (r.status !== 'settled' || r.depositor !== walletB58) continue;
+                  const isWin = r.depositorWon === true;
+                  addNotification({
+                    title: isWin ? '\uD83C\uDFC6 \u00a1Ganaste!' : '\uD83D\uDE14 Perdiste',
+                    body: isWin
+                      ? `${r.fixtureName} — Pago enviado a tu wallet`
+                      : `${r.fixtureName} — Mejor suerte la pr\u00f3xima vez`,
+                    type: isWin ? 'won' : 'lost',
+                    escrowPubkey: r.escrowPubkey,
+                    path: '/portfolio',
+                  });
+                }
+              })
+              .catch(() => {});
           }
           continue;
         }

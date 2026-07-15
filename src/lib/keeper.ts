@@ -233,7 +233,7 @@ async function txlineRequest(
   return res.json();
 }
 
-interface SettlementResult {
+export interface SettlementResult {
   escrowPubkey: string;
   fixtureId: number | null;
   fixtureName: string;
