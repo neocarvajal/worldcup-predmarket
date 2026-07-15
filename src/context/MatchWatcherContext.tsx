@@ -31,7 +31,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
 
   const startedRef = useRef<Set<number>>(loadSet('started'));
   const finishedRef = useRef<Set<number>>(loadSet('finished'));
-  const settledNotifiedRef = useRef<Set<string>>(loadSet('settledNotified'));
+  const settledNotifiedRef = useRef<Set<string>>(new Set());
   const enabledRef = useRef(notificationsEnabled);
   enabledRef.current = notificationsEnabled;
   const prevWalletRef = useRef(publicKey?.toBase58());
@@ -50,7 +50,6 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
       escrowPollRef.current = 0;
       saveSet('started', startedRef.current);
       saveSet('finished', finishedRef.current);
-      saveSet('settledNotified', settledNotifiedRef.current);
     }
   }, [publicKey]);
 
@@ -76,7 +75,6 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
           const escrowB58 = e.pubkey.toBase58();
           if (settledNotifiedRef.current.has(escrowB58)) continue;
           settledNotifiedRef.current.add(escrowB58);
-          saveSet('settledNotified', settledNotifiedRef.current);
           const fixtureName = e.account.fixture_name ?? `Fixture #${e.account.fixture_id}`;
           const isWin = e.account.depositor_won === true;
           if (enabledRef.current) {
