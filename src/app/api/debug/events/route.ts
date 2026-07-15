@@ -126,17 +126,18 @@ function parseMatchEvents(msgs: any[]): any[] {
     const rc2 = score?.Participant2?.Total?.RedCards ?? prevRC2;
 
     // Only skip inferred card when the action IS a card for THIS team
+    // Inferred card — player is unreliable (could be from a different message)
     if (yc1 > prevYC1 && !(action === 'yellow_card' && team === 1)) {
-      events.push({ type: 'yellow_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (yc2 > prevYC2 && !(action === 'yellow_card' && team === 2)) {
-      events.push({ type: 'yellow_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc1 > prevRC1 && !(action === 'red_card' && team === 1)) {
-      events.push({ type: 'red_card', team: 1, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc2 > prevRC2 && !(action === 'red_card' && team === 2)) {
-      events.push({ type: 'red_card', team: 2, minute, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     if (!isGoalAction && action !== 'var_end' && action !== 'action_discarded') {

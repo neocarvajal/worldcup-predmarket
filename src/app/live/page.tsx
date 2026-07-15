@@ -137,15 +137,13 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       events.push({ type: 'var_end', team, minute, varOutcome: outcome, homeScore: g1, awayScore: g2, seq });
     }
 
-    // Detect goal from score change (catches goals without Action field)
-    // Skip var_end and action_discarded — their Score may be stale/inconsistent
-    // (e.g. pre-VAR-overturn values not yet corrected by the API).
-    const goalPlayer = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? data.ParticipantName ?? (data.PlayerId != null ? playerMap.get(data.PlayerId) : '') ?? '';
+    // Inferred goal from Score change — catches goals without Action field.
+    // We cannot reliably know the player; leave blank so the UI doesn't show wrong name.
     if (g1 > prevGoals1 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
-      events.push({ type: 'goal', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (g2 > prevGoals2 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
-      events.push({ type: 'goal', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     // Detect annulled goals from score decreasing
@@ -178,16 +176,16 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     // (the primary handler already added it). A card action for team 2
     // should not suppress an inferred card for team 1 from Score change.
     if (yc1 > prevYC1 && !(action === 'yellow_card' && team === 1)) {
-      events.push({ type: 'yellow_card', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (yc2 > prevYC2 && !(action === 'yellow_card' && team === 2)) {
-      events.push({ type: 'yellow_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc1 > prevRC1 && !(action === 'red_card' && team === 1)) {
-      events.push({ type: 'red_card', team: 1, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc2 > prevRC2 && !(action === 'red_card' && team === 2)) {
-      events.push({ type: 'red_card', team: 2, minute, player: goalPlayer, homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     if (!isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
