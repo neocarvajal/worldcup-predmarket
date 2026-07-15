@@ -463,9 +463,9 @@ export default function LivePage() {
           for (const u of updates) {
             const idx = next.findIndex(e => e.FixtureId === u.FixtureId);
             if (idx >= 0) {
-              // Preserve full-history Events so polling doesn't overwrite them
+              // Preserve full-history Events from cache; fall back to new snapshot events
               const cached = fullHistoryCache.current.get(u.FixtureId);
-              next[idx] = { ...u, Events: cached ?? next[idx].Events };
+              next[idx] = { ...u, Events: cached ?? u.Events ?? next[idx].Events };
             } else next.push(u);
           }
           return next.slice(0, 50);

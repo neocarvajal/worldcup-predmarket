@@ -216,14 +216,23 @@ export class TxLineClient {
     return this.requestWithRetry('GET', `/scores/snapshot/${fixtureId}`);
   }
 
-  /** Full message history for one or more fixtures (Ts=0 = from the beginning).
-   *  Unlike the snapshot endpoint, this returns ALL messages including goals,
-   *  lineups, cards etc. in chronological order. */
+  /** Full message history for a fixture.
+   *  Tries the historical endpoint first (may return empty for recent matches),
+   *  then falls back to the current snapshot. */
   async getScoresHistory(fixtureIds: number[]): Promise<any[]> {
-    const ids = fixtureIds.join(',');
-    const raw = await this.requestWithRetry('GET', `/scores?Ts=0&FixtureId=${ids}`);
-    // The response is always an array of message objects
-    return Array.isArray(raw) ? raw : [];
+    for (const fid of fixtureIds) {
+      try {
+        const raw = await this.requestWithRetry('GET', `/scores/historical/${fid}`);
+        if (Array.isArray(raw) && raw.length > 0) return raw;
+      } catch { /* fall through */ }
+      // Fallback: use snapshot (only has recent messages but better than nothing)
+      try {
+        const snap = await this.getScoresSnapshot(fid);
+        const msgs = Array.isArray(snap) ? snap : (snap?.messages ?? []);
+        if (msgs.length > 0) return msgs;
+      } catch { /* fall through */ }
+    }
+    return [];
   }
 
   async streamScores(): Promise<ReadableStream<Uint8Array>> {
