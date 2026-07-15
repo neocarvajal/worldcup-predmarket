@@ -200,12 +200,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Also show distinct actions in the messages
-    const actionCounts: Record<string, number> = {};
-    for (const m of bestMsgs) {
-      const a = m.Action ?? m.Update?.Action ?? '(none)';
-      actionCounts[a] = (actionCounts[a] || 0) + 1;
-    }
+    // Show all raw messages (abridged) so we can see what actions exist
+    const rawMessages = bestMsgs.map((m: any) => {
+      const action = m.Action ?? m.Update?.Action ?? '';
+      const participant = m.Participant ?? m.Update?.Participant ?? 0;
+      const seq = m.Seq ?? m.Update?.Seq ?? 0;
+      const sc = m.Score ?? m.Update?.Score;
+      const g1 = sc?.Participant1?.Total?.Goals;
+      const g2 = sc?.Participant2?.Total?.Goals;
+      const yc1 = sc?.Participant1?.Total?.YellowCards;
+      const yc2 = sc?.Participant2?.Total?.YellowCards;
+      const subType = m.Data?.Type ?? m.Update?.Data?.Type ?? '';
+      return { action, team: participant, seq, g1, g2, yc1, yc2, subType };
+    });
 
     return NextResponse.json({
       fixtureId: Number(fixtureId),
@@ -215,7 +222,6 @@ export async function GET(req: NextRequest) {
       scoresNoTs: { status: scoresNoTsRes.status, ok: scoresNoTsRes.ok, msgCount: scoresNoTsMsgs.length },
       latestScore: latestScore ? { g1: latestScore.Participant1?.Total?.Goals, g2: latestScore.Participant2?.Total?.Goals } : null,
       latestScoreSeq: latestSeq,
-      actionCounts,
       bestSource: historicalMsgs.length > 0 ? 'historical'
         : historyTsMsgs.length > 0 ? 'historyTs' : 'snapshot',
       totalEvents: events.length,
@@ -230,6 +236,7 @@ export async function GET(req: NextRequest) {
         awayScore: e.awayScore,
         seq: e.seq,
       })),
+      rawMessages,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
