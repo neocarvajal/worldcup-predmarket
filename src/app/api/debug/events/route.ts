@@ -157,22 +157,33 @@ export async function GET(req: NextRequest) {
   const fixtureId = req.nextUrl.searchParams.get('fixtureId') || '18237038';
   try {
     const h = await getTxlineHeaders();
-    const [scoresRes, historyRes] = await Promise.all([
+    const [scoresRes, historyTsRes, historicalRes] = await Promise.all([
       fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h }),
       fetch(`${TXLINE_API_URL}/api/scores?Ts=0&FixtureId=${fixtureId}`, { headers: h }),
+      fetch(`${TXLINE_API_URL}/api/scores/historical/${fixtureId}`, { headers: h }),
     ]);
-    const scores = scoresRes.ok ? await scoresRes.json() : null;
-    const history = historyRes.ok ? await historyRes.json() : null;
-    const scoresMsgs = Array.isArray(scores) ? scores : (scores?.messages ?? []);
-    const historyMsgs = Array.isArray(history) ? history : (history?.messages ?? []);
 
-    const playerMap = buildPlayerMap(historyMsgs || scoresMsgs);
-    const events = parseMatchEvents(historyMsgs.length > 0 ? historyMsgs : scoresMsgs);
+    const scores = scoresRes.ok ? await scoresRes.json() : null;
+    const historyTs = historyTsRes.ok ? await historyTsRes.json() : null;
+    const historical = historicalRes.ok ? await historicalRes.json() : null;
+
+    const scoresMsgs = Array.isArray(scores) ? scores : (scores?.messages ?? []);
+    const historyTsMsgs = Array.isArray(historyTs) ? historyTs : (historyTs?.messages ?? []);
+    const historicalMsgs = Array.isArray(historical) ? historical : (historical?.messages ?? []);
+
+    // Use the endpoint that returned the most messages
+    const bestMsgs = historicalMsgs.length > 0 ? historicalMsgs
+      : historyTsMsgs.length > 0 ? historyTsMsgs
+      : scoresMsgs;
+
+    const playerMap = buildPlayerMap(bestMsgs);
+    const events = parseMatchEvents(bestMsgs);
 
     return NextResponse.json({
       fixtureId: Number(fixtureId),
       snapshotMsgCount: scoresMsgs.length,
-      historyMsgCount: historyMsgs.length,
+      historyTsMsgCount: historyTsMsgs.length,
+      historicalMsgCount: historicalMsgs.length,
       totalEvents: events.length,
       yellowCards: events.filter((e: any) => e.type === 'yellow_card').length,
       goals: events.filter((e: any) => e.type === 'goal' || e.type === 'goal_penalty' || e.type === 'goal_own').length,
