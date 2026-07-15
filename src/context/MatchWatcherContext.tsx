@@ -31,6 +31,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
 
   const startedRef = useRef<Set<number>>(loadSet('started'));
   const finishedRef = useRef<Set<number>>(loadSet('finished'));
+  const settledNotifiedRef = useRef<Set<string>>(loadSet('settledNotified'));
   const enabledRef = useRef(notificationsEnabled);
   enabledRef.current = notificationsEnabled;
   const prevWalletRef = useRef(publicKey?.toBase58());
@@ -44,10 +45,12 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
       prevWalletRef.current = walletStr;
       startedRef.current = new Set();
       finishedRef.current = new Set();
+      settledNotifiedRef.current = new Set();
       fixtureIdsRef.current = new Set();
       escrowPollRef.current = 0;
       saveSet('started', startedRef.current);
       saveSet('finished', finishedRef.current);
+      saveSet('settledNotified', settledNotifiedRef.current);
     }
   }, [publicKey]);
 
@@ -64,6 +67,30 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
           const stateKey = Object.keys(e.account.state)[0];
           return stateKey === 'Active';
         });
+
+        // Detect newly settled escrows for in-app notifications
+        const loc = detectLocale();
+        for (const e of escrows) {
+          const stateKey = Object.keys(e.account.state)[0];
+          if (stateKey !== 'Settled') continue;
+          const escrowB58 = e.pubkey.toBase58();
+          if (settledNotifiedRef.current.has(escrowB58)) continue;
+          settledNotifiedRef.current.add(escrowB58);
+          saveSet('settledNotified', settledNotifiedRef.current);
+          const fixtureName = e.account.fixture_name ?? `Fixture #${e.account.fixture_id}`;
+          const isWin = e.account.depositor_won === true;
+          if (enabledRef.current) {
+            addNotification({
+              title: isWin ? t('you_won', loc) : t('you_lost', loc),
+              body: isWin
+                ? `${fixtureName} — ${t('payment_sent', loc)}`
+                : `${fixtureName} — ${t('better_luck', loc)}`,
+              type: isWin ? 'won' : 'lost',
+              escrowPubkey: escrowB58,
+              path: '/portfolio',
+            });
+          }
+        }
 
         const ids = new Set(
           activeEscrows.map(e => Number(e.account.fixture_id)).filter(id => id > 0)
