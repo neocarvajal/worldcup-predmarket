@@ -175,16 +175,18 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     // Only skip inferred card when the action IS a card for THIS team
     // (the primary handler already added it). A card action for team 2
     // should not suppress an inferred card for team 1 from Score change.
-    if (yc1 > prevYC1 && !(action === 'yellow_card' && team === 1)) {
+    // Skip var_end/action_discarded for card inference too — same stale-Score issue as goals,
+    // and their prev counters are never updated, causing duplicate inferences.
+    if (yc1 > prevYC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 1)) {
       events.push({ type: 'yellow_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
-    if (yc2 > prevYC2 && !(action === 'yellow_card' && team === 2)) {
+    if (yc2 > prevYC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 2)) {
       events.push({ type: 'yellow_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
-    if (rc1 > prevRC1 && !(action === 'red_card' && team === 1)) {
+    if (rc1 > prevRC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 1)) {
       events.push({ type: 'red_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
-    if (rc2 > prevRC2 && !(action === 'red_card' && team === 2)) {
+    if (rc2 > prevRC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 2)) {
       events.push({ type: 'red_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
