@@ -157,29 +157,35 @@ export async function GET(req: NextRequest) {
   const fixtureId = req.nextUrl.searchParams.get('fixtureId') || '18237038';
   try {
     const h = await getTxlineHeaders();
-    const [scoresRes, historyTsRes, historicalRes, scoresNoTsRes] = await Promise.all([
-      fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h }),
-      fetch(`${TXLINE_API_URL}/api/scores?Ts=0&FixtureId=${fixtureId}`, { headers: h }),
-      fetch(`${TXLINE_API_URL}/api/scores/historical/${fixtureId}`, { headers: h }),
-      fetch(`${TXLINE_API_URL}/api/scores?FixtureId=${fixtureId}`, { headers: h }),
+    // Try both /api/scores and /scores (without /api) since the base URL may include /api
+    const base = TXLINE_API_URL.replace(/\/+$/, '');
+    const [scoresRes, historyTsResApi, historyTsResNoApi, historicalRes, scoresNoTsRes] = await Promise.all([
+      fetch(`${base}/api/scores/snapshot/${fixtureId}`, { headers: h }),
+      fetch(`${base}/api/scores?Ts=0&FixtureId=${fixtureId}`, { headers: h }),
+      fetch(`${base}/scores?Ts=0&FixtureId=${fixtureId}`, { headers: h }),
+      fetch(`${base}/api/scores/historical/${fixtureId}`, { headers: h }),
+      fetch(`${base}/api/scores?FixtureId=${fixtureId}`, { headers: h }),
     ]);
 
     const safeJson = async (r: Response) => {
       try { return r.ok ? await r.json() : null; } catch { return null; }
     };
     const scores = await safeJson(scoresRes);
-    const historyTs = await safeJson(historyTsRes);
+    const historyTsApi = await safeJson(historyTsResApi);
+    const historyTsNoApi = await safeJson(historyTsResNoApi);
     const historical = await safeJson(historicalRes);
     const scoresNoTs = await safeJson(scoresNoTsRes);
 
     const scoresMsgs = Array.isArray(scores) ? scores : (scores?.messages ?? []);
-    const historyTsMsgs = Array.isArray(historyTs) ? historyTs : (historyTs?.messages ?? []);
+    const historyTsApiMsgs = Array.isArray(historyTsApi) ? historyTsApi : (historyTsApi?.messages ?? []);
+    const historyTsNoApiMsgs = Array.isArray(historyTsNoApi) ? historyTsNoApi : (historyTsNoApi?.messages ?? []);
     const historicalMsgs = Array.isArray(historical) ? historical : (historical?.messages ?? []);
     const scoresNoTsMsgs = Array.isArray(scoresNoTs) ? scoresNoTs : (scoresNoTs?.messages ?? []);
 
     // Use the endpoint that returned the most messages
     const bestMsgs = historicalMsgs.length > 0 ? historicalMsgs
-      : historyTsMsgs.length > 0 ? historyTsMsgs
+      : historyTsNoApiMsgs.length > 0 ? historyTsNoApiMsgs
+      : historyTsApiMsgs.length > 0 ? historyTsApiMsgs
       : scoresNoTsMsgs.length > 0 ? scoresNoTsMsgs
       : scoresMsgs;
 
@@ -217,13 +223,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       fixtureId: Number(fixtureId),
       snapshot: { status: scoresRes.status, ok: scoresRes.ok, msgCount: scoresMsgs.length },
-      historyTs: { status: historyTsRes.status, ok: historyTsRes.ok, msgCount: historyTsMsgs.length },
+      historyTsApi: { status: historyTsResApi.status, ok: historyTsResApi.ok, msgCount: historyTsApiMsgs.length },
+      historyTsNoApi: { status: historyTsResNoApi.status, ok: historyTsResNoApi.ok, msgCount: historyTsNoApiMsgs.length },
       historical: { status: historicalRes.status, ok: historicalRes.ok, msgCount: historicalMsgs.length },
       scoresNoTs: { status: scoresNoTsRes.status, ok: scoresNoTsRes.ok, msgCount: scoresNoTsMsgs.length },
       latestScore: latestScore ? { g1: latestScore.Participant1?.Total?.Goals, g2: latestScore.Participant2?.Total?.Goals } : null,
       latestScoreSeq: latestSeq,
       bestSource: historicalMsgs.length > 0 ? 'historical'
-        : historyTsMsgs.length > 0 ? 'historyTs' : 'snapshot',
+        : historyTsNoApiMsgs.length > 0 ? 'historyTsNoApi'
+        : historyTsApiMsgs.length > 0 ? 'historyTsApi' : 'snapshot',
       totalEvents: events.length,
       yellowCards: events.filter((e: any) => e.type === 'yellow_card').length,
       goals: events.filter((e: any) => e.type === 'goal' || e.type === 'goal_penalty' || e.type === 'goal_own').length,
