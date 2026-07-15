@@ -113,6 +113,7 @@ function parseMatchEvents(msgs: any[]): any[] {
         team,
         minute,
         player,
+        playerId: data.PlayerId ?? null,
         homeScore: eventHome,
         awayScore: eventAway,
         seq,
@@ -221,7 +222,10 @@ export async function GET(req: NextRequest) {
       const yc1 = sc?.Participant1?.Total?.YellowCards;
       const yc2 = sc?.Participant2?.Total?.YellowCards;
       const subType = m.Data?.Type ?? m.Update?.Data?.Type ?? '';
-      return { action, team: participant, seq, g1, g2, yc1, yc2, subType };
+      const data = m.Data ?? m.Update?.Data ?? {};
+      const playerId = data.PlayerId ?? null;
+      const playerName = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? null;
+      return { action, team: participant, seq, g1, g2, yc1, yc2, subType, playerId, playerName };
     });
 
     return NextResponse.json({
@@ -244,6 +248,7 @@ export async function GET(req: NextRequest) {
         team: e.team,
         minute: e.minute,
         player: e.player || null,
+        playerId: e.playerId ?? null,
         homeScore: e.homeScore,
         awayScore: e.awayScore,
         seq: e.seq,
