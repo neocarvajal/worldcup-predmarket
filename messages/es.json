@@ -213,7 +213,8 @@
     "network": "Red",
     "free": "Gratuito",
     "footerTitle": "WorldCup PredMarket — Hackathon 2026",
-    "documentation": "Documentación"
+    "documentation": "Documentación",
+    "developer": "Desarrollador"
   },
   "Markets": {
     "title": "Partidos",

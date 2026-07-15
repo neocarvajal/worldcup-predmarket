@@ -352,13 +352,22 @@ export default function LandingPage() {
         style={{ zIndex: 1, borderTop: '1px solid var(--border)' }}
       >
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-center gap-6 mb-4">
+          <div className="flex items-center justify-center gap-8 mb-4">
             <Link
               href="/docs"
-              className="text-xs font-semibold transition-all duration-200 hover:opacity-70"
-              style={{ color: 'var(--text-muted)' }}
+              className="text-sm font-semibold transition-all duration-200 underline underline-offset-4 hover:text-white"
+              style={{ color: 'var(--accent)' }}
             >
               {t('documentation')}
+            </Link>
+            <Link
+              href="https://neocarvajal.github.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold transition-all duration-200 underline underline-offset-4 hover:text-white"
+              style={{ color: 'var(--accent)' }}
+            >
+              {t('developer')} ↗
             </Link>
           </div>
           <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)' }}>

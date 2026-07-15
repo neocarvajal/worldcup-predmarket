@@ -213,7 +213,8 @@
     "network": "Network",
     "free": "Free",
     "footerTitle": "WorldCup PredMarket — Hackathon 2026",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "developer": "Developer"
   },
   "Markets": {
     "title": "Matches",
