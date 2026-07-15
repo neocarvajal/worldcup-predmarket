@@ -79,6 +79,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
   let prevGoals1 = 0, prevGoals2 = 0;
   let prevYC1 = 0, prevYC2 = 0;
   let prevRC1 = 0, prevRC2 = 0;
+  let lastGoodMinute = 0; // last realistic minute from any message
 
   for (const m of sorted) {
     const action = m.Action ?? m.Update?.Action ?? '';
@@ -87,6 +88,7 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     const secs = getSeconds(m);
     const statusId = m.StatusId ?? m.Update?.StatusId ?? 0;
     const minute = secs != null ? Math.floor(secs / 60) : 0;
+    if (minute > 0) lastGoodMinute = minute;
     const participant = m.Participant ?? m.Update?.Participant ?? data.Participant ?? 0;
     const team = participant as 1 | 2;
     const score = m.Score ?? m.Update?.Score;
@@ -137,13 +139,13 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       events.push({ type: 'var_end', team, minute, varOutcome: outcome, homeScore: g1, awayScore: g2, seq });
     }
 
-    // Inferred goal from Score change — catches goals without Action field.
-    // We cannot reliably know the player; leave blank so the UI doesn't show wrong name.
+    // Inferred events: use lastGoodMinute as fallback (halftime messages have Clock=0).
+    const eventMinute = minute || lastGoodMinute;
     if (g1 > prevGoals1 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
-      events.push({ type: 'goal', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 1, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (g2 > prevGoals2 && !isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
-      events.push({ type: 'goal', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'goal', team: 2, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     // Detect annulled goals from score decreasing
@@ -178,16 +180,16 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
     // Skip var_end/action_discarded for card inference too — same stale-Score issue as goals,
     // and their prev counters are never updated, causing duplicate inferences.
     if (yc1 > prevYC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 1)) {
-      events.push({ type: 'yellow_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 1, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (yc2 > prevYC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 2)) {
-      events.push({ type: 'yellow_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 2, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc1 > prevRC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 1)) {
-      events.push({ type: 'red_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 1, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc2 > prevRC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 2)) {
-      events.push({ type: 'red_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 2, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     if (!isGoalAction && action !== 'var_end' && action !== 'action_discarded') {

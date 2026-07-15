@@ -73,6 +73,7 @@ function parseMatchEvents(msgs: any[]): any[] {
   let prevGoals1 = 0, prevGoals2 = 0;
   let prevYC1 = 0, prevYC2 = 0;
   let prevRC1 = 0, prevRC2 = 0;
+  let lastGoodMinute = 0;
 
   for (const m of sorted) {
     const action = m.Action ?? m.Update?.Action ?? '';
@@ -80,6 +81,8 @@ function parseMatchEvents(msgs: any[]): any[] {
     const seq = m.Seq ?? m.Update?.Seq ?? 0;
     const secs = m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
     const minute = secs != null ? Math.floor(secs / 60) : 0;
+    if (minute > 0) lastGoodMinute = minute;
+    const eventMinute = minute || lastGoodMinute;
     const participant = m.Participant ?? m.Update?.Participant ?? data.Participant ?? 0;
     const team = participant as 1 | 2;
     const score = m.Score ?? m.Update?.Score;
@@ -125,19 +128,18 @@ function parseMatchEvents(msgs: any[]): any[] {
     const rc1 = score?.Participant1?.Total?.RedCards ?? prevRC1;
     const rc2 = score?.Participant2?.Total?.RedCards ?? prevRC2;
 
-    // Only skip inferred card when the action IS a card for THIS team
     // Inferred card — skip var_end/action_discarded (stale Score, prev never updated)
     if (yc1 > prevYC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 1)) {
-      events.push({ type: 'yellow_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 1, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (yc2 > prevYC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'yellow_card' && team === 2)) {
-      events.push({ type: 'yellow_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'yellow_card', team: 2, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc1 > prevRC1 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 1)) {
-      events.push({ type: 'red_card', team: 1, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 1, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
     if (rc2 > prevRC2 && action !== 'var_end' && action !== 'action_discarded' && !(action === 'red_card' && team === 2)) {
-      events.push({ type: 'red_card', team: 2, minute, player: '', homeScore: g1, awayScore: g2, seq });
+      events.push({ type: 'red_card', team: 2, minute: eventMinute, player: '', homeScore: g1, awayScore: g2, seq });
     }
 
     if (!isGoalAction && action !== 'var_end' && action !== 'action_discarded') {
