@@ -27,7 +27,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
   const { publicKey } = useWallet();
   const { connection } = useConnection();
   const { client } = useTxLine();
-  const { addNotification, notificationsEnabled } = useNotifications();
+  const { addNotification, notificationsEnabled, loadFromProfile } = useNotifications();
 
   const startedRef = useRef<Set<number>>(loadSet('started'));
   const finishedRef = useRef<Set<number>>(loadSet('finished'));
@@ -50,8 +50,11 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
       escrowPollRef.current = 0;
       saveSet('started', startedRef.current);
       saveSet('finished', finishedRef.current);
+      if (publicKey && connection) {
+        loadFromProfile(connection, publicKey).catch(() => {});
+      }
     }
-  }, [publicKey]);
+  }, [publicKey, connection, loadFromProfile]);
 
   const poll = useCallback(async () => {
     if (!publicKey) return;
