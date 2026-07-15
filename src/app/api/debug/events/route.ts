@@ -182,11 +182,35 @@ export async function GET(req: NextRequest) {
     const playerMap = buildPlayerMap(bestMsgs);
     const events = parseMatchEvents(bestMsgs);
 
+    // Extract latest Score from snapshot
+    let latestScore: any = null;
+    let latestSeq = -1;
+    for (const m of (Array.isArray(scoresMsgs) ? scoresMsgs : [])) {
+      const seq = m.Seq ?? m.Update?.Seq ?? 0;
+      if (seq > latestSeq) {
+        const sc = m.Score ?? m.Update?.Score ?? null;
+        if (sc?.Participant1?.Total?.Goals != null || sc?.Participant2?.Total?.Goals != null) {
+          latestSeq = seq;
+          latestScore = sc;
+        }
+      }
+    }
+
+    // Also show distinct actions in the messages
+    const actionCounts: Record<string, number> = {};
+    for (const m of bestMsgs) {
+      const a = m.Action ?? m.Update?.Action ?? '(none)';
+      actionCounts[a] = (actionCounts[a] || 0) + 1;
+    }
+
     return NextResponse.json({
       fixtureId: Number(fixtureId),
       snapshot: { status: scoresRes.status, ok: scoresRes.ok, msgCount: scoresMsgs.length },
       historyTs: { status: historyTsRes.status, ok: historyTsRes.ok, msgCount: historyTsMsgs.length },
       historical: { status: historicalRes.status, ok: historicalRes.ok, msgCount: historicalMsgs.length },
+      latestScore: latestScore ? { g1: latestScore.Participant1?.Total?.Goals, g2: latestScore.Participant2?.Total?.Goals } : null,
+      latestScoreSeq: latestSeq,
+      actionCounts,
       bestSource: historicalMsgs.length > 0 ? 'historical'
         : historyTsMsgs.length > 0 ? 'historyTs' : 'snapshot',
       totalEvents: events.length,
