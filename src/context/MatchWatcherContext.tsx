@@ -80,17 +80,15 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
           settledNotifiedRef.current.add(escrowB58);
           const fixtureName = e.account.fixture_name ?? `Fixture #${e.account.fixture_id}`;
           const isWin = e.account.depositor_won === true;
-          if (enabledRef.current) {
-            addNotification({
-              title: isWin ? t('you_won', loc) : t('you_lost', loc),
-              body: isWin
-                ? `${fixtureName} — ${t('payment_sent', loc)}`
-                : `${fixtureName} — ${t('better_luck', loc)}`,
-              type: isWin ? 'won' : 'lost',
-              escrowPubkey: escrowB58,
-              path: '/portfolio',
-            });
-          }
+          addNotification({
+            title: isWin ? t('you_won', loc) : t('you_lost', loc),
+            body: isWin
+              ? `${fixtureName} — ${t('payment_sent', loc)}`
+              : `${fixtureName} — ${t('better_luck', loc)}`,
+            type: isWin ? 'won' : 'lost',
+            escrowPubkey: escrowB58,
+            path: '/portfolio',
+          });
         }
 
         const ids = new Set(
