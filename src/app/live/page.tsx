@@ -252,30 +252,31 @@ export default function LivePage() {
     const cached = cacheRef.current.get(fid) || {};
     const playerMap = buildPlayerMap(msgs);
     const matchEvents = parseMatchEvents(msgs, getSeconds, playerMap);
-    // Display score from the latest message with Score data.
-    // Events are NOT used for score — inferred events from stale Score
-    // (e.g. var_end with pre-overturn goals) give wrong results.
+    // Display score from the latest message per participant.
+    // Don't take both from one message — that message may only carry one side
     let maxScore1 = 0, maxScore2 = 0;
-    let bestSeq = -1;
-    let bestScore: any = null;
+    let bestSeq1 = -1, bestSeq2 = -1;
     for (const m of msgs) {
       const seq = m.Seq ?? m.Update?.Seq ?? 0;
-      if (seq <= bestSeq) continue;
       const sc = getScoreVal(m);
-      if (sc?.Participant1?.Total?.Goals != null || sc?.Participant2?.Total?.Goals != null) {
-        bestSeq = seq;
-        bestScore = sc;
+      if (sc?.Participant1?.Total?.Goals != null && seq > bestSeq1) {
+        bestSeq1 = seq;
+        maxScore1 = sc.Participant1.Total.Goals;
+      }
+      if (sc?.Participant2?.Total?.Goals != null && seq > bestSeq2) {
+        bestSeq2 = seq;
+        maxScore2 = sc.Participant2.Total.Goals;
       }
     }
-    if (bestScore) {
-      maxScore1 = bestScore.Participant1?.Total?.Goals ?? 0;
-      maxScore2 = bestScore.Participant2?.Total?.Goals ?? 0;
-    } else if (topScore != null) {
-      maxScore1 = topScore.Participant1?.Total?.Goals ?? 0;
-      maxScore2 = topScore.Participant2?.Total?.Goals ?? 0;
-    } else {
-      maxScore1 = cached.Score1 ?? 0;
-      maxScore2 = cached.Score2 ?? 0;
+    const hasScore = bestSeq1 >= 0 || bestSeq2 >= 0;
+    if (!hasScore) {
+      if (topScore != null) {
+        maxScore1 = topScore.Participant1?.Total?.Goals ?? 0;
+        maxScore2 = topScore.Participant2?.Total?.Goals ?? 0;
+      } else {
+        maxScore1 = cached.Score1 ?? 0;
+        maxScore2 = cached.Score2 ?? 0;
+      }
     }
     let maxSeconds = 0;
     for (const m of msgs) {
