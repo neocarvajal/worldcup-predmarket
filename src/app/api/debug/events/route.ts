@@ -157,10 +157,11 @@ export async function GET(req: NextRequest) {
   const fixtureId = req.nextUrl.searchParams.get('fixtureId') || '18237038';
   try {
     const h = await getTxlineHeaders();
-    const [scoresRes, historyTsRes, historicalRes] = await Promise.all([
+    const [scoresRes, historyTsRes, historicalRes, scoresNoTsRes] = await Promise.all([
       fetch(`${TXLINE_API_URL}/api/scores/snapshot/${fixtureId}`, { headers: h }),
       fetch(`${TXLINE_API_URL}/api/scores?Ts=0&FixtureId=${fixtureId}`, { headers: h }),
       fetch(`${TXLINE_API_URL}/api/scores/historical/${fixtureId}`, { headers: h }),
+      fetch(`${TXLINE_API_URL}/api/scores?FixtureId=${fixtureId}`, { headers: h }),
     ]);
 
     const safeJson = async (r: Response) => {
@@ -169,14 +170,17 @@ export async function GET(req: NextRequest) {
     const scores = await safeJson(scoresRes);
     const historyTs = await safeJson(historyTsRes);
     const historical = await safeJson(historicalRes);
+    const scoresNoTs = await safeJson(scoresNoTsRes);
 
     const scoresMsgs = Array.isArray(scores) ? scores : (scores?.messages ?? []);
     const historyTsMsgs = Array.isArray(historyTs) ? historyTs : (historyTs?.messages ?? []);
     const historicalMsgs = Array.isArray(historical) ? historical : (historical?.messages ?? []);
+    const scoresNoTsMsgs = Array.isArray(scoresNoTs) ? scoresNoTs : (scoresNoTs?.messages ?? []);
 
     // Use the endpoint that returned the most messages
     const bestMsgs = historicalMsgs.length > 0 ? historicalMsgs
       : historyTsMsgs.length > 0 ? historyTsMsgs
+      : scoresNoTsMsgs.length > 0 ? scoresNoTsMsgs
       : scoresMsgs;
 
     const playerMap = buildPlayerMap(bestMsgs);
@@ -208,6 +212,7 @@ export async function GET(req: NextRequest) {
       snapshot: { status: scoresRes.status, ok: scoresRes.ok, msgCount: scoresMsgs.length },
       historyTs: { status: historyTsRes.status, ok: historyTsRes.ok, msgCount: historyTsMsgs.length },
       historical: { status: historicalRes.status, ok: historicalRes.ok, msgCount: historicalMsgs.length },
+      scoresNoTs: { status: scoresNoTsRes.status, ok: scoresNoTsRes.ok, msgCount: scoresNoTsMsgs.length },
       latestScore: latestScore ? { g1: latestScore.Participant1?.Total?.Goals, g2: latestScore.Participant2?.Total?.Goals } : null,
       latestScoreSeq: latestSeq,
       actionCounts,
