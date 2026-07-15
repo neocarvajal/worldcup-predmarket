@@ -17,6 +17,7 @@ import {
   RocketIcon,
   LayersIcon,
 } from '@radix-ui/react-icons';
+import { bgImage } from '../lib/bgImage';
 
 const tech = [
   { label: 'Solana', sub: 'Devnet' },
@@ -60,7 +61,7 @@ export default function LandingPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/landing-bg.jpg)',
+            ...bgImage('landing-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.3) saturate(0.8)',

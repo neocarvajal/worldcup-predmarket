@@ -10,6 +10,7 @@ import { loadBet } from '../../lib/persistence';
 import { PositionCard } from '../../components/PositionCard';
 import { useNotifications } from '../../context/NotificationContext';
 import { StackIcon, TargetIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { bgImage } from '../../lib/bgImage';
 
 export default function PortfolioPage() {
   const { publicKey } = useWallet();
@@ -274,7 +275,7 @@ export default function PortfolioPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/portfolio-bg.jpg)',
+            ...bgImage('portfolio-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',

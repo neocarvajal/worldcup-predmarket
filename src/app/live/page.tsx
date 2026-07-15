@@ -8,6 +8,7 @@ import { getFlag } from '../../lib/flags';
 import { tTeam } from '../../lib/teams';
 import { ActivityLogIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { useTranslations, useLocale } from 'next-intl';
+import { bgImage } from '../../lib/bgImage';
 
 const FINISHED_IDS = [5, 10, 13];
 
@@ -505,7 +506,7 @@ export default function LivePage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/live-bg.jpg)',
+            ...bgImage('live-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',

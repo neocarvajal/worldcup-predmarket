@@ -7,6 +7,7 @@ import { requestUsdtFaucet, getUsdtBalance, USDT_MINT, checkFaucetCooldown } fro
 import { PublicKey } from '@solana/web3.js';
 import { TokensIcon, CheckCircledIcon, TimerIcon, LightningBoltIcon, ExternalLinkIcon, InfoCircledIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
+import { bgImage } from '../../lib/bgImage';
 
 const FIXED_AMOUNT = 100;
 
@@ -80,7 +81,7 @@ export default function FaucetPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/faucet-bg.jpg)',
+            ...bgImage('faucet-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',

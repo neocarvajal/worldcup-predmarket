@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
+import { bgImage } from '../../lib/bgImage';
 
 const sectionKeys = [
   'whatIs',
@@ -28,7 +29,7 @@ export default function DocsPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/landing-bg.jpg)',
+            ...bgImage('landing-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',

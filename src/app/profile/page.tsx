@@ -20,6 +20,7 @@ import {
 } from '@radix-ui/react-icons';
 import { PushToggle } from '../../components/PushToggle';
 import { useNotifications } from '../../context/NotificationContext';
+import { bgImage } from '../../lib/bgImage';
 
 export default function ProfilePage() {
   const { publicKey, signTransaction, disconnect } = useWallet();
@@ -125,7 +126,7 @@ export default function ProfilePage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/profile-bg.jpg)',
+            ...bgImage('profile-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',

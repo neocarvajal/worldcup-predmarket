@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { GlobeIcon } from '@radix-ui/react-icons';
 import { SubscriptionBanner } from '../../components/SubscriptionBanner';
+import { bgImage } from '../../lib/bgImage';
 
 const MarketList = dynamic(() => import('../../components/MarketList').then(m => ({ default: m.MarketList })), { ssr: false });
 
@@ -17,7 +18,7 @@ export default function MarketsPage() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/trophy-bg.jpg)',
+            ...bgImage('trophy-bg'),
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'brightness(0.25) saturate(0.7)',
