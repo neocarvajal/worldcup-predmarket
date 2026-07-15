@@ -195,6 +195,8 @@ export async function GET(req: NextRequest) {
       : scoresMsgs;
 
     const playerMap = buildPlayerMap(bestMsgs);
+    // Debug: check if the lineups cover the PlayerIds from events
+    const playerNameFor = (pid: number) => playerMap.get(pid) || '(not in map)';
     const events = parseMatchEvents(bestMsgs);
 
     // Extract latest Score from snapshot
@@ -225,7 +227,8 @@ export async function GET(req: NextRequest) {
       const data = m.Data ?? m.Update?.Data ?? {};
       const playerId = data.PlayerId ?? null;
       const playerName = data.Player ?? data.PlayerName ?? data.name ?? data.player ?? data.playerName ?? null;
-      return { action, team: participant, seq, g1, g2, yc1, yc2, subType, playerId, playerName };
+      const mappedName = playerId != null ? playerMap.get(playerId) : null;
+      return { action, team: participant, seq, g1, g2, yc1, yc2, subType, playerId, playerName, mappedName };
     });
 
     return NextResponse.json({
@@ -249,6 +252,7 @@ export async function GET(req: NextRequest) {
         minute: e.minute,
         player: e.player || null,
         playerId: e.playerId ?? null,
+        playerFromMap: e.playerId != null ? playerNameFor(e.playerId) : null,
         homeScore: e.homeScore,
         awayScore: e.awayScore,
         seq: e.seq,
