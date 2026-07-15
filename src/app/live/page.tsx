@@ -191,10 +191,12 @@ function parseMatchEvents(msgs: any[], getSeconds: (m: any) => number | null, pl
       prevGoals1 = g1;
       prevGoals2 = g2;
     }
-    prevYC1 = yc1;
-    prevYC2 = yc2;
-    prevRC1 = rc1;
-    prevRC2 = rc2;
+    if (action !== 'var_end' && action !== 'action_discarded') {
+      prevYC1 = yc1;
+      prevYC2 = yc2;
+      prevRC1 = rc1;
+      prevRC2 = rc2;
+    }
   }
 
   // Remove var/var_end events that have no corresponding result
