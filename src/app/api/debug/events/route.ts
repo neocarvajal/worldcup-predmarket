@@ -163,9 +163,12 @@ export async function GET(req: NextRequest) {
       fetch(`${TXLINE_API_URL}/api/scores/historical/${fixtureId}`, { headers: h }),
     ]);
 
-    const scores = scoresRes.ok ? await scoresRes.json() : null;
-    const historyTs = historyTsRes.ok ? await historyTsRes.json() : null;
-    const historical = historicalRes.ok ? await historicalRes.json() : null;
+    const safeJson = async (r: Response) => {
+      try { return r.ok ? await r.json() : null; } catch { return null; }
+    };
+    const scores = await safeJson(scoresRes);
+    const historyTs = await safeJson(historyTsRes);
+    const historical = await safeJson(historicalRes);
 
     const scoresMsgs = Array.isArray(scores) ? scores : (scores?.messages ?? []);
     const historyTsMsgs = Array.isArray(historyTs) ? historyTs : (historyTs?.messages ?? []);
@@ -181,9 +184,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       fixtureId: Number(fixtureId),
-      snapshotMsgCount: scoresMsgs.length,
-      historyTsMsgCount: historyTsMsgs.length,
-      historicalMsgCount: historicalMsgs.length,
+      snapshot: { status: scoresRes.status, ok: scoresRes.ok, msgCount: scoresMsgs.length },
+      historyTs: { status: historyTsRes.status, ok: historyTsRes.ok, msgCount: historyTsMsgs.length },
+      historical: { status: historicalRes.status, ok: historicalRes.ok, msgCount: historicalMsgs.length },
+      bestSource: historicalMsgs.length > 0 ? 'historical'
+        : historyTsMsgs.length > 0 ? 'historyTs' : 'snapshot',
       totalEvents: events.length,
       yellowCards: events.filter((e: any) => e.type === 'yellow_card').length,
       goals: events.filter((e: any) => e.type === 'goal' || e.type === 'goal_penalty' || e.type === 'goal_own').length,
