@@ -56,6 +56,7 @@ export function usePushNotifications(wallet?: string | null) {
       subRef.current = subscription;
 
       const subJson = subscription.toJSON();
+      const locale = typeof navigator !== 'undefined' ? (navigator.language?.startsWith('en') ? 'en' : 'es') : 'es';
       await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,6 +65,7 @@ export function usePushNotifications(wallet?: string | null) {
           endpoint: subJson.endpoint,
           p256dh: subJson.keys?.p256dh,
           auth: subJson.keys?.auth,
+          locale,
         }),
       });
 

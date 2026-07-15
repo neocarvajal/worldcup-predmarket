@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { wallet, endpoint, p256dh, auth } = await req.json();
+    const { wallet, endpoint, p256dh, auth, locale } = await req.json();
 
     if (!endpoint || !p256dh || !auth) {
       return NextResponse.json({ error: 'Missing endpoint, p256dh, or auth' }, { status: 400 });
@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       endpoint,
       p256dh,
       auth,
+      locale: locale === 'en' ? 'en' : 'es',
       updated_at: new Date().toISOString(),
     };
     if (wallet) body.wallet = wallet;
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
         `/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({ p256dh, auth, wallet: wallet || null, updated_at: new Date().toISOString() }),
+          body: JSON.stringify({ p256dh, auth, wallet: wallet || null, locale: locale === 'en' ? 'en' : 'es', updated_at: new Date().toISOString() }),
         }
       );
       if (!updateRes.ok) {

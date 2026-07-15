@@ -6,6 +6,7 @@ import { useConnection } from '@solana/wallet-adapter-react';
 import { useTxLine } from './TxLineContext';
 import { useNotifications } from './NotificationContext';
 import { fetchUserEscrows } from '../lib/settlement';
+import { detectLocale, t, tWithArgs } from '../lib/locale';
 
 const FINISHED_IDS = [5, 10, 13];
 const STORAGE_PREFIX = 'match-watcher:';
@@ -132,8 +133,9 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
             fixtureIdsRef.current.delete(fid);
 
             if (enabledRef.current) {
+              const loc = detectLocale();
               addNotification({
-                title: '\uD83C\uDFC1 Match Finished',
+                title: t('match_finished', loc),
                 body: `${label} ${score1}:${score2}`,
                 type: 'info',
                 path: '/portfolio',
@@ -142,7 +144,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  title: '\uD83C\uDFC1 Match Finished',
+                  title: t('match_finished', loc),
                   body: `${label} ${score1}:${score2}`,
                   data: { path: '/portfolio' },
                 }),
@@ -150,6 +152,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
             }
 
             const walletB58 = publicKey.toBase58();
+            const loc = detectLocale();
             fetch(`/api/keeper/trigger-settle?fixtureId=${fid}`, { method: 'POST' })
               .then(async (res) => {
                 if (!res.ok) return;
@@ -159,10 +162,10 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
                   if (r.status !== 'settled' || r.depositor !== walletB58) continue;
                   const isWin = r.depositorWon === true;
                   addNotification({
-                    title: isWin ? '\uD83C\uDFC6 \u00a1Ganaste!' : '\uD83D\uDE14 Perdiste',
+                    title: isWin ? t('you_won', loc) : t('you_lost', loc),
                     body: isWin
-                      ? `${r.fixtureName} — Pago enviado a tu wallet`
-                      : `${r.fixtureName} — Mejor suerte la pr\u00f3xima vez`,
+                      ? `${r.fixtureName} — ${t('payment_sent', loc)}`
+                      : `${r.fixtureName} — ${t('better_luck', loc)}`,
                     type: isWin ? 'won' : 'lost',
                     escrowPubkey: r.escrowPubkey,
                     path: '/portfolio',
@@ -179,8 +182,9 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
           saveSet('started', startedRef.current);
 
           if (enabledRef.current) {
+            const loc = detectLocale();
             addNotification({
-              title: '\u26BD Match Started',
+              title: t('match_started', loc),
               body: label,
               type: 'info',
               path: '/live',
@@ -189,7 +193,7 @@ export function MatchWatcherProvider({ children }: { children: React.ReactNode }
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                title: '\u26BD Match Started',
+                title: t('match_started', loc),
                 body: label,
                 data: { path: '/live' },
               }),
