@@ -354,6 +354,24 @@ export default function LivePage() {
       }
       setEvents(live);
       setConnectionState('connected');
+      // Fetch full event history for each live fixture so the event timeline
+      // shows the complete match history, not just recent snapshot messages.
+      for (const fixture of live) {
+        const fid = fixture.FixtureId;
+        if (!fid || fullHistoryCache.current.has(fid)) continue;
+        client.getScoresHistory([fid]).then(msgs => {
+          if (!msgs || msgs.length === 0) return;
+          const getSecs = (m: any) => m.Clock?.Seconds ?? m.Update?.Clock?.Seconds ?? null;
+          const playerMap = buildPlayerMap(msgs);
+          const events = parseMatchEvents(msgs, getSecs, playerMap);
+          fullHistoryCache.current.set(fid, events);
+          setEvents(prev =>
+            prev.map(e =>
+              e.FixtureId === fid ? { ...e, Events: events } : e
+            )
+          );
+        }).catch(() => {});
+      }
     } catch (e: any) {
       const msg = e?.message || '';
       if (e instanceof TxLineAuthError || msg.includes('JWT') || msg.includes('token') || msg.includes('401') || msg.includes('403')) {
@@ -442,8 +460,11 @@ export default function LivePage() {
           if (updates.length === 0) return next;
           for (const u of updates) {
             const idx = next.findIndex(e => e.FixtureId === u.FixtureId);
-            if (idx >= 0) next[idx] = u;
-            else next.push(u);
+            if (idx >= 0) {
+              // Preserve full-history Events so polling doesn't overwrite them
+              const cached = fullHistoryCache.current.get(u.FixtureId);
+              next[idx] = { ...u, Events: cached ?? next[idx].Events };
+            } else next.push(u);
           }
           return next.slice(0, 50);
         });
