@@ -31,9 +31,9 @@ export function usePushNotifications(wallet?: string | null) {
 
       const existing = await registration.pushManager.getSubscription();
       if (existing) {
-        subRef.current = existing;
-        setState('subscribed');
-        return;
+        // Stale browser sub without Supabase record — unsubscribe and re-subscribe
+        await existing.unsubscribe();
+        subRef.current = null;
       }
 
       const permission = await Notification.requestPermission();
@@ -56,8 +56,7 @@ export function usePushNotifications(wallet?: string | null) {
       subRef.current = subscription;
 
       const subJson = subscription.toJSON();
-      const locale = typeof navigator !== 'undefined' ? (navigator.language?.startsWith('en') ? 'en' : 'es') : 'es';
-      await fetch('/api/push/subscribe', {
+      const subRes = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,9 +64,12 @@ export function usePushNotifications(wallet?: string | null) {
           endpoint: subJson.endpoint,
           p256dh: subJson.keys?.p256dh,
           auth: subJson.keys?.auth,
-          locale,
         }),
       });
+      if (!subRes.ok) {
+        setState('error');
+        return;
+      }
 
       setState('subscribed');
     } catch {
@@ -90,6 +92,28 @@ export function usePushNotifications(wallet?: string | null) {
         const existing = await registration.pushManager.getSubscription();
         if (existing) {
           subRef.current = existing;
+          // Verify subscription is stored in Supabase
+          try {
+            const subJson = existing.toJSON();
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (supabaseUrl && anonKey && subJson.endpoint) {
+              const checkRes = await fetch(
+                `${supabaseUrl}/rest/v1/push_subscriptions?select=id&endpoint=eq.${encodeURIComponent(subJson.endpoint)}`,
+                { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } }
+              );
+              const rows = await checkRes.json();
+              if (!Array.isArray(rows) || rows.length === 0) {
+                // Stale subscription — unsubscribe browser, show correct state
+                await existing.unsubscribe();
+                subRef.current = null;
+                setState(Notification.permission === 'granted' ? 'granted' : 'prompt');
+                return;
+              }
+            }
+          } catch {
+            // Can't verify, assume it's valid
+          }
           setState('subscribed');
           return;
         }
