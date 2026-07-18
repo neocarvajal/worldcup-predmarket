@@ -215,7 +215,6 @@ git push
 │   │   ├── portfolio/page.tsx           # User's bets, active/history, auto-settle
 │   │   ├── profile/page.tsx             # Wallet profile, avatar, stats, push toggle
 │   │   ├── faucet/page.tsx              # USDT faucet (Devnet)
-│   │   ├── liquidity/page.tsx           # Mock liquidity pool UI
 │   │   ├── docs/page.tsx                # User-facing documentation (14 sections, i18n)
 │   │   └── api/
 │   │       ├── keeper/                   # Settlement endpoints (settle, trigger-settle, fixture-status)
@@ -350,5 +349,6 @@ See `.env.example` for the full list. Key ones to set on Vercel:
 ## Links
 
 - **Live app**: https://worldcup-hackathon.vercel.app
+- **Technical documentation**: [TECHNICAL.md](./TECHNICAL.md)
 - **TxLINE docs**: https://txline-docs.txodds.com
 - **Solana Devnet faucet**: https://faucet.solana.com
