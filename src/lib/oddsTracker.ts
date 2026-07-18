@@ -1,3 +1,13 @@
+/**
+ * Live odds analysis engine
+ * ==========================
+ * Pure functions for computing directional odds movement and suspension logic.
+ * `computeDirection` compares price snapshots to show ↑/↓ arrows with percentage
+ * change. `checkSuspension` evaluates whether betting should be suspended based
+ * on match state: finished, halftime, stoppage time under 5 min, or a goal
+ * within the last 45 seconds.
+ */
+
 export interface LiveOdds {
   homePrice: number;
   drawPrice: number;

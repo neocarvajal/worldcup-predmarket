@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * SubscriptionGuard — TxLINE access gate
+ * =======================================
+ * Blocks access to all app pages (except landing) until the user has an
+ * active TxLINE API subscription. States: disconnected → "Connect wallet",
+ * checking → spinner, needed → activation card with step-by-step instructions,
+ * subscribing → pending wallet signature animation, activating → token setup,
+ * error → retry card. Once complete, renders children.
+ */
+
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';

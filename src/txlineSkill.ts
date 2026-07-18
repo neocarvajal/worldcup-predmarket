@@ -1,3 +1,14 @@
+/**
+ * TxLINE Oracle API client
+ * ==========================
+ * Manages JWT-based authentication with the TxLINE sports data oracle. Handles
+ * guest and user JWT lifecycles, transparent token refresh on 401 responses,
+ * and persistent storage (localStorage → Supabase → on-chain). Provides methods
+ * for fixtures, odds, score snapshots, historical data, and SSE streaming.
+ * Browser requests are proxied through `/api/txline/[...path]` to protect
+ * credentials from client-side exposure.
+ */
+
 import axios from 'axios';
 import { saveTokens, loadTokens, clearTokens } from './lib/persistence';
 

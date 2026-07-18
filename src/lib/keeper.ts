@@ -1,3 +1,15 @@
+/**
+ * Keeper bot — Settlement engine
+ * ================================
+ * Core settlement loop that iterates active on-chain escrows, checks fixture
+ * finalization via TxLINE score snapshots (StatusId 5/10/13/100 or
+ * `game_finalised` action), fetches Merkle validation proofs, and submits
+ * `settleWithCpi` Anchor transactions. Includes manual buffer deserialization
+ * for the Escrow account (28+ fields), PDA derivation for TxLINE's
+ * `ten_daily_fixtures_roots`, and a time-based heuristic for force-settling
+ * long-stuck matches.
+ */
+
 import {
   Connection, PublicKey, Keypair, VersionedTransaction, TransactionMessage,
   TransactionInstruction, ComputeBudgetProgram,

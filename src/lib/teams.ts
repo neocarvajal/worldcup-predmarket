@@ -1,3 +1,11 @@
+/**
+ * Team name translations (English → Spanish)
+ * ===========================================
+ * Maps common World Cup team names to their Spanish equivalents for UI display.
+ * `tTeam` performs a case-insensitive lookup and falls back to the original name
+ * if no translation exists.
+ */
+
 const ES: Record<string, string> = {
   'Algeria': 'Argelia',
   'Argentina': 'Argentina',

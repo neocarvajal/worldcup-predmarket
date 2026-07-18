@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * PushToggle — Web push notification toggle
+ * ===========================================
+ * Button that invokes the usePushNotifications hook to subscribe or
+ * unsubscribe the browser from VAPID push notifications. Shows current
+ * state: On, Off, Blocked, Error, or Loading (spinner). Styled with
+ * contextual colors (green for on, red for blocked/error).
+ */
+
 import React from 'react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { BellIcon, ReloadIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';

@@ -1,5 +1,12 @@
 "use client";
-
+/**
+ * Live odds tracking and suspension logic
+ * ========================================
+ * Reference-counted polling context that tracks odds and score snapshots
+ * for live fixtures every 15 seconds. Provides per-fixture entries with
+ * price direction arrows, goal detection, and suspension rules (halftime,
+ * stoppage time &lt;5min, goal within 45s, finished, interrupted).
+ */
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { useTxLine } from './TxLineContext';
 import type { LiveOddsEntry, SuspensionResult, DirectionResult } from '../lib/oddsTracker';

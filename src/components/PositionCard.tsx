@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * PositionCard — Individual bet display
+ * =======================================
+ * Renders a single escrow with fixture name, status badge (Active/Won/Lost/
+ * Cancelled/Pending), countdown for active bets, selection/amount/odds grid,
+ * potential payout, Solana Explorer link, and a "Share on X" button for wins.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { CheckCircledIcon, CrossCircledIcon, TimerIcon, UpdateIcon, Share2Icon, Link2Icon } from '@radix-ui/react-icons';

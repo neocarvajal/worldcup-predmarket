@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * BetSlipDrawer — Bottom sheet for placing bets
+ * ===============================================
+ * Slide-up drawer showing selected outcomes with odds and remove buttons.
+ * Re-fetches live odds on open to ensure prices are current. Quick-amount
+ * buttons ($10/20/50/100) plus custom input. Calculates potential payout
+ * based on stake and odds. On "Place Bet": checks USDT balance, validates
+ * odds haven't changed significantly, calls initEscrowWithDeposit() to
+ * create the on-chain escrow, and saves bet metadata to localStorage.
+ */
+
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';

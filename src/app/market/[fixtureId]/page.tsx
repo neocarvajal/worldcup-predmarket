@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Market detail page — Dynamic fixture betting
+ * =============================================
+ * Dynamic route that loads the MarketDetail component with a skeleton
+ * loading state. Handles all fixture-specific betting (1X2, Over/Under, BTTS).
+ */
+
 import React from 'react';
 import dynamic from 'next/dynamic';
 

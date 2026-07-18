@@ -1,5 +1,13 @@
 "use client";
-
+/**
+ * In-app notification system
+ * ===========================
+ * Manages a list of up to 50 notifications persisted to localStorage.
+ * Supports types: settled, won, lost, info. Each notification carries a
+ * title, body, timestamp, read status, and optional navigation path or
+ * escrow pubkey. `loadFromProfile` reads the user's notification preference
+ * from the on-chain UserProfile PDA.
+ */
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { fetchUserProfile } from '../lib/settlement';

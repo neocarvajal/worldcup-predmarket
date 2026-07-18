@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * Profile page — User settings & on-chain profile
+ * =================================================
+ * Displays SOL balance and betting stats (total bets, won bets, earnings).
+ * Profile form for image URI, X handle, and in-app notification toggle.
+ * TxLINE subscription status widget with activation flow. Push notification
+ * toggle (PushToggle). Saves all settings to the on-chain UserProfile PDA
+ * via initProfile or updateProfile depending on whether the profile exists.
+ */
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';

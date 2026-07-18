@@ -1,7 +1,14 @@
 "use client";
 
+/**
+ * ClientWalletButton — Wallet connection button
+ * ===============================================
+ * Dynamically imports WalletMultiButton from @solana/wallet-adapter-react-ui
+ * with SSR disabled. Shows a loading skeleton ("Cargando...") until mounted
+ * to prevent hydration mismatches.
+ */
+
 import React, { useEffect, useState } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
 import dynamic from 'next/dynamic';
 
 const WalletMultiButton = dynamic(
@@ -10,13 +17,8 @@ const WalletMultiButton = dynamic(
 );
 
 export const ClientWalletButton: React.FC = () => {
-  const { publicKey } = useWallet();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-
-  const short = publicKey
-    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
-    : '';
 
   if (!mounted) {
     return (
@@ -26,19 +28,5 @@ export const ClientWalletButton: React.FC = () => {
     );
   }
 
-  return (
-    <WalletMultiButton />
-    // <div className="flex items-center gap-2" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-    //   {publicKey && (
-    //     <div
-    //       className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-    //       style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-    //     >
-    //       <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
-    //       <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{short}</span>
-    //     </div>
-    //   )}
-    //   <WalletMultiButton />
-    // </div>
-  );
+  return <WalletMultiButton />;
 };

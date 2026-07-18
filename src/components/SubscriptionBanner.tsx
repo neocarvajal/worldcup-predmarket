@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * SubscriptionBanner — Inline TxLINE activation prompt
+ * ======================================================
+ * Banner on the Markets page prompting users to activate their TxLINE
+ * subscription. States: checking (spinner), needed (activate button +
+ * dismiss), subscribing, activating, error (with retry). Less intrusive
+ * than the full SubscriptionGuard used on other pages.
+ */
+
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';

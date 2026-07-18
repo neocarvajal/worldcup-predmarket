@@ -1,3 +1,14 @@
+/**
+ * POST /api/keeper/settle — Keeper settlement endpoint
+ * ======================================================
+ * Main settlement endpoint called by Vercel Cron (via GET with x-vercel-cron)
+ * or manually (via POST with KEEPER_SECRET). Supports three modes:
+ *   ?escrow=<pubkey>  — settle a single escrow
+ *   ?fixtureId=<num>  — settle all escrows for a fixture
+ *   (no params)       — settle all active escrows
+ * After settlement, dispatches locale-aware VAPID push notifications to each
+ * settled escrow's depositor via dispatchSettlementNotifications().
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { settleActiveEscrows, settleSingleEscrow, type SettlementResult } from '../../../../lib/keeper';

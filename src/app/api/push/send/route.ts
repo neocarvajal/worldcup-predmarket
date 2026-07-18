@@ -1,3 +1,11 @@
+/**
+ * POST /api/push/send — Send push notification to wallet subscriptions
+ * =====================================================================
+ * Accepts {wallet, title, body, data}. Queries Supabase for all push
+ * subscriptions associated with that wallet and delivers via sendPushToAll().
+ * Used by the MatchWatcherContext for match-started/finished notifications
+ * and by external test/trigger flows.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseFetch, isSupabaseConfigured } from '../../../../lib/supabase';
 import { sendPushToAll, isVapidConfigured, PushPayload } from '../../../../lib/webPush';

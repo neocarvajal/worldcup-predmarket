@@ -1,5 +1,16 @@
 'use client';
 
+/**
+ * Web Push subscription hook
+ * ============================
+ * Manages the browser-side VAPID push subscription lifecycle. Registers the
+ * service worker (`/sw.js`), requests `Notification` permission, subscribes
+ * with the VAPID public key via `PushManager`, and persists the subscription
+ * to Supabase via `/api/push/subscribe`. On mount, checks for existing browser
+ * subscriptions and validates they exist in Supabase via `/api/push/check`;
+ * stale subscriptions (browser-only) are automatically unsubscribed.
+ */
+
 import { useEffect, useRef, useCallback, useState } from 'react';
 
 type PushState = 'unsupported' | 'denied' | 'prompt' | 'granted' | 'subscribing' | 'subscribed' | 'error';

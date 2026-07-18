@@ -1,3 +1,10 @@
+/**
+ * Country → emoji flag mapping
+ * =============================
+ * Normalizes team names (lowercase, strip accents) and returns the corresponding
+ * regional indicator flag emoji. Supports all 32+ World Cup 2026 participants.
+ */
+
 const flagMap: Record<string, string> = {
   argentina: '🇦🇷', brasil: '🇧🇷', brazil: '🇧🇷',
   francia: '🇫🇷', france: '🇫🇷',

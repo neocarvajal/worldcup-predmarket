@@ -1,3 +1,12 @@
+/**
+ * GET/POST /api/txline/[...path] — TxLINE API proxy
+ * ===================================================
+ * Forwards browser-side TxLINE API calls to the real TxLINE backend.
+ * Routes to TXLINE_AUTH_URL for paths starting with "auth" and to
+ * TXLINE_API_URL for all other paths. Injects the server-side API token
+ * via X-Api-Token header and passes through the client's Authorization
+ * and Accept headers. Prevents credential exposure to the browser.
+ */
 import { NextRequest } from 'next/server';
 
 const TXLINE_API_URL = process.env.NEXT_PUBLIC_TXLINE_API_URL || 'https://txline-dev.txodds.com';

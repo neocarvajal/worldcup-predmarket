@@ -1,3 +1,12 @@
+/**
+ * LocalStorage persistence layer for user data
+ * =============================================
+ * Manages wallet-scoped storage of TxLINE API tokens, bet history (StoredBet),
+ * and profile images. All keys are prefixed with `txline:` and scoped by wallet
+ * address to support multi-wallet usage. Includes a migration path from legacy
+ * single-bet format to the current per-escrow-keyed format.
+ */
+
 const PREFIX = 'txline';
 
 export interface StoredTokens {

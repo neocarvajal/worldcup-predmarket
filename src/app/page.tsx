@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * Landing page — WorldCup PredMarket
+ * ====================================
+ * Hero section with animated countdown to World Cup 2026 (July 11).
+ * CTA buttons to Markets and Live pages. "How it works" step-through,
+ * stats grid (users, escrows, volume), tech stack badges, and footer.
+ * Pulls match count from live fixtures API on mount.
+ */
+
 import React from 'react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';

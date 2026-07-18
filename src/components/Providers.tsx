@@ -1,4 +1,12 @@
-// src/components/Providers.tsx
+/**
+ * Providers — App-wide context composition
+ * ==========================================
+ * Composes all context providers in the correct nesting order:
+ * ConnectionProvider (Solana RPC) → WalletProvider → WalletModalProvider →
+ * TxLineProvider → LiveOddsProvider → BetSlipProvider → NotificationProvider →
+ * MatchWatcherProvider. Renders the NavBar outside the main content area.
+ */
+
 "use client";
 
 import React, { ReactNode, useMemo } from 'react';

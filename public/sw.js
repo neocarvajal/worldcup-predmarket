@@ -1,3 +1,14 @@
+/**
+ * Service Worker — Push notification handler
+ * ============================================
+ * Installs immediately (skipWaiting), claims all clients on activate.
+ * push event: parses incoming JSON payload (title, body, icon, badge,
+ * data) and displays a notification with vibration [200, 100, 200].
+ * notificationclick event: closes the notification, navigates to
+ * data.path, /market/{fixtureId} if data.fixtureId exists, or / as
+ * the default fallback.
+ */
+
 self.addEventListener('install', function () {
   self.skipWaiting();
 });

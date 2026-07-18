@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * Portfolio page — User bet history & management
+ * ===============================================
+ * Fetches all on-chain escrows for the connected wallet via fetchUserEscrows().
+ * Displays Active and History tabs with stats (total bets, active count, USDT
+ * staked). Polls fixture-status every 30s for active escrows and auto-settles
+ * finished ones by calling /api/keeper/settle?escrow=X&force=1. Each escrow is
+ * rendered as a PositionCard showing outcome, odds, payout, and Explorer link.
+ */
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';

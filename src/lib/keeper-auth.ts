@@ -1,3 +1,13 @@
+/**
+ * Keeper bot — TxLINE subscription & API token activation
+ * ==========================================================
+ * Handles the keeper's TxLINE API subscription lifecycle. `ensureApiToken`
+ * fetches a guest JWT, checks for an existing stored token (env → Supabase),
+ * and if missing: submits an on-chain subscribe transaction to the TxLINE
+ * program, signs an activation message with the keeper keypair, persists the
+ * token to Supabase, and returns fresh credentials for settlement flows.
+ */
+
 import {
   Connection, Keypair, PublicKey, TransactionInstruction, SystemProgram,
   TransactionMessage, VersionedTransaction,

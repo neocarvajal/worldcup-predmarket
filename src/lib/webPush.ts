@@ -1,3 +1,12 @@
+/**
+ * VAPID Web Push notification delivery
+ * =====================================
+ * Server-side utility for sending push notifications via the Web Push Protocol.
+ * Uses the `web-push` npm package with VapidDetails configured from env vars.
+ * The `sendPushToAll` function handles batch delivery, tracking sent vs expired
+ * subscriptions for observability.
+ */
+
 import webPush from 'web-push';
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';

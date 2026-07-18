@@ -1,3 +1,14 @@
+/**
+ * Client-side escrow & user profile operations
+ * ==============================================
+ * Wallet-facing functions for the settlement program. `initEscrowWithDeposit`
+ * creates an on-chain escrow and deposits USDT in one transaction. `fetchUserEscrows`
+ * retrieves all escrows for a depositor pubkey via getProgramAccounts with Borsh
+ * decoding. `initProfile` / `updateProfile` manage the on-chain UserProfile PDA
+ * (image URI, X handle, notification preference). `setTxLineToken` stores the
+ * user's TxLINE API token on-chain.
+ */
+
 import { Program, AnchorProvider, Idl, BorshCoder, BN } from '@coral-xyz/anchor';
 import {
   Connection, PublicKey, SystemProgram,
@@ -25,7 +36,7 @@ async function getIdl(): Promise<Idl> {
   return cachedIdl!;
 }
 
-export function getSettlementProgram(
+function getSettlementProgram(
   connection: Connection,
   wallet: any
 ): Promise<Program> {
@@ -51,7 +62,7 @@ export function getEscrowPda(depositor: PublicKey, recipient: PublicKey, nonce: 
   );
 }
 
-export function getVaultPda(escrow: PublicKey): [PublicKey, number] {
+function getVaultPda(escrow: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [enc('vault'), escrow.toBuffer()],
     SETTLEMENT_PROGRAM_ID
@@ -232,144 +243,6 @@ export async function updateProfile(
       authority: wallet.publicKey,
       profile: profilePda,
       systemProgram: SystemProgram.programId,
-    })
-    .instruction();
-  return buildAndSend(connection, wallet, instruction);
-}
-
-const TXLINE_PROGRAM_ID = new PublicKey('6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J');
-
-export function getTxLineTenDailyFixturesRootsPda(epochDay?: number): PublicKey {
-  const seeds = [enc('ten_daily_fixtures_roots')];
-  if (epochDay != null) {
-    const aligned = Math.floor(epochDay / 10) * 10;
-    const buf = new Uint8Array(2);
-    buf[0] = aligned & 0xff;
-    buf[1] = (aligned >> 8) & 0xff;
-    seeds.push(buf);
-  }
-  return PublicKey.findProgramAddressSync(seeds, TXLINE_PROGRAM_ID)[0];
-}
-
-export async function claimEscrow(
-  connection: Connection,
-  wallet: any,
-  escrowPubkey: PublicKey,
-  mint: PublicKey,
-  vaultPubkey: PublicKey,
-  claimantTokenAccount: PublicKey,
-): Promise<string> {
-  const program = await getSettlementProgram(connection, wallet);
-  const instruction = await program.methods
-    .claim()
-    .accountsStrict({
-      claimant: wallet.publicKey,
-      escrow: escrowPubkey,
-      mint,
-      vault: vaultPubkey,
-      claimantTokenAccount,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
-    .instruction();
-  return buildAndSend(connection, wallet, instruction);
-}
-
-export async function settleWithCpi(
-  connection: Connection,
-  wallet: any,
-  params: {
-    escrowPubkey: PublicKey;
-    mint: PublicKey;
-    vaultPubkey: PublicKey;
-    depositorTokenAccount: PublicKey;
-    recipientTokenAccount: PublicKey;
-    score1: number;
-    score2: number;
-    marketLine?: number;
-    fixture: any;
-    fixtureSummary: any;
-    subTreeProof: any[];
-    mainTreeProof: any[];
-  },
-): Promise<string> {
-  const program = await getSettlementProgram(connection, wallet);
-  const f = params.fixture;
-  const fs = params.fixtureSummary;
-  const fixtureTsSec = Math.floor((f.ts ?? f.Ts ?? 0) / 1000);
-  const fixtureEpochDay = Math.floor(Math.floor(fixtureTsSec / 86400) / 10) * 10;
-  const tenDailyFixturesRoots = getTxLineTenDailyFixturesRootsPda(fixtureEpochDay);
-
-  const fixtureProofNodes = params.subTreeProof.map((p: any) => ({
-    hash: Object.values(p.hash ?? p),
-    isRightSibling: p.isRightSibling ?? false,
-  }));
-  const mainProofNodes = params.mainTreeProof.map((p: any) => ({
-    hash: Object.values(p.hash ?? p),
-    isRightSibling: p.isRightSibling ?? false,
-  }));
-
-  const instruction = await program.methods
-    .settleWithCpi(
-      new BN(params.score1),
-      new BN(params.score2),
-      new BN(params.marketLine ?? 0),
-      new BN(f.ts ?? f.Ts ?? 0),
-      new BN(f.start_time ?? f.StartTime ?? 0),
-      f.competition ?? f.Competition ?? '',
-      f.competition_id ?? f.CompetitionId ?? 0,
-      f.fixture_group_id ?? f.FixtureGroupId ?? 0,
-      f.participant1_id ?? f.Participant1Id ?? 0,
-      f.participant1 ?? f.Participant1 ?? '',
-      f.participant2_id ?? f.Participant2Id ?? 0,
-      f.participant2 ?? f.Participant2 ?? '',
-      new BN(f.fixture_id ?? f.FixtureId ?? 0),
-      f.participant1_is_home ?? f.Participant1IsHome ?? true,
-      fixtureEpochDay,
-      new BN(fs.fixture_id ?? fs.fixtureId ?? 0),
-      fs.competition_id ?? fs.competitionId ?? 0,
-      fs.competition ?? '',
-      fs.update_count ?? fs.updateStats?.updateCount ?? 0,
-      new BN(fs.min_timestamp ?? fs.updateStats?.minTimestamp ?? 0),
-      new BN(fs.max_timestamp ?? fs.updateStats?.maxTimestamp ?? 0),
-      Object.values(fs.update_sub_tree_root ?? fs.updateSubTreeRoot ?? fs.eventsSubTreeRoot ?? new Array(32).fill(0)),
-      fixtureProofNodes,
-      mainProofNodes,
-    )
-    .accountsStrict({
-      caller: wallet.publicKey,
-      escrow: params.escrowPubkey,
-      mint: params.mint,
-      vault: params.vaultPubkey,
-      depositorTokenAccount: params.depositorTokenAccount,
-      recipientTokenAccount: params.recipientTokenAccount,
-      callerTokenAccount: getAssociatedTokenAddressSync(params.mint, wallet.publicKey, false, TOKEN_PROGRAM_ID),
-      tokenProgram: TOKEN_PROGRAM_ID,
-      txlineProgram: TXLINE_PROGRAM_ID,
-      tenDailyFixturesRoots,
-    })
-    .instruction();
-
-  return buildAndSend(connection, wallet, instruction);
-}
-
-export async function cancelEscrow(
-  connection: Connection,
-  wallet: any,
-  escrowPubkey: PublicKey,
-  mint: PublicKey,
-  vaultPubkey: PublicKey,
-  depositorTokenAccount: PublicKey,
-): Promise<string> {
-  const program = await getSettlementProgram(connection, wallet);
-  const instruction = await program.methods
-    .cancel()
-    .accountsStrict({
-      depositor: wallet.publicKey,
-      escrow: escrowPubkey,
-      mint,
-      vault: vaultPubkey,
-      depositorTokenAccount,
-      tokenProgram: TOKEN_PROGRAM_ID,
     })
     .instruction();
   return buildAndSend(connection, wallet, instruction);

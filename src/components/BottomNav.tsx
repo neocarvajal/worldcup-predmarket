@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * BottomNav — Mobile bottom tab navigation
+ * ==========================================
+ * Five-tab navigation: Markets, Live, Faucet, Portfolio, Profile. Active
+ * tab shown with accent dot indicator and highlighted icon. Safe-area-aware
+ * bottom padding for mobile devices. Hidden on the landing page via
+ * BottomNavWrapper.
+ */
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

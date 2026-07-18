@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * BalancePill — USDT balance display
+ * ====================================
+ * Small pill component showing the user's USDT token balance. Polls every
+ * 30 seconds via getUsdtBalance(). Links to /faucet for claiming testnet
+ * USDT. Used inside MarketDetail and BetSlipDrawer.
+ */
+
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWallet } from '@solana/wallet-adapter-react';

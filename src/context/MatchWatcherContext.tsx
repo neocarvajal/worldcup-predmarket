@@ -1,12 +1,21 @@
 "use client";
-
+/**
+ * Background match watcher & auto-settlement trigger
+ * ====================================================
+ * Polls every 15 seconds when a wallet is connected. Tracks user escrows
+ * and their fixture score snapshots. Detects status transitions: match
+ * started (StatusId >= 2) fires in-app + push notifications; match finished
+ * (StatusId 5/10/13) fires notifications and calls trigger-settle for
+ * immediate settlement. On each escrow refresh cycle, detects newly settled
+ * escrows and adds win/loss in-app notifications retroactively.
+ */
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { useTxLine } from './TxLineContext';
 import { useNotifications } from './NotificationContext';
 import { fetchUserEscrows } from '../lib/settlement';
-import { detectLocale, t, tWithArgs } from '../lib/locale';
+import { detectLocale, t } from '../lib/locale';
 
 const FINISHED_IDS = [5, 10, 13];
 const STORAGE_PREFIX = 'match-watcher:';

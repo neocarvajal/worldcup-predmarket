@@ -1,3 +1,11 @@
+/**
+ * GET /api/push/check — Verify push subscription exists in Supabase
+ * ==================================================================
+ * Same-origin proxy endpoint that checks if a browser push subscription
+ * endpoint is stored in the push_subscriptions table. Used by the
+ * usePushNotifications hook to detect stale subscriptions (browser-only
+ * without Supabase record) and auto-unsubscribe them.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseFetch, isSupabaseConfigured } from '../../../../lib/supabase';
 

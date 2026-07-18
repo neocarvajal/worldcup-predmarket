@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * MarketList — Filtered fixture grid
+ * ====================================
+ * Fetches all fixtures from TxLINE, filters to World Cup (CompetitionId=72)
+ * within a 4-hour window, checks fixture-status for each to exclude finished
+ * matches, sorts by start time, and renders a grid of MarketCards. Handles
+ * auth errors (subscription required) and network error states.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTxLine, TxLineAuthError } from '../context/TxLineContext';

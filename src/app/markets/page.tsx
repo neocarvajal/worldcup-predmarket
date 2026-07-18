@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Markets listing page
+ * =====================
+ * Shell page that renders the MarketList component (client-side) along
+ * with a SubscriptionBanner for users who haven't activated TxLINE.
+ */
+
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';

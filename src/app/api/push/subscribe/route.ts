@@ -1,3 +1,11 @@
+/**
+ * POST /api/push/subscribe — Store push subscription
+ * DELETE /api/push/subscribe?endpoint=X — Remove subscription
+ * =============================================================
+ * Manages browser push subscription persistence in Supabase. POST inserts
+ * a new subscription (wallet, endpoint, p256dh, auth) with upsert on 409
+ * conflict. DELETE removes by endpoint. Used by the usePushNotifications hook.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseFetch, isSupabaseConfigured } from '../../../../lib/supabase';
 

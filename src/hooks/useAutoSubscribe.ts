@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * TxLINE auto-subscription hook
+ * ===============================
+ * Orchestrates the wallet-to-TxLINE subscription flow. On mount, checks for an
+ * existing API token across storage layers (localStorage → on-chain UserProfile).
+ * If missing, walks the user through: (1) signing a guest JWT request, (2) sending
+ * an on-chain subscribe transaction to the TxLINE program (4-week free tier),
+ * (3) signing a message to activate the API token, and (4) persisting the token
+ * on-chain via setTxLineToken. Exposes states for UI feedback.
+ */
+
 import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useConnection } from '@solana/wallet-adapter-react';

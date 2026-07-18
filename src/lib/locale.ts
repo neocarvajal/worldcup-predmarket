@@ -1,3 +1,11 @@
+/**
+ * Notification translation dictionary (EN/ES)
+ * ============================================
+ * Minimal i18n for push and in-app notification strings. `detectLocale` reads
+ * navigator.language on the client; server-side defaults to Spanish. `t()` maps
+ * keys like `you_won`, `match_finished` to the correct locale string.
+ */
+
 export type Locale = 'en' | 'es';
 
 const dict: Record<string, { en: string; es: string }> = {
@@ -18,10 +26,4 @@ export function detectLocale(): Locale {
 
 export function t(key: string, locale: Locale = 'es'): string {
   return dict[key]?.[locale] ?? key;
-}
-
-export function tWithArgs(key: string, locale: Locale, ...args: string[]): string {
-  let msg = dict[key]?.[locale] ?? key;
-  args.forEach((arg, i) => { msg = msg.replace(`{${i}}`, arg); });
-  return msg;
 }

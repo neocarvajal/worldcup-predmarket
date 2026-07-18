@@ -1,5 +1,12 @@
 "use client";
-
+/**
+ * Bet slip state management
+ * ==========================
+ * React context for the betting slip drawer. Manages selected outcomes
+ * (selection, odds, label, fixture), stake amount, and drawer open/close
+ * state. Consumed by MarketDetail (to add selections) and BetSlipDrawer
+ * (to display and submit bets).
+ */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 export interface BetSelection {

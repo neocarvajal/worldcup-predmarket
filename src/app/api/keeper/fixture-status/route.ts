@@ -1,3 +1,12 @@
+/**
+ * GET /api/keeper/fixture-status — Authoritative fixture finished check
+ * ======================================================================
+ * Fetches score snapshots and fixture data from TxLINE to determine if a
+ * match has finished. Considers StatusId 5/10/13/100, the game_finalised
+ * action, and extra-time edge cases (a newer non-terminal message after
+ * game_finalised resets the finished flag). Used by MarketCard, MarketList,
+ * MarketDetail, and Portfolio pages.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair } from '@solana/web3.js';
 import { ensureApiToken } from '../../../../lib/keeper-auth';

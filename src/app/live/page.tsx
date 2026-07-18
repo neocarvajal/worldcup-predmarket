@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * Live match tracking page
+ * ==========================
+ * Polls TxLINE score snapshots every 15 seconds for World Cup matches
+ * that started within the last 4.5 hours. Parses match events from the
+ * message stream (goals, yellow/red cards, VAR actions) using both direct
+ * event extraction and Score-delta inference. Displays a scoreboard with
+ * minute/status and a full event timeline in a drill-down overlay.
+ * Auto-triggers settlement via POST /api/keeper/trigger-settle when a
+ * match transitions to a finished status.
+ */
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTxLine } from '../../context/TxLineContext';
 import { TxLineAuthError } from '../../txlineSkill';

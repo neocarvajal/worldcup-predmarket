@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * USDT faucet page
+ * ==================
+ * Claims testnet USDT (100 tokens) from the TxLINE program faucet.
+ * Shows current USDT balance, mint address, cooldown timer (8h), and
+ * transaction status. Calls requestUsdtFaucet() which builds and sends
+ * the faucet claim instruction on Solana.
+ */
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';

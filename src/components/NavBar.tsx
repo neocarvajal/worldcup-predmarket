@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * NavBar — Top navigation bar
+ * =============================
+ * Displays the WC brand logo, notification bell icon with unread count
+ * badge and dropdown panel (notifications list with mark-all-read and
+ * clear-all actions), LanguageToggle between EN/ES, and ClientWalletButton.
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';

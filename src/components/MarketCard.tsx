@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * MarketCard — Fixture card for the markets listing
+ * ==================================================
+ * Displays team flags, names, competition badge, countdown timer, and
+ * live odds with directional arrows (↑/↓). Checks fixture-status API to
+ * mark finished matches as disabled (opacity-60, pointer-events-none) with
+ * a "Finished" badge. Subscribes to LiveOddsContext for real-time price
+ * updates when the match is in-play (StatusId 2-4).
+ */
+
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

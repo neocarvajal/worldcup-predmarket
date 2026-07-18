@@ -1,3 +1,11 @@
+/**
+ * POST /api/keeper/trigger-settle — Real-time settlement trigger
+ * ================================================================
+ * Called by the MatchWatcherContext when a fixture transitions to finished.
+ * Rate-limited to 1 request per 60 seconds per fixtureId (in-memory).
+ * Calls settleActiveEscrows with a fixture filter, then dispatches VAPID push
+ * notifications grouped by the subscriber's locale (stored in push_subscriptions).
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Connection, Keypair } from '@solana/web3.js';
 import { settleActiveEscrows } from '../../../../lib/keeper';

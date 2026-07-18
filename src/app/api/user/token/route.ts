@@ -1,3 +1,10 @@
+/**
+ * POST|GET|DELETE /api/user/token — TxLINE token persistence
+ * ============================================================
+ * CRUD interface for storing a wallet's TxLINE JWT + API token in Supabase.
+ * Called by the TxLineClient after successful authentication to persist tokens
+ * across sessions for automatic restoration via restoreForWallet().
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

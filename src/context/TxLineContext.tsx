@@ -1,4 +1,11 @@
 "use client";
+/**
+ * TxLINE API client context
+ * ==========================
+ * Singleton React context that provides the TxLineClient instance
+ * to the entire app tree. Wrapped by the Providers component,
+ * consumed via the useTxLine() hook.
+ */
 import React, { createContext, useContext } from 'react';
 import { txLineClient, TxLineAuthError } from '../txlineSkill';
 export { TxLineAuthError };

@@ -1,3 +1,12 @@
+/**
+ * On-chain TxLINE program interactions
+ * =====================================
+ * PDA derivation helpers and transaction builders for the TxLINE program on Solana.
+ * `requestUsdtFaucet` claims testnet USDT from the TxLINE faucet (8h cooldown).
+ * `checkFaucetCooldown` reads the on-chain faucet tracker. `getUsdtBalance`
+ * queries the user's associated token account balance for the USDT mint.
+ */
+
 import { Connection, PublicKey, SystemProgram, TransactionInstruction, type Transaction, type VersionedTransaction } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,

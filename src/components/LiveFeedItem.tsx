@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * LiveFeedItem — Live match scoreboard card
+ * ===========================================
+ * Displays team names with flags, score, match minute, and status badge
+ * (H1/HT/H2/F/ET/PE). Shows a green pulse animation for in-play matches.
+ * "View events" button opens the event timeline overlay from live/page.tsx.
+ */
+
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { useLocale } from 'next-intl';

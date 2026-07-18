@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * MarketDetail — Full fixture betting interface
+ * ==============================================
+ * Displays team details, countdown, and market tabs (1X2, Over/Under, BTTS).
+ * Fetches fixture data and odds from TxLINE. Renders OddsButton for each
+ * outcome. Integrates with BetSlipContext for selection management and
+ * LiveOddsContext for suspension rules. Shows BalancePill and BetSlipDrawer.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';

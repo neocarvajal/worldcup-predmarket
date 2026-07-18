@@ -1,5 +1,14 @@
 "use client";
 
+/**
+ * OddsButton — Tappable odds pill for market outcomes
+ * =====================================================
+ * Shows selection icon, label, odds value, directional arrow (↑/↓), and
+ * percentage change. Green dot pulse animation for live matches. Selected
+ * state renders with an accent glow border. Used inside MarketDetail's
+ * market tab layouts.
+ */
+
 import React from 'react';
 import { ChevronUpIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 
